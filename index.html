@@ -882,10 +882,25 @@
       grid-template-columns: 1fr 1fr;
       grid-template-rows: auto auto;
       gap: 2rem clamp(3rem, 8vw, 6rem);
-      margin: 2rem 0;
+      margin: var(--pad) 0;
       justify-items: center;
       align-items: center;
       max-width: 100%;
+    }
+
+    /* Mobile: single column layout */
+    @media (max-width: 768px) {
+      .spread-selection {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto auto;
+        gap: var(--pad);
+        margin: var(--pad) 0;
+      }
+
+      .spread-option {
+        width: 100%;
+        max-width: 280px;
+      }
     }
 
     .spread-option {
@@ -923,8 +938,8 @@
     }
 
     .preview-card {
-      width: clamp(60px, 15vw, 80px);
-      height: clamp(90px, 22.5vw, 120px);
+      width: var(--cardW);
+      height: var(--cardH);
       position: relative;
       border-radius: 8px;
       box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
@@ -1543,15 +1558,8 @@
         transform: rotate(10deg);
       }
 
-      .spread-selection {
-        flex-direction: column;
-        gap: 1rem;
-      }
+      /* Mobile spread selection - stack vertically */
 
-      .preview-card {
-        width: clamp(50px, 12vw, 60px);
-        height: clamp(75px, 18vw, 90px);
-      }
 
       .three-preview-card.left-card {
         transform: rotate(-8deg) translateX(-8px);
@@ -1561,19 +1569,13 @@
         transform: rotate(8deg) translateX(8px);
       }
 
-      .spread-selection {
-        grid-template-columns: 1fr;
-        grid-template-rows: auto auto auto;
-        gap: 1rem;
-      }
 
+      /* Mobile: all options stack in single column */
       .single-card-option,
       .three-cards-option,
       .custom-reading-button {
         grid-column: 1;
-        grid-row: auto;
         justify-self: center;
-        transform: none;
       }
 
       .tarot-footer {
@@ -1720,7 +1722,6 @@
       .gallery-section h3 {
         font-size: 1.25rem;
       }
-    }
 
     /* Mobile-specific fixes */
     .sound-toggle-btn,
