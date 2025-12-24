@@ -234,6 +234,55 @@
       margin: 0;
     }
 
+    /* Payment info */
+    .payment-info {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      margin-top: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .payment-item {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    .payment-label {
+      opacity: 0.8;
+    }
+
+    .payment-price {
+      font-weight: 600;
+      color: #4ade80;
+    }
+
+    .payment-price[data-unlocked="true"] {
+      color: #fbbf24;
+    }
+
+    /* Transaction status */
+    .tx-status {
+      margin-top: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: rgba(0, 123, 255, 0.1);
+      border: 1px solid rgba(0, 123, 255, 0.3);
+      border-radius: 8px;
+      text-align: center;
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    .tx-hash {
+      margin-top: 0.25rem;
+      font-family: monospace;
+      font-size: 0.8rem;
+      opacity: 0.8;
+    }
+
     /* Хеш транзакции */
     .tarot-hash {
       text-align: center;
@@ -302,6 +351,7 @@
       position: fixed;
       top: calc(20px + var(--safe-area-inset-top, 0));
       right: calc(20px + var(--safe-area-inset-right, 0));
+      left: auto;
       background: rgba(0, 123, 255, 0.8);
       color: #fff;
       border: none;
@@ -318,6 +368,31 @@
       background: rgba(0, 123, 255, 1);
       transform: scale(1.1);
       box-shadow: 0 6px 16px rgba(0, 123, 255, 0.4);
+    }
+
+    /* Export CSV button */
+    .export-csv-btn {
+      position: fixed;
+      top: calc(70px + var(--safe-area-inset-top, 0));
+      right: calc(20px + var(--safe-area-inset-right, 0));
+      background: rgba(34, 197, 94, 0.8);
+      color: #fff;
+      border: 1px solid rgba(34, 197, 94, 0.3);
+      border-radius: 12px;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow:
+        0 4px 12px rgba(34, 197, 94, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    }
+
+    .export-csv-btn:hover {
+      background: rgba(34, 197, 94, 1);
+      transform: scale(1.05);
+      box-shadow: 0 6px 16px rgba(34, 197, 94, 0.4);
     }
 
     .tarot-deck {
@@ -493,6 +568,49 @@
         inset 0 1px 0 rgba(255, 255, 255, 0.2),
         inset 0 -1px 0 rgba(0, 0, 0, 0.05);
       border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    /* Wallet connect button */
+    .wallet-connect-btn {
+      position: fixed;
+      top: calc(20px + var(--safe-area-inset-top, 0));
+      left: calc(70px + var(--safe-area-inset-left, 0));
+      background: linear-gradient(135deg,
+        rgba(0, 123, 255, 0.2),
+        rgba(0, 50, 150, 0.2),
+        rgba(0, 123, 255, 0.1)
+      );
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 12px;
+      color: #fff;
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow:
+        0 8px 32px rgba(0, 123, 255, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.1),
+        inset 0 0 80px rgba(0, 123, 255, 0.1);
+      min-width: 80px;
+      text-align: center;
+    }
+
+    .wallet-connect-btn:hover {
+      background: linear-gradient(135deg,
+        rgba(0, 123, 255, 0.3),
+        rgba(0, 50, 150, 0.3),
+        rgba(0, 123, 255, 0.2)
+      );
+      backdrop-filter: blur(25px);
+      -webkit-backdrop-filter: blur(25px);
+      transform: scale(1.05);
+      box-shadow:
+        0 12px 40px rgba(0, 123, 255, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
     }
 
     .modal-header h2 {
@@ -1547,6 +1665,20 @@
         margin-top: 0.25rem;
       }
 
+      .payment-info {
+        gap: 0.5rem;
+        margin-top: 0.25rem;
+      }
+
+      .payment-item {
+        font-size: 0.8rem;
+      }
+
+      .tx-status {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.8rem;
+      }
+
       .tarot-table {
         min-height: 250px;
         padding: 1rem;
@@ -1659,6 +1791,14 @@
         min-width: 40px;
       }
 
+      .wallet-connect-btn {
+        top: 15px;
+        left: 65px;
+        padding: 6px 8px;
+        font-size: 10px;
+        min-width: 70px;
+      }
+
       .custom-reading-overlay-button {
         width: 120px;
         height: 75px;
@@ -1731,7 +1871,9 @@
 
     /* Mobile-specific fixes */
     .sound-toggle-btn,
-    .gallery-button {
+    .wallet-connect-btn,
+    .gallery-button,
+    .export-csv-btn {
       padding: clamp(6px, 2vw, 10px) !important;
       font-size: clamp(14px, 4vw, 18px) !important;
       min-width: 44px !important;
@@ -1991,6 +2133,9 @@
 </head>
 <body data-debug="0" data-viewport="unknown">
   <div id="root"></div>
+
+  <!-- ethers.js для Web3 взаимодействия -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 
   <!-- React и ReactDOM через CDN -->
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -2578,6 +2723,12 @@
       const [previousGameStage, setPreviousGameStage] = useState("idle");
       const [soundEnabled, setSoundEnabled] = useState(true);
 
+      // Wallet and payment states
+      const [isWalletConnected, setIsWalletConnected] = useState(false);
+      const [walletAddress, setWalletAddress] = useState(null);
+      const [txStatus, setTxStatus] = useState("idle"); // idle, paying, success, error
+      const [txHash, setTxHash] = useState(null);
+
       // Farcaster/Base mini app ready call
       useEffect(() => {
         if (window.parent !== window) {
@@ -2600,6 +2751,140 @@
         const audio = new Audio('Assets/audio/spread.mp3');
         audio.volume = 0.4; // Set volume to 40%
         audio.play().catch(e => console.log('Audio play failed:', e));
+      };
+
+      // Wallet and payment functions
+      const connectWallet = async () => {
+        if (!window.ethereum) {
+          alert('MetaMask or compatible wallet not found!');
+          return null;
+        }
+
+        try {
+          const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+          const provider = new ethers.providers.Web3Provider(window.ethereum);
+          const signer = provider.getSigner();
+          const address = await signer.getAddress();
+
+          setIsWalletConnected(true);
+          setWalletAddress(address);
+
+          return { provider, signer, address };
+        } catch (error) {
+          console.error('Failed to connect wallet:', error);
+          return null;
+        }
+      };
+
+      const ensureBase = async (provider) => {
+        const network = await provider.getNetwork();
+        if (network.chainId !== 8453) {
+          try {
+            await window.ethereum.request({
+              method: 'wallet_switchEthereumChain',
+              params: [{ chainId: '0x2105' }],
+            });
+            // Reload provider after network switch
+            return new ethers.providers.Web3Provider(window.ethereum);
+          } catch (error) {
+            console.error('Failed to switch to Base network:', error);
+            throw new Error('Please switch to Base network manually');
+          }
+        }
+        return provider;
+      };
+
+      const payUSDC = async (signer, amountUSDC) => {
+        const USDC_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bDA02913';
+        const TREASURY = '0xD4bF185c846F6CAbDaa34122d0ddA43765E754A6';
+        const DECIMALS = 6;
+
+        const usdcContract = new ethers.Contract(
+          USDC_ADDRESS,
+          ['function transfer(address to, uint256 amount) returns (bool)'],
+          signer
+        );
+
+        const amount = ethers.utils.parseUnits(amountUSDC.toString(), DECIMALS);
+        const tx = await usdcContract.transfer(TREASURY, amount);
+        const receipt = await tx.wait();
+
+        return { txHash: tx.hash, receipt };
+      };
+
+
+      // Usage Logger Module
+      const usageLogger = {
+        // Get identity from Mini App context
+        getIdentity() {
+          let fid = '';
+          let walletAddress = walletAddress || '';
+
+          // Try to get FID from Farcaster context (if available in Mini App)
+          if (window.farcaster && window.farcaster.user) {
+            fid = window.farcaster.user.fid || '';
+          }
+
+          return { fid, walletAddress };
+        },
+
+        // Generate storage key for identity
+        getStorageKey() {
+          const { fid, walletAddress } = this.getIdentity();
+          return `cbtaro_usage_${fid || 'unknown'}_${walletAddress || 'unknown'}`;
+        },
+
+        // Load counts from localStorage
+        loadCounts() {
+          const key = this.getStorageKey();
+          const stored = localStorage.getItem(key);
+          if (stored) {
+            try {
+              return JSON.parse(stored);
+            } catch (e) {
+              console.error('Failed to parse usage counts:', e);
+            }
+          }
+          return { oneCardCount: 0, threeCardCount: 0, customCount: 0 };
+        },
+
+        // Save counts to localStorage
+        saveCounts(counts) {
+          const key = this.getStorageKey();
+          localStorage.setItem(key, JSON.stringify(counts));
+        },
+
+        // Increment count for specific spread type
+        increment(type) {
+          const counts = this.loadCounts();
+          if (type === 'ONE') counts.oneCardCount++;
+          else if (type === 'THREE') counts.threeCardCount++;
+          else if (type === 'CUSTOM') counts.customCount++;
+          this.saveCounts(counts);
+        },
+
+        // Export data as CSV
+        exportCsv() {
+          const { fid, walletAddress } = this.getIdentity();
+          const counts = this.loadCounts();
+
+          // Create CSV content
+          const csvContent = [
+            'fid,walletAddress,oneCardCount,threeCardCount,customCount',
+            `${fid},${walletAddress},${counts.oneCardCount},${counts.threeCardCount},${counts.customCount}`
+          ].join('\n');
+
+          // Create and download file
+          const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+          const link = document.createElement('a');
+          const url = URL.createObjectURL(blob);
+          link.setAttribute('href', url);
+          link.setAttribute('download', 'cbTARO_usage.csv');
+          link.style.visibility = 'hidden';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }
       };
 
       // 1. Click "Choose Your Spread"
@@ -2703,13 +2988,62 @@ Important: This must be a unique interpretation for this specific card spread. M
 ✨ **Soul's Journey:** This unique card spread carries the blessing of ${themes}. Each card contributes its sacred energy to guide you toward greater wisdom and spiritual growth. Trust that this specific combination appeared for your highest good.`;
       };
 
-      // 2. Select specific spread (1, 3, or CUSTOM cards) → go straight to animation (payment disabled)
+      // 2. Select specific spread (1, 3, or CUSTOM cards)
       const handleSelectSpread = async (spread) => {
         setSelectedSpread(spread);
-        setIsLoading(true);
         setAiInterpretation(null);
 
-        // Payment disabled - go straight to animation
+        // Handle different payment requirements
+        if (spread === "ONE") {
+          // Free - log usage and start animation
+          usageLogger.increment("ONE");
+          await startSpreadAnimation(spread);
+        } else if (spread === "THREE") {
+          // Pay 0.01 USDC each time for 3-card spread
+          try {
+            setTxStatus("paying");
+            const wallet = await connectWallet();
+            if (!wallet) {
+              setTxStatus("error");
+              alert("Please connect your wallet first");
+              return;
+            }
+
+            const provider = await ensureBase(wallet.provider);
+            const signer = provider.getSigner();
+
+            const result = await payUSDC(signer, 0.01);
+            setTxHash(result.txHash);
+            setTxStatus("success");
+
+            // Log usage and start animation
+            usageLogger.increment("THREE");
+
+            // Small delay to show success
+            setTimeout(() => {
+              setTxStatus("idle");
+              startSpreadAnimation(spread);
+            }, 2000);
+          } catch (error) {
+            console.error("Payment failed:", error);
+            setTxStatus("error");
+            if (error.message.includes("user rejected")) {
+              alert("Payment cancelled. 3-card reading requires 0.01 USDC payment.");
+            } else {
+              alert(`Payment failed: ${error.message}`);
+            }
+            return;
+          }
+        } else if (spread === "CUSTOM") {
+          // Free - log usage and start animation
+          usageLogger.increment("CUSTOM");
+          await startSpreadAnimation(spread);
+        }
+      };
+
+      const startSpreadAnimation = async (spread) => {
+        setIsLoading(true);
+
         try {
           // Small pause for smoothness
           await new Promise((resolve) => setTimeout(resolve, 300));
@@ -2842,11 +3176,46 @@ Important: This must be a unique interpretation for this specific card spread. M
             {soundEnabled ? "🔊" : "🔇"}
           </button>
 
+          {/* Wallet connect button */}
+          <button
+            className="wallet-connect-btn"
+            onClick={async () => { playButtonSound(); await connectWallet(); }}
+            title={isWalletConnected ? `Connected: ${walletAddress?.slice(0, 6)}...${walletAddress?.slice(-4)}` : "Connect Wallet"}
+          >
+            {isWalletConnected ? `💰 ${walletAddress?.slice(0, 4)}...${walletAddress?.slice(-4)}` : "🔗 Connect"}
+          </button>
+
           <div className="tarot-container">
             {/* Header / greeting */}
             <header className="tarot-header">
               <h1>cbTaro</h1>
               <p>Daily mystical reading on Base ✨</p>
+
+              {/* Payment info */}
+              <div className="payment-info">
+                <div className="payment-item">
+                  <span className="payment-label">1 Card:</span>
+                  <span className="payment-price">FREE</span>
+                </div>
+                <div className="payment-item">
+                  <span className="payment-label">3 Cards:</span>
+                  <span className="payment-price">0.01 USDC</span>
+                </div>
+                <div className="payment-item">
+                  <span className="payment-label">Custom:</span>
+                  <span className="payment-price">FREE</span>
+                </div>
+              </div>
+
+              {/* Transaction status */}
+              {txStatus !== 'idle' && (
+                <div className="tx-status">
+                  {txStatus === 'paying' && <span>🔄 Confirm in wallet...</span>}
+                  {txStatus === 'success' && <span>✅ Payment successful!</span>}
+                  {txStatus === 'error' && <span>❌ Payment failed</span>}
+                  {txHash && <div className="tx-hash">TX: {txHash.slice(0, 10)}...{txHash.slice(-8)}</div>}
+                </div>
+              )}
             </header>
 
             {/* Small block with hash after "payment" (hidden, as payment is disabled) */}
@@ -2875,6 +3244,23 @@ Important: This must be a unique interpretation for this specific card spread. M
                 >
                   ☰
                     </button>
+
+          {/* Export CSV button */}
+          <button
+            className="export-csv-btn"
+            onClick={() => {
+              playButtonSound();
+              try {
+                usageLogger.exportCsv();
+              } catch (error) {
+                console.error('Export failed:', error);
+                alert('Failed to export CSV');
+              }
+            }}
+            title="Export usage statistics"
+          >
+            📊
+          </button>
 
                 {/* Spread selection modal */}
                 {gameStage === "choosing" && (
