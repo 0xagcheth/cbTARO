@@ -283,7 +283,6 @@
       opacity: 0.8;
     }
 
-    /* Хеш транзакции */
     .tarot-hash {
       text-align: center;
       padding: 1rem;
@@ -739,7 +738,7 @@
       gap: 2rem;
       flex: 1;
       overflow-y: auto;
-      min-height: 0; /* Важно для flex */
+      min-height: 0;
     }
 
     .gallery-section h3 {
@@ -1280,7 +1279,6 @@
       perspective: 1000px;
     }
 
-    /* Карта */
     .tarot-card {
       width: var(--cardW);
       height: var(--cardH);
@@ -1472,7 +1470,6 @@
       color: #4a5568;
       margin-bottom: 0.5rem;
     }
-    /* Футер */
     .tarot-footer {
       margin-top: 2rem;
       text-align: center;
@@ -1536,7 +1533,6 @@
       border-color: rgba(255, 255, 255, 0.3);
     }
 
-    /* Панель чтения */
     .tarot-reading-overlay {
       position: fixed;
       top: 0;
@@ -1643,7 +1639,6 @@
       width: 100%;
     }
 
-    /* Адаптивность */
     @media (max-width: 768px) {
       .tarot-container {
         padding: 0.5rem;
@@ -2134,14 +2129,12 @@
 <body data-debug="0" data-viewport="unknown">
   <div id="root"></div>
 
-  <!-- ethers.js для Web3 взаимодействия -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 
-  <!-- React и ReactDOM через CDN -->
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 
-  <!-- Babel Standalone для трансформации JSX -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
   <script type="text/babel">
@@ -2727,7 +2720,6 @@
       const [isWalletConnected, setIsWalletConnected] = useState(false);
       const [walletAddress, setWalletAddress] = useState(null);
       const [txStatus, setTxStatus] = useState("idle"); // idle, paying, success, error
-      const [txHash, setTxHash] = useState(null);
 
       // Farcaster/Base mini app ready call
       useEffect(() => {
@@ -2818,14 +2810,14 @@
         // Get identity from Mini App context
         getIdentity() {
           let fid = '';
-          let walletAddress = walletAddress || '';
+          let currentWalletAddress = walletAddress || '';
 
           // Try to get FID from Farcaster context (if available in Mini App)
           if (window.farcaster && window.farcaster.user) {
             fid = window.farcaster.user.fid || '';
           }
 
-          return { fid, walletAddress };
+          return { fid, walletAddress: currentWalletAddress };
         },
 
         // Generate storage key for identity
@@ -2884,6 +2876,177 @@
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
+        }
+      };
+
+      // Share functions
+      const getShareText = (spreadType) => {
+        if (spreadType === "ONE") {
+          return `🃏 Daily Tarot
+
+Today's card gave me a clear signal.
+Sometimes one card is all you need.
+
+🔮 Pulled with cbTARO on Base`;
+        } else if (spreadType === "THREE") {
+          return `🔮 3-Card Tarot Reading
+
+Past. Present. Direction.
+The pattern actually makes sense.
+
+✨ Pulled with cbTARO on Base`;
+        } else if (spreadType === "CUSTOM") {
+          return `🧿 Custom Tarot Reading
+
+Asked a real question.
+Got a real answer.
+
+✨ cbTARO · Tarot on Base`;
+        }
+        return "";
+      };
+
+      const generateCardsImage = async (cards) => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = 1200;
+        canvas.height = 630;
+
+        // Dark background
+        ctx.fillStyle = '#0a1230';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Card images
+        const cardWidth = 150;
+        const cardHeight = cardWidth * 1.46;
+        const totalCardsWidth = cards.length * cardWidth + (cards.length - 1) * 20;
+        const startX = (canvas.width - totalCardsWidth) / 2;
+        const centerY = canvas.height / 2 - cardHeight / 2;
+
+        for (let i = 0; i < cards.length; i++) {
+          const card = cards[i];
+          const x = startX + i * (cardWidth + 20);
+          const y = centerY;
+
+          try {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            await new Promise((resolve, reject) => {
+              img.onload = resolve;
+              img.onerror = reject;
+              img.src = card.imagePath;
+            });
+
+            ctx.drawImage(img, x, y, cardWidth, cardHeight);
+          } catch (error) {
+            console.error('Failed to load card image:', error);
+            // Draw placeholder
+            ctx.fillStyle = '#1a1a2e';
+            ctx.fillRect(x, y, cardWidth, cardHeight);
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(x, y, cardWidth, cardHeight);
+
+            ctx.fillStyle = '#fff';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(card.name, x + cardWidth/2, y + cardHeight/2);
+          }
+        }
+
+        // Footer text
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+        ctx.font = '16px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('cbTARO · Tarot on Base', canvas.width / 2, canvas.height - 20);
+
+        return canvas.toDataURL('image/png');
+      };
+
+      const generateAITextImage = async (aiText) => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = 1200;
+        canvas.height = 630;
+
+        // Dark background
+        ctx.fillStyle = '#0a1230';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Title
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 24px Georgia, serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Custom Tarot Interpretation', canvas.width / 2, 50);
+
+        // AI Text with word wrapping
+        ctx.fillStyle = '#fff';
+        ctx.font = '18px Georgia, serif';
+        ctx.textAlign = 'left';
+
+        const maxWidth = canvas.width - 100;
+        const lineHeight = 24;
+        let y = 100;
+
+        const words = aiText.split(' ');
+        let line = '';
+
+        for (let i = 0; i < words.length; i++) {
+          const testLine = line + words[i] + ' ';
+          const metrics = ctx.measureText(testLine);
+          const testWidth = metrics.width;
+
+          if (testWidth > maxWidth && i > 0) {
+            ctx.fillText(line, 50, y);
+            line = words[i] + ' ';
+            y += lineHeight;
+          } else {
+            line = testLine;
+          }
+        }
+        ctx.fillText(line, 50, y);
+
+        return canvas.toDataURL('image/png');
+      };
+
+      const handleShare = async () => {
+        try {
+          playButtonSound();
+
+          const shareText = getShareText(selectedSpread);
+          const embeds = [];
+
+          // Generate cards image
+          const cardsImage = await generateCardsImage(cards);
+          embeds.push(cardsImage);
+
+          // Generate AI image for CUSTOM
+          if (selectedSpread === "CUSTOM" && aiInterpretation) {
+            const aiImage = await generateAITextImage(aiInterpretation);
+            embeds.push(aiImage);
+          }
+
+          // Add app URL
+          embeds.push('https://0xagcheth.github.io/cbTARO/');
+
+          // Create Warpcast intent URL
+          const baseUrl = 'https://warpcast.com/~/compose';
+          const params = new URLSearchParams({
+            text: shareText,
+          });
+
+          embeds.forEach((embed, index) => {
+            params.append(`embeds[${index}]`, embed);
+          });
+
+          const shareUrl = `${baseUrl}?${params.toString()}`;
+
+          // Open in new window/tab
+          window.open(shareUrl, '_blank', 'noopener,noreferrer');
+
+        } catch (error) {
+          console.error('Share failed:', error);
+          alert('Failed to share reading. Please try again.');
         }
       };
 
@@ -3035,9 +3198,41 @@ Important: This must be a unique interpretation for this specific card spread. M
             return;
           }
         } else if (spread === "CUSTOM") {
-          // Free - log usage and start animation
-          usageLogger.increment("CUSTOM");
-          await startSpreadAnimation(spread);
+          // Pay 1.00 USDC for custom reading
+          try {
+            setTxStatus("paying");
+            const wallet = await connectWallet();
+            if (!wallet) {
+              setTxStatus("error");
+              alert("Please connect your wallet first");
+              return;
+            }
+
+            const provider = await ensureBase(wallet.provider);
+            const signer = provider.getSigner();
+
+            const result = await payUSDC(signer, 1.00);
+            setTxHash(result.txHash);
+            setTxStatus("success");
+
+            // Log usage and start animation
+            usageLogger.increment("CUSTOM");
+
+            // Small delay to show success
+            setTimeout(() => {
+              setTxStatus("idle");
+              startSpreadAnimation(spread);
+            }, 2000);
+          } catch (error) {
+            console.error("Payment failed:", error);
+            setTxStatus("error");
+            if (error.message.includes("user rejected")) {
+              alert("Payment cancelled. Custom reading requires 1.00 USDC payment.");
+            } else {
+              alert(`Payment failed: ${error.message}`);
+            }
+            return;
+          }
         }
       };
 
@@ -3203,7 +3398,7 @@ Important: This must be a unique interpretation for this specific card spread. M
                 </div>
                 <div className="payment-item">
                   <span className="payment-label">Custom:</span>
-                  <span className="payment-price">FREE</span>
+                  <span className="payment-price">1.00 USDC</span>
                 </div>
               </div>
 
@@ -3245,22 +3440,24 @@ Important: This must be a unique interpretation for this specific card spread. M
                   ☰
                     </button>
 
-          {/* Export CSV button */}
-          <button
-            className="export-csv-btn"
-            onClick={() => {
-              playButtonSound();
-              try {
-                usageLogger.exportCsv();
-              } catch (error) {
-                console.error('Export failed:', error);
-                alert('Failed to export CSV');
-              }
-            }}
-            title="Export usage statistics"
-          >
-            📊
-          </button>
+          {/* Export CSV button - only visible for admin wallet */}
+          {walletAddress === '0x35895ba5c7646A0599419F0339b9C4355b5FF736' && (
+            <button
+              className="export-csv-btn"
+              onClick={() => {
+                playButtonSound();
+                try {
+                  usageLogger.exportCsv();
+                } catch (error) {
+                  console.error('Export failed:', error);
+                  alert('Failed to export CSV');
+                }
+              }}
+              title="Export usage statistics"
+            >
+              📊
+            </button>
+          )}
 
                 {/* Spread selection modal */}
                 {gameStage === "choosing" && (
@@ -3502,6 +3699,9 @@ Important: This must be a unique interpretation for this specific card spread. M
                       )}
                     </>
                   )}
+                  <button className="tarot-button" onClick={() => { playButtonSound(); handleShare(); }}>
+                    🔁 Share reading
+                  </button>
                   <button className="tarot-button secondary" onClick={() => { playButtonSound(); handleNewSpread(); }}>
                     &lt;
                   </button>
