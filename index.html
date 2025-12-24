@@ -1768,6 +1768,217 @@
     .tarot-main {
       min-height: unset !important;
     }
+
+    /* CRITICAL FIX: Choosing modal visibility on mobile */
+    /* 1. Disable content clipping for choosing modal */
+    .choosing-modal {
+      overflow: visible !important;
+    }
+
+    /* 2. Fix spread-selection grid to always show 2 columns in choosing modal */
+    .choosing-modal .spread-selection {
+      display: grid !important;
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      gap: clamp(12px, 4vw, 24px) !important;
+      margin: var(--pad) 0 !important;
+      justify-items: center !important;
+      align-items: center !important;
+    }
+
+    /* 3. Remove translateX transforms that cause overflow on mobile */
+    @media (max-width: 768px) {
+      .choosing-modal .single-card-option,
+      .choosing-modal .three-cards-option {
+        transform: none !important;
+      }
+    }
+
+    /* 4. Ensure spread-preview has minimum height to prevent collapse */
+    .choosing-modal .spread-preview {
+      min-height: calc(var(--cardH) + 14px) !important;
+      display: flex !important;
+      justify-content: center !important;
+      align-items: center !important;
+      margin-bottom: 1rem !important;
+    }
+
+    /* 5. Force choosing modal to be visible and not clipped */
+    .choosing-modal .spread-option {
+      opacity: 1 !important;
+      visibility: visible !important;
+      display: block !important;
+    }
+
+    /* ===========================================
+       CHOOSING MENU REDESIGN OVERRIDE
+       =========================================== */
+
+    /* Main choosing modal panel - compact glass design */
+    .tarot-modal.choosing-modal {
+      width: min(560px, 86vw) !important;
+      aspect-ratio: 1 / 0.82 !important;
+      background: rgba(10, 18, 48, 0.55) !important;
+      backdrop-filter: blur(20px) !important;
+      -webkit-backdrop-filter: blur(20px) !important;
+      border: 1px solid rgba(255, 255, 255, 0.16) !important;
+      border-radius: 16px !important;
+      box-shadow:
+        0 8px 32px rgba(0, 123, 255, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.1) !important;
+      padding: 0 !important;
+      display: flex !important;
+      flex-direction: column !important;
+      justify-content: space-between !important;
+      align-items: center !important;
+      overflow: visible !important;
+      position: relative !important;
+    }
+
+    /* Spread selection - force 2 columns layout */
+    .choosing-modal .spread-selection {
+      display: grid !important;
+      grid-template-columns: repeat(2, 1fr) !important;
+      grid-template-rows: auto !important;
+      gap: clamp(16px, 5vw, 32px) !important;
+      width: 100% !important;
+      padding: clamp(20px, 6vw, 32px) clamp(16px, 4vw, 24px) 0 !important;
+      margin: 0 !important;
+      justify-items: center !important;
+      align-items: center !important;
+    }
+
+    /* Remove transforms that offset options */
+    .choosing-modal .single-card-option,
+    .choosing-modal .three-cards-option {
+      grid-column: auto !important;
+      grid-row: auto !important;
+      transform: none !important;
+      width: 100% !important;
+      display: flex !important;
+      justify-content: center !important;
+      align-items: center !important;
+    }
+
+    /* Preview cards - larger and responsive */
+    .choosing-modal .preview-card {
+      width: clamp(130px, 18vw, 170px) !important;
+      height: calc(clamp(130px, 18vw, 170px) * 1.46) !important;
+      border-radius: 8px !important;
+      border: 1px solid rgba(255, 255, 255, 0.2) !important;
+      box-shadow:
+        0 4px 16px rgba(0, 123, 255, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+    }
+
+    /* Three-card fan - smaller rotations */
+    .choosing-modal .three-preview-card.left-card {
+      transform: rotate(-10deg) translateX(-18px) !important;
+    }
+
+    .choosing-modal .three-preview-card.right-card {
+      transform: rotate(10deg) translateX(18px) !important;
+    }
+
+    .choosing-modal .three-preview-card.center-card {
+      z-index: 2 !important;
+    }
+
+    /* Spread preview container */
+    .choosing-modal .spread-preview {
+      min-height: calc(clamp(130px, 18vw, 170px) * 1.46 + 8px) !important;
+      display: flex !important;
+      justify-content: center !important;
+      align-items: center !important;
+      position: relative !important;
+    }
+
+    /* Bottom buttons area - centered row */
+    .choosing-modal .modal-bottom-buttons {
+      display: flex !important;
+      flex-direction: row !important;
+      justify-content: center !important;
+      align-items: center !important;
+      gap: clamp(12px, 4vw, 20px) !important;
+      width: 100% !important;
+      padding: clamp(16px, 4vw, 24px) clamp(16px, 4vw, 24px) clamp(20px, 6vw, 32px) !important;
+      margin: 0 !important;
+    }
+
+    /* Back button - square-ish */
+    .choosing-modal .modal-back-btn {
+      width: 54px !important;
+      height: 44px !important;
+      padding: 0 !important;
+      display: flex !important;
+      justify-content: center !important;
+      align-items: center !important;
+      font-size: 20px !important;
+      font-weight: bold !important;
+      border-radius: 8px !important;
+      background: linear-gradient(135deg, rgba(0, 123, 255, 0.8), rgba(0, 50, 150, 0.8)) !important;
+      color: white !important;
+      border: 1px solid rgba(255, 255, 255, 0.2) !important;
+      box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3) !important;
+      transition: all 0.2s ease !important;
+    }
+
+    .choosing-modal .modal-back-btn:hover:not(:disabled) {
+      background: linear-gradient(135deg, rgba(0, 123, 255, 1), rgba(0, 50, 150, 1)) !important;
+      transform: translateY(-1px) !important;
+      box-shadow: 0 6px 16px rgba(0, 123, 255, 0.4) !important;
+    }
+
+    /* Custom Reading button - larger PNG button */
+    .choosing-modal .custom-reading-overlay-button {
+      width: 170px !important;
+      height: 52px !important;
+      padding: 0 !important;
+      border-radius: 8px !important;
+      overflow: hidden !important;
+      border: 1px solid rgba(255, 255, 255, 0.2) !important;
+      box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3) !important;
+      transition: all 0.2s ease !important;
+    }
+
+    .choosing-modal .custom-reading-overlay-button img {
+      width: 100% !important;
+      height: 100% !important;
+      object-fit: contain !important;
+      display: block !important;
+    }
+
+    .choosing-modal .custom-reading-overlay-button:hover:not(:disabled) {
+      transform: translateY(-1px) !important;
+      box-shadow: 0 6px 16px rgba(0, 123, 255, 0.4) !important;
+    }
+
+    /* Mobile adjustments - keep 2 columns but smaller */
+    @media (max-width: 768px) {
+      .tarot-modal.choosing-modal {
+        width: min(520px, 92vw) !important;
+        aspect-ratio: 1 / 0.92 !important;
+      }
+
+      .choosing-modal .preview-card {
+        width: clamp(110px, 16vw, 140px) !important;
+        height: calc(clamp(110px, 16vw, 140px) * 1.46) !important;
+      }
+
+      .choosing-modal .spread-preview {
+        min-height: calc(clamp(110px, 16vw, 140px) * 1.46 + 8px) !important;
+      }
+
+      .choosing-modal .custom-reading-overlay-button {
+        width: 140px !important;
+        height: 44px !important;
+      }
+
+      .choosing-modal .modal-back-btn {
+        width: 48px !important;
+        height: 40px !important;
+      }
+    }
   </style>
 </head>
 <body data-debug="0" data-viewport="unknown">
@@ -2159,7 +2370,7 @@
         name: "Three of Swords",
         keyword: "Heartbreak",
         description: "The Three of Swords represents heartbreak, emotional pain, sorrow, grief, and hurt. This card acknowledges difficult emotions and painful experiences. It encourages you to process your feelings, seek support, and allow yourself to heal.",
-        imagePath: "Assets/imagine/taro_cards/THREE OF SWORDS.png",
+        imagePath: "Assets/imagine/taro_cards/THREE OF SWARDS.png",
       },
       {
         id: 53,
@@ -2173,7 +2384,7 @@
         name: "Five of Swords",
         keyword: "Conflict",
         description: "The Five of Swords represents conflict, disagreements, competition, and defeat. This card signifies arguments, tension, and the need to choose your battles wisely. It encourages you to consider the cost of winning and seek peaceful resolutions.",
-        imagePath: "Assets/imagine/taro_cards/FIVE OF SWORDS.png",
+        imagePath: "Assets/imagine/taro_cards/FIVE OF SWARDS.png",
       },
       {
         id: 55,
