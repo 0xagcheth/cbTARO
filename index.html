@@ -3,6 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
+  <!-- Farcaster Frame meta tags -->
+  <meta property="fc:frame" content="vNext">
+  <meta property="fc:frame:image" content="https://0xagcheth.github.io/cbTARO/Assets/imagine/b.png">
+  <meta property="fc:frame:button:1" content="🔮 Start Tarot Reading">
+  <meta property="fc:frame:button:1:action" content="link">
+  <meta property="fc:frame:button:1:target" content="https://0xagcheth.github.io/cbTARO/">
+
   <title>cbTaro - Mystical Reading on Base</title>
   <style>
     /* Global CSS Reset for Mobile Stability */
@@ -1992,7 +2000,7 @@
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
   <script type="text/babel">
-    const { useState } = React;
+    const { useState, useEffect } = React;
 
     // Tarot card data based on tarot.com meanings
     // Source: https://www.tarot.com/tarot/cards
@@ -2569,6 +2577,14 @@
       const [showGallery, setShowGallery] = useState(false);
       const [previousGameStage, setPreviousGameStage] = useState("idle");
       const [soundEnabled, setSoundEnabled] = useState(true);
+
+      // Farcaster/Base mini app ready call
+      useEffect(() => {
+        if (window.parent !== window) {
+          // We're in an iframe (mini app)
+          window.parent.postMessage({ type: 'ready' }, '*');
+        }
+      }, []);
 
       // Function to play button sound
       const playButtonSound = () => {

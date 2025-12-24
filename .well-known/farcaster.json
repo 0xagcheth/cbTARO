@@ -1,0 +1,17 @@
+{
+  "accountAssociation": {
+    "header": "eyJmaWQiOjM3NDUsInR5cGUiOiJjdXN0b2R5Iiwia2V5IjoiMHhhZjM3N2VkN2Q2ZjM5MjhjN2MzNTRiMWJjODg5ZjFkNDlmZjY1Y2U3In0",
+    "payload": "eyJkb21haW4iOiJ0YXJvLXJlYWRlci5naXRodWIuaW8ifQ",
+    "signature": "MHhhZjM3N2VkN2Q2ZjM5MjhjN2MzNTRiMWJjODg5ZjFkNDlmZjY1Y2U3"
+  },
+  "frame": {
+    "version": "next",
+    "name": "cbTaro - Mystical Reading",
+    "homeUrl": "https://0xagcheth.github.io/cbTARO/",
+    "iconUrl": "https://0xagcheth.github.io/cbTARO/Assets/imagine/cr.png",
+    "imageUrl": "https://0xagcheth.github.io/cbTARO/Assets/imagine/b.png",
+    "buttonTitle": "🔮 Start Tarot Reading",
+    "splashImageUrl": "https://0xagcheth.github.io/cbTARO/Assets/imagine/b.png",
+    "splashBackgroundColor": "#0a1230"
+  }
+}
