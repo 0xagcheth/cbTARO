@@ -888,18 +888,21 @@
       max-width: 100%;
     }
 
-    /* Mobile: single column layout */
+    /* Mobile: keep 2 columns for spread options */
     @media (max-width: 768px) {
       .spread-selection {
-        grid-template-columns: 1fr;
-        grid-template-rows: auto auto auto;
         gap: var(--pad);
         margin: var(--pad) 0;
       }
 
       .spread-option {
         width: 100%;
-        max-width: 280px;
+        max-width: 160px; /* Smaller for mobile */
+      }
+
+      .preview-card {
+        width: clamp(72px, 18vw, 120px);
+        height: calc(clamp(72px, 18vw, 120px) * 1.46);
       }
     }
 
@@ -1571,12 +1574,7 @@
 
 
       /* Mobile: all options stack in single column */
-      .single-card-option,
-      .three-cards-option,
-      .custom-reading-button {
-        grid-column: 1;
-        justify-self: center;
-      }
+      /* Keep spread options in grid, custom button stays in modal-bottom-buttons */
 
       .tarot-footer {
         margin-top: 0.5rem;
@@ -1654,8 +1652,8 @@
       }
 
       .custom-reading-overlay-button {
-        width: 240px;
-        height: 150px;
+        width: 120px;
+        height: 75px;
         margin: 0;
       }
 
@@ -1733,6 +1731,11 @@
     }
 
     /* Mobile modals */
+    .tarot-modal {
+      max-height: calc(100dvh - var(--pad) - var(--safe-area-inset-top, 0) - var(--safe-area-inset-bottom, 0));
+      overflow-y: auto;
+    }
+
     .tarot-reading-overlay {
       padding: calc(var(--space) + var(--safe-area-inset-top, 0)) var(--space) calc(var(--space) + var(--safe-area-inset-bottom, 0)) !important;
     }
