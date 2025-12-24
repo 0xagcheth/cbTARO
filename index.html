@@ -2,16 +2,39 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>cbTaro - Mystical Reading on Base</title>
   <style>
+    /* Global CSS Reset for Mobile Stability */
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+      -webkit-text-size-adjust: 100%;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Safe Area Inset Variables for iOS Notch */
+    :root {
+      --safe-area-inset-top: env(safe-area-inset-top, 0);
+      --safe-area-inset-bottom: env(safe-area-inset-bottom, 0);
+      --safe-area-inset-left: env(safe-area-inset-left, 0);
+      --safe-area-inset-right: env(safe-area-inset-right, 0);
+    }
+
     /* Мистический фон */
     .tarot-root {
       position: relative;
-      min-height: 100vh;
+      min-height: 100dvh;
       min-width: 100vw;
       width: 100%;
-      height: 100%;
+      height: 100dvh;
       overflow-x: hidden;
       font-family: 'Georgia', 'Times New Roman', serif;
     }
@@ -21,9 +44,9 @@
       top: 0;
       left: 0;
       width: 100vw;
-      height: 100vh;
+      height: 100dvh;
       min-width: 100%;
-      min-height: 100%;
+      min-height: 100dvh;
       background-image: url('Assets/imagine/b.png');
       background-repeat: no-repeat;
       background-attachment: fixed;
@@ -31,6 +54,20 @@
       /* Default: cover for square/wide screens */
       background-size: cover;
       background-position: center center;
+    }
+
+    /* Background attachment fix for iOS Safari - only use fixed on desktop */
+    @supports (hover: hover) and (pointer: fine) {
+      .tarot-background {
+        background-attachment: fixed;
+      }
+    }
+
+    /* Mobile devices - always use scroll attachment */
+    @media (max-width: 768px) {
+      .tarot-background {
+        background-attachment: scroll;
+      }
     }
 
     .tarot-background::before {
@@ -145,8 +182,8 @@
     .tarot-container {
       position: relative;
       z-index: 1;
-      min-height: 100vh;
-      height: 100%;
+      min-height: 100dvh;
+      height: 100dvh;
       display: flex;
       flex-direction: column;
       padding: 2rem;
@@ -332,8 +369,8 @@
     /* Кнопка галереи карт */
     .gallery-button {
       position: fixed;
-      top: 20px;
-      right: 20px;
+      top: calc(20px + var(--safe-area-inset-top, 0));
+      right: calc(20px + var(--safe-area-inset-right, 0));
       background: rgba(0, 123, 255, 0.8);
       color: #fff;
       border: none;
@@ -490,8 +527,8 @@
 
     .sound-toggle-btn {
       position: fixed;
-      top: 20px;
-      left: 20px;
+      top: calc(20px + var(--safe-area-inset-top, 0));
+      left: calc(20px + var(--safe-area-inset-left, 0));
       background: linear-gradient(135deg,
         rgba(0, 123, 255, 0.2),
         rgba(0, 50, 150, 0.2),
@@ -1756,6 +1793,58 @@
         font-size: 1.25rem;
       }
     }
+
+    /* Mobile-specific fixes for viewport stability and UI */
+
+    /* Mobile Viewport Stability */
+    .tarot-root,
+    .tarot-background,
+    .tarot-container {
+      height: 100dvh !important;
+      min-height: 100dvh !important;
+    }
+
+    /* Mobile Fixed Buttons - Smaller and Safe Area Aware */
+    .sound-toggle-btn,
+    .gallery-button {
+      padding: 8px 10px !important;
+      font-size: 16px !important;
+      min-width: 44px !important;
+      min-height: 44px !important;
+    }
+
+    /* Mobile Overlays - Reduced padding and proper height */
+    .tarot-reading-overlay {
+      padding: calc(1rem + var(--safe-area-inset-top, 0)) 1rem calc(1rem + var(--safe-area-inset-bottom, 0)) 1rem !important;
+    }
+
+    .tarot-reading-panel {
+      padding: 1rem !important;
+      max-height: calc(100dvh - 2rem - var(--safe-area-inset-top, 0) - var(--safe-area-inset-bottom, 0)) !important;
+      margin: 0 !important;
+    }
+
+    /* Mobile Gallery Modal */
+    .gallery-modal {
+      max-height: calc(100dvh - 2rem - var(--safe-area-inset-top, 0) - var(--safe-area-inset-bottom, 0)) !important;
+      margin: 0 !important;
+    }
+
+    /* Mobile Custom Modal */
+    .tarot-custom-modal {
+      max-height: calc(100dvh - 2rem - var(--safe-area-inset-top, 0) - var(--safe-area-inset-bottom, 0)) !important;
+      overflow-y: auto !important;
+    }
+
+    /* Prevent horizontal scroll on mobile */
+    body {
+      overflow-x: hidden !important;
+    }
+
+    /* Mobile-specific background attachment fix */
+    .tarot-background {
+      background-attachment: scroll !important;
+    }
   </style>
 </head>
 <body>
@@ -2887,7 +2976,7 @@ Important: This must be a unique interpretation for this specific card spread. M
             {/* Reading panel (card description) */}
             {activeCard && gameStage === "reading" && (
               <div className="tarot-reading-overlay" onClick={handleCloseReading}>
-                <div className="tarot-reading-panel" onClick={handleCloseReading}>
+                <div className="tarot-reading-panel" onClick={(e) => e.stopPropagation()}>
                   <h2>{activeCard.name}</h2>
                   {activeCard.imagePath && (
                     <div className="tarot-reading-card-image">
