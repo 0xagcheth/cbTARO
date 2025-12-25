@@ -571,6 +571,12 @@ function TarotApp() {
   // Base path for GitHub Pages deployment
   const basePath = '/cbTARO';
 
+  // Helper function for short address display
+  function shortAddress(addr) {
+    if (!addr || addr.length < 10) return addr || "";
+    return addr.slice(0, 6) + "…" + addr.slice(-4);
+  }
+
   const [gameStage, setGameStage] = useState("idle");
   const [selectedSpread, setSelectedSpread] = useState(null);
   const [cards, setCards] = useState([]);
@@ -1327,30 +1333,32 @@ Important: This must be a unique interpretation for this specific card spread. M
 
           {/* Top Bar */}
           <div className="topbar">
+            <div className="topbar-spacer" />
             <div className="topbar-title">cbTaro</div>
             <div className="topbar-actions">
               <button
                 className="icon-btn"
-                onClick={() => { playButtonSound(); setSoundEnabled(!soundEnabled); }}
-                title={soundEnabled ? "Disable sound" : "Enable sound"}
+                onClick={() => { playButtonSound?.(); setSoundEnabled(v => !v); }}
+                aria-label="Sound"
+                title={soundEnabled ? "Sound: ON" : "Sound: OFF"}
               >
                 {soundEnabled ? "🔊" : "🔇"}
               </button>
+
               <button
                 className="icon-btn avatar-btn"
                 onClick={handleConnect}
-                title={isWalletConnected ? `Connected: ${walletAddress?.slice(0, 6)}...${walletAddress?.slice(-4)}` : "Connect Wallet"}
+                aria-label="Connect wallet"
+                title={isWalletConnected ? `Connected: ${shortAddress(walletAddress)}` : "Connect Wallet"}
               >
-                {pfpUrl ? (
-                  <img className="avatar-img" src={pfpUrl} alt="Avatar" />
-                ) : (
-                  <span className="avatar-fallback">🌐</span>
-                )}
+                {pfpUrl ? <img className="avatar-img" src={pfpUrl} alt="pfp" /> : <span className="avatar-fallback">🌐</span>}
               </button>
+
               <button
                 className="icon-btn"
-                onClick={() => { playButtonSound(); setPreviousGameStage(gameStage); setShowGallery(true); }}
-                title="Gallery"
+                onClick={() => { playButtonSound?.(); setPreviousGameStage?.(gameStage); setShowGallery?.(true); }}
+                aria-label="Menu"
+                title="Menu"
               >
                 ☰
               </button>

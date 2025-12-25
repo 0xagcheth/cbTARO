@@ -132,6 +132,10 @@
       }
     }
 
+    .tarot-root, .tarot-container{
+      padding-top: calc(76px + env(safe-area-inset-top));
+    }
+
     .tarot-container {
       position: relative;
       z-index: 1;
@@ -1876,21 +1880,18 @@
       display: grid;
       grid-template-columns: 1fr auto 1fr;
       align-items: center;
-      padding: calc(12px + var(--safe-area-inset-top, 0)) calc(var(--pad)) calc(12px) calc(var(--pad));
+      padding: calc(12px + env(safe-area-inset-top)) 14px 12px 14px;
       background: rgba(0, 0, 0, 0.35);
       backdrop-filter: blur(14px);
       -webkit-backdrop-filter: blur(14px);
       border-bottom: 1px solid rgba(255, 255, 255, 0.10);
     }
 
-    .topbar-title {
+    .topbar-title{
       grid-column: 2;
       justify-self: center;
-      font-size: 20px;
-      font-weight: 600;
-      color: #ffffff;
-      text-shadow: 0 0 10px rgba(0, 123, 255, 0.5);
-      margin: 0;
+      font-weight: 700;
+      letter-spacing: 0.5px;
     }
 
     .topbar-actions {
@@ -1901,32 +1902,20 @@
       align-items: center;
     }
 
-    .icon-btn {
+    .icon-btn{
       width: 44px;
       height: 44px;
       border-radius: 12px;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      background: linear-gradient(135deg, rgba(0, 123, 255, 0.1), rgba(0, 123, 255, 0.05));
-      color: #ffffff;
-      font-size: 18px;
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(20,40,80,0.35);
+      color: #fff;
       cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.2s ease;
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
+      display: grid;
+      place-items: center;
     }
 
-    .icon-btn:hover {
-      transform: scale(1.05);
-      border-color: rgba(0, 123, 255, 0.5);
-      background: linear-gradient(135deg, rgba(0, 123, 255, 0.2), rgba(0, 123, 255, 0.1));
-      box-shadow: 0 0 15px rgba(0, 123, 255, 0.3);
-    }
-
-    .icon-btn:active {
-      transform: scale(0.95);
+    .icon-btn:active{
+      transform: scale(0.98);
     }
 
     .avatar-btn {
@@ -1934,21 +1923,16 @@
       overflow: hidden;
     }
 
-    .avatar-img {
+    .avatar-img{
       width: 100%;
       height: 100%;
       object-fit: cover;
-      border-radius: 10px;
+      display: block;
     }
 
-    .avatar-fallback {
+    .avatar-fallback{
       font-size: 18px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 100%;
-      height: 100%;
-    }
+      }
 
       .tarot-footer {
         margin-top: 0.25rem;
