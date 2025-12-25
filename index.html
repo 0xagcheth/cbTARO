@@ -41,6 +41,12 @@
       -moz-osx-font-smoothing: grayscale;
     }
 
+    #root {
+      height: 100%;
+      width: 100%;
+      position: relative;
+    }
+
     /* Safe Area Inset Variables for iOS Notch */
     :root {
       --safe-area-inset-top: env(safe-area-inset-top, 0);
@@ -87,7 +93,7 @@
       left: 0;
       width: 100vw;
       height: calc(var(--vh, 1vh) * 100);
-      background-image: url('Assets/imagine/b.png');
+      background-image: url('/Assets/imagine/b.png');
       background-repeat: no-repeat;
       background-attachment: scroll; /* Fixed attachment causes issues in WebView */
       z-index: 0;
@@ -129,12 +135,11 @@
     .tarot-container {
       position: relative;
       z-index: 1;
-      min-height: 100svh;
+      min-height: calc(var(--vh, 1vh) * 100);
       display: flex;
       flex-direction: column;
       padding: var(--pad);
-      max-width: 1200px;
-      margin: 0 auto;
+      width: 100%;
       box-sizing: border-box;
     }
 
@@ -428,7 +433,7 @@
       width: 100%;
       height: 100%;
       background: linear-gradient(135deg, #2d1b3d 0%, #1a0a2e 100%);
-      background-image: url('Assets/imagine/bc.png');
+      background-image: url('/Assets/imagine/bc.png');
       background-size: 100% 100%;
       background-position: center;
       background-repeat: no-repeat;
@@ -864,7 +869,7 @@
       /* Container allows scrolling on very small screens */
       .tarot-container {
         overflow-y: auto;
-        min-height: 100svh;
+        min-height: calc(var(--vh, 1vh) * 100);
       }
 
       /* Modals fit viewport with safe scroll */
@@ -1104,7 +1109,7 @@
     }
 
     .preview-card-back {
-      background-image: url('Assets/imagine/bc.png');
+      background-image: url('/Assets/imagine/bc.png');
       background-size: 140% 140%;
       background-position: center;
       background-repeat: no-repeat;
@@ -1422,7 +1427,7 @@
       backface-visibility: hidden;
       border-radius: 12px;
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-      background-image: url('Assets/imagine/bc.png');
+      background-image: url('/Assets/imagine/bc.png');
       background-size: 100% 100%;
       background-position: center;
       background-repeat: no-repeat;
@@ -1653,7 +1658,7 @@
 
     @media (max-width: 768px) {
       .tarot-container {
-        padding: 0.5rem;
+        padding: var(--pad);
         min-height: calc(var(--vh, 1vh) * 100);
         height: auto;
       }

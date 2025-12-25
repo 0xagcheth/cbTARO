@@ -640,7 +640,7 @@ function TarotApp() {
       // Function to play button sound
       const playButtonSound = () => {
         if (!soundEnabled) return;
-        const audio = new Audio('Assets/audio/tab.mp3');
+        const audio = new Audio('/Assets/audio/tab.mp3');
         audio.volume = 0.3; // Set volume to 30%
         audio.play().catch(e => console.log('Audio play failed:', e));
       };
@@ -648,7 +648,7 @@ function TarotApp() {
       // Function to play spread animation sound
       const playSpreadSound = () => {
         if (!soundEnabled) return;
-        const audio = new Audio('Assets/audio/spread.mp3');
+        const audio = new Audio('/Assets/audio/spread.mp3');
         audio.volume = 0.4; // Set volume to 40%
         audio.play().catch(e => console.log('Audio play failed:', e));
       };
@@ -1398,7 +1398,7 @@ Important: This must be a unique interpretation for this specific card spread. M
                               <div className="preview-card-back"></div>
                               <div className="preview-card-front">
                                 <img
-                                  src="Assets/imagine/taro_cards/the_fool.png"
+                                  src="/Assets/imagine/taro_cards/the_fool.png"
                                   alt="Single Card"
                                   className="preview-card-image"
                                   onError={(e) => {
@@ -1423,7 +1423,7 @@ Important: This must be a unique interpretation for this specific card spread. M
                               <div className="preview-card-back"></div>
                               <div className="preview-card-front">
                                 <img
-                                  src="Assets/imagine/taro_cards/the_fool.png"
+                                  src="/Assets/imagine/taro_cards/the_fool.png"
                                   alt="Three Cards"
                                   className="preview-card-image"
                                 />
@@ -1473,7 +1473,7 @@ Important: This must be a unique interpretation for this specific card spread. M
                       onClick={() => { playButtonSound(); setGameStage("custom"); }}
                     >
                       <img
-                        src="Assets/imagine/cr.png"
+                        src="/Assets/imagine/cr.png"
                         alt="Custom Reading"
                         className="custom-reading-underlay-image"
                       />
@@ -1785,4 +1785,19 @@ Important: This must be a unique interpretation for this specific card spread. M
                   <p className="tarot-reading-question">Question: "{userQuestion}"</p>
                   {isGeneratingAI ? (
                     <div className="tarot-ai-loading">
-  export default TarotApp;
+                      Generating reading...
+                    </div>
+                  ) : (
+                    <div dangerouslySetInnerHTML={{ __html: aiInterpretation.replace(/\n/g, '<br/>') }} />
+                  )}
+                  <button className="tarot-button" onClick={() => setAiInterpretation(null)}>
+                    Close
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      }
+
+      export default TarotApp;
