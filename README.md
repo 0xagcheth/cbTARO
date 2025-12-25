@@ -104,6 +104,26 @@ Replace placeholders in `.well-known/farcaster.json`:
 4. Test manifest accessibility: `https://0xagcheth.github.io/.well-known/farcaster.json`
 5. Share link in Farcaster to test embed
 
+### 🔧 Debug Mode
+
+To debug mobile layout issues, add `?debug=1` to the URL:
+
+```
+https://0xagcheth.github.io/cbTARO/?debug=1
+```
+
+This will:
+- Show red outlines around ALL containers to identify layout cutters
+- Display viewport size in top-right corner
+- Log detailed viewport and safe area information to console
+- Color-code different container types:
+  - 🔴 Red: Root containers
+  - 🟠 Orange: Main containers
+  - 🟣 Purple: Modals/overlays
+  - 🔵 Blue: Tables
+  - 🟢 Green: Cards
+  - 🟡 Yellow: Options/buttons
+
 ### 📚 Resources
 
 - [Farcaster Mini Apps Spec](https://miniapps.farcaster.xyz/specification)
