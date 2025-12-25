@@ -26,6 +26,10 @@
       height: 100%;
       margin: 0;
       padding: 0;
+      padding-top: var(--safe-area-inset-top, 0);
+      padding-bottom: var(--safe-area-inset-bottom, 0);
+      padding-left: var(--safe-area-inset-left, 0);
+      padding-right: var(--safe-area-inset-right, 0);
       overflow-x: hidden;
       -webkit-text-size-adjust: 100%;
       -webkit-font-smoothing: antialiased;
@@ -38,6 +42,9 @@
       --safe-area-inset-bottom: env(safe-area-inset-bottom, 0);
       --safe-area-inset-left: env(safe-area-inset-left, 0);
       --safe-area-inset-right: env(safe-area-inset-right, 0);
+
+      /* Dynamic viewport height for mobile WebView compatibility */
+      --vh: 1vh;
 
       /* Mobile-first responsive scaling variables */
       --pad: clamp(12px, 3vw, 32px);
@@ -63,7 +70,7 @@
     /* Background */
     .tarot-root {
       position: relative;
-      min-height: 100svh;
+      min-height: calc(var(--vh, 1vh) * 100);
       width: 100%;
       overflow-x: hidden;
       font-family: 'Georgia', 'Times New Roman', serif;
@@ -74,17 +81,13 @@
       top: 0;
       left: 0;
       width: 100vw;
-      height: 100svh;
+      height: calc(var(--vh, 1vh) * 100);
       background-image: url('Assets/imagine/b.png');
       background-repeat: no-repeat;
-      background-attachment: fixed;
+      background-attachment: scroll; /* Fixed attachment causes issues in WebView */
       z-index: 0;
       background-size: cover;
       background-position: center center;
-    }
-
-    @supports (hover: hover) and (pointer: fine) {
-      .tarot-background { background-attachment: fixed; }
     }
 
     @media (max-width: 768px) {
@@ -1646,7 +1649,7 @@
     @media (max-width: 768px) {
       .tarot-container {
         padding: 0.5rem;
-        min-height: 100vh;
+        min-height: calc(var(--vh, 1vh) * 100);
         height: auto;
       }
 
@@ -2145,6 +2148,31 @@
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Mobile WebView fixes script -->
+  <script>
+    // Set dynamic viewport height for mobile WebView compatibility
+    function setVH() {
+      const vh = window.innerHeight * 0.01;
+      document.documentElement.style.setProperty('--vh', `${vh}px`);
+
+      // Debug logging for mobile WebView issues
+      if (window.location.search.includes('debug=1')) {
+        console.log(`📱 Viewport: ${window.innerWidth}x${window.innerHeight}, --vh: ${vh}px`);
+        console.log(`📱 Safe areas: top=${getComputedStyle(document.documentElement).getPropertyValue('--safe-area-inset-top')}, bottom=${getComputedStyle(document.documentElement).getPropertyValue('--safe-area-inset-bottom')}`);
+      }
+    }
+
+    // Set initial value
+    setVH();
+
+    // Update on resize/orientation change
+    window.addEventListener('resize', setVH);
+    window.addEventListener('orientationchange', function() {
+      // Delay to account for mobile browser UI changes
+      setTimeout(setVH, 100);
+    });
+  </script>
 
   <!-- Farcaster SDK ready check script -->
   <script>
@@ -2874,19 +2902,13 @@
         return provider;
       };
 
-      const payUSDC = async (signer, amountUSDC) => {
-        const USDC_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bDA02913';
+      const payETH = async (signer, amountETH) => {
         const TREASURY = '0xD4bF185c846F6CAbDaa34122d0ddA43765E754A6';
-        const DECIMALS = 6;
 
-        const usdcContract = new ethers.Contract(
-          USDC_ADDRESS,
-          ['function transfer(address to, uint256 amount) returns (bool)'],
-          signer
-        );
-
-        const amount = ethers.utils.parseUnits(amountUSDC.toString(), DECIMALS);
-        const tx = await usdcContract.transfer(TREASURY, amount);
+        const tx = await signer.sendTransaction({
+          to: TREASURY,
+          value: ethers.utils.parseEther(amountETH.toString())
+        });
         const receipt = await tx.wait();
 
         return { txHash: tx.hash, receipt };
@@ -3264,7 +3286,7 @@ Important: This must be a unique interpretation for this specific card spread. M
           usageLogger.increment("ONE");
           await startSpreadAnimation(spread);
         } else if (spread === "THREE") {
-          // Pay 0.01 USDC each time for 3-card spread
+          // Pay 0.0001 ETH each time for 3-card spread
           try {
             setTxStatus("paying");
             const wallet = await connectWallet();
@@ -3277,7 +3299,7 @@ Important: This must be a unique interpretation for this specific card spread. M
             const provider = await ensureBase(wallet.provider);
             const signer = provider.getSigner();
 
-            const result = await payUSDC(signer, 0.01);
+            const result = await payETH(signer, 0.0001);
             setTxHash(result.txHash);
             setTxStatus("success");
 
@@ -3293,14 +3315,14 @@ Important: This must be a unique interpretation for this specific card spread. M
             console.error("Payment failed:", error);
             setTxStatus("error");
             if (error.message.includes("user rejected")) {
-              alert("Payment cancelled. 3-card reading requires 0.01 USDC payment.");
+              alert("Payment cancelled. 3-card reading requires 0.0001 ETH payment.");
             } else {
               alert(`Payment failed: ${error.message}`);
             }
             return;
           }
         } else if (spread === "CUSTOM") {
-          // Pay 1.00 USDC for custom reading
+          // Pay 0.0005 ETH for custom reading
           try {
             setTxStatus("paying");
             const wallet = await connectWallet();
@@ -3313,7 +3335,7 @@ Important: This must be a unique interpretation for this specific card spread. M
             const provider = await ensureBase(wallet.provider);
             const signer = provider.getSigner();
 
-            const result = await payUSDC(signer, 1.00);
+            const result = await payETH(signer, 0.0005);
             setTxHash(result.txHash);
             setTxStatus("success");
 
@@ -3329,7 +3351,7 @@ Important: This must be a unique interpretation for this specific card spread. M
             console.error("Payment failed:", error);
             setTxStatus("error");
             if (error.message.includes("user rejected")) {
-              alert("Payment cancelled. Custom reading requires 1.00 USDC payment.");
+              alert("Payment cancelled. Custom reading requires 0.0005 ETH payment.");
             } else {
               alert(`Payment failed: ${error.message}`);
             }
@@ -3502,11 +3524,11 @@ Important: This must be a unique interpretation for this specific card spread. M
                 </div>
                 <div className="payment-item">
                   <span className="payment-label">3 Cards:</span>
-                  <span className="payment-price">0.01 USDC</span>
+                  <span className="payment-price">0.0001 ETH</span>
                 </div>
                 <div className="payment-item">
                   <span className="payment-label">Custom:</span>
-                  <span className="payment-price">1.00 USDC</span>
+                  <span className="payment-price">0.0005 ETH</span>
                 </div>
               </div>
 

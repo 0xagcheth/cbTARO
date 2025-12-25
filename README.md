@@ -63,15 +63,27 @@ Replace placeholders in `.well-known/farcaster.json`:
 
 - [ ] **Embed Test**: Share link in Warpcast - should show rich embed with image and "Start" button
 - [ ] **Launch Test**: Click button - should open mini app with splash screen
-- [ ] **Ready Test**: App should hide splash after loading
+- [ ] **Ready Test**: App should hide splash after loading (no "Ready not called" error)
+- [ ] **Mobile WebView Test**: UI should display correctly in Farcaster mobile app without cropping/scaling issues
+- [ ] **Safe Area Test**: Content should not be hidden behind notches/home indicators
 - [ ] **Manifest Test**: `https://0xagcheth.github.io/.well-known/farcaster.json` returns valid JSON
 - [ ] **HTTPS Test**: All URLs use HTTPS, no mixed content warnings
+
+### 📱 Mobile WebView Fixes Applied
+
+- [x] **Dynamic Viewport Height**: Replaced `100vh` with `calc(var(--vh, 1vh) * 100)` and JavaScript calculation
+- [x] **Background Attachment**: Changed from `fixed` to `scroll` for WebView compatibility
+- [x] **Safe Area Padding**: Added `env(safe-area-inset-*)` padding to body and fixed elements
+- [x] **Orientation Handling**: Added resize/orientationchange listeners for viewport updates
+- [x] **Debug Logging**: Added viewport size logging when `?debug=1` parameter is present
+
+**Debug URL**: `https://0xagcheth.github.io/cbTARO/?debug=1` (check console for viewport info)
 
 ### 📱 Features
 
 - **1 Card Reading**: Free daily tarot card
-- **3 Card Reading**: 0.01 USDC (one-time unlock)
-- **Custom Reading**: 1.00 USDC per reading
+- **3 Card Reading**: 0.0001 ETH per reading
+- **Custom Reading**: 0.0005 ETH per reading
 - **Share on Farcaster**: Generate images and share readings
 - **Usage Tracking**: CSV export for admin wallet
 
