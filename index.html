@@ -4,12 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 
-  <!-- Farcaster Frame meta tags -->
-  <meta property="fc:frame" content="vNext">
-  <meta property="fc:frame:image" content="https://0xagcheth.github.io/cbTARO/Assets/imagine/b.png">
-  <meta property="fc:frame:button:1" content="🔮 Start Tarot Reading">
-  <meta property="fc:frame:button:1:action" content="link">
-  <meta property="fc:frame:button:1:target" content="https://0xagcheth.github.io/cbTARO/">
+  <!-- Farcaster Mini App embed meta tags -->
+  <meta name="fc:miniapp" content="{&quot;version&quot;:&quot;1&quot;,&quot;imageUrl&quot;:&quot;https://0xagcheth.github.io/cbTARO/Assets/imagine/b.png&quot;,&quot;button&quot;:{&quot;title&quot;:&quot;Start&quot;,&quot;action&quot;:{&quot;type&quot;:&quot;launch_frame&quot;,&quot;name&quot;:&quot;cbTARO&quot;,&quot;url&quot;:&quot;https://0xagcheth.github.io/cbTARO/&quot;,&quot;splashImageUrl&quot;:&quot;https://0xagcheth.github.io/cbTARO/Assets/imagine/cr.png&quot;,&quot;splashBackgroundColor&quot;:&quot;#0b1020&quot;}}}">
+  <meta property="fc:frame" content="{&quot;version&quot;:&quot;1&quot;,&quot;imageUrl&quot;:&quot;https://0xagcheth.github.io/cbTARO/Assets/imagine/b.png&quot;,&quot;button&quot;:{&quot;title&quot;:&quot;Start&quot;,&quot;action&quot;:{&quot;type&quot;:&quot;launch_frame&quot;,&quot;name&quot;:&quot;cbTARO&quot;,&quot;url&quot;:&quot;https://0xagcheth.github.io/cbTARO/&quot;,&quot;splashImageUrl&quot;:&quot;https://0xagcheth.github.io/cbTARO/Assets/imagine/cr.png&quot;,&quot;splashBackgroundColor&quot;:&quot;#0b1020&quot;}}}">
+
+  <!-- Open Graph tags for sharing outside Farcaster -->
+  <meta property="og:title" content="cbTARO - Mystical Tarot Reading on Base">
+  <meta property="og:description" content="Get mystical tarot readings powered by AI on the Base network">
+  <meta property="og:image" content="https://0xagcheth.github.io/cbTARO/Assets/imagine/b.png">
+  <meta property="og:url" content="https://0xagcheth.github.io/cbTARO/">
+  <meta property="og:type" content="website">
 
   <title>cbTaro - Mystical Reading on Base</title>
   <style>
@@ -1879,6 +1883,7 @@
     .tarot-modal {
       max-height: calc(100dvh - var(--pad) - var(--safe-area-inset-top, 0) - var(--safe-area-inset-bottom, 0));
       overflow-y: auto;
+      overflow-x: hidden;
     }
 
     .tarot-reading-overlay {
@@ -2103,6 +2108,8 @@
       .tarot-modal.choosing-modal {
         width: min(520px, 92vw) !important;
         aspect-ratio: 1 / 0.92 !important;
+        max-height: calc(100dvh - 2 * var(--pad) - var(--safe-area-inset-top, 0) - var(--safe-area-inset-bottom, 0)) !important;
+        overflow-y: auto !important;
       }
 
       .choosing-modal .preview-card {
@@ -2131,14 +2138,21 @@
 
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 
+  <!-- Farcaster Mini Apps SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@farcaster/frame-sdk@0.0.32/dist/index.umd.js"></script>
+
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
   <script type="text/babel">
     const { useState, useEffect } = React;
+
+    // Safety check for ethers
+    if (typeof ethers === 'undefined') {
+      console.error('ethers.js not loaded');
+    }
 
     // Tarot card data based on tarot.com meanings
     // Source: https://www.tarot.com/tarot/cards
@@ -2721,10 +2735,13 @@
       const [walletAddress, setWalletAddress] = useState(null);
       const [txStatus, setTxStatus] = useState("idle"); // idle, paying, success, error
 
-      // Farcaster/Base mini app ready call
+      // Farcaster Mini App SDK initialization
       useEffect(() => {
-        if (window.parent !== window) {
-          // We're in an iframe (mini app)
+        if (window.farcaster && window.farcaster.actions) {
+          // We're in Farcaster Mini App environment
+          window.farcaster.actions.ready();
+        } else if (window.parent !== window) {
+          // Fallback for older iframe detection
           window.parent.postMessage({ type: 'ready' }, '*');
         }
       }, []);
@@ -2929,15 +2946,30 @@ Got a real answer.
           const y = centerY;
 
           try {
-            const img = new Image();
-            img.crossOrigin = 'anonymous';
-            await new Promise((resolve, reject) => {
-              img.onload = resolve;
-              img.onerror = reject;
-              img.src = card.imagePath;
-            });
+            try {
+              const img = new Image();
+              img.crossOrigin = 'anonymous';
+              await new Promise((resolve, reject) => {
+                img.onload = resolve;
+                img.onerror = reject;
+                img.src = card.imagePath;
+              });
 
-            ctx.drawImage(img, x, y, cardWidth, cardHeight);
+              ctx.drawImage(img, x, y, cardWidth, cardHeight);
+            } catch (error) {
+              console.warn('Failed to load card image:', card.imagePath, error);
+              // Draw placeholder
+              ctx.fillStyle = '#1a1a2e';
+              ctx.fillRect(x, y, cardWidth, cardHeight);
+              ctx.strokeStyle = '#fff';
+              ctx.lineWidth = 2;
+              ctx.strokeRect(x, y, cardWidth, cardHeight);
+
+              ctx.fillStyle = '#fff';
+              ctx.font = '12px Arial';
+              ctx.textAlign = 'center';
+              ctx.fillText(card.name, x + cardWidth/2, y + cardHeight/2);
+            }
           } catch (error) {
             console.error('Failed to load card image:', error);
             // Draw placeholder
@@ -3016,14 +3048,13 @@ Got a real answer.
           const shareText = getShareText(selectedSpread);
           const embeds = [];
 
-          // Generate cards image
-          const cardsImage = await generateCardsImage(cards);
-          embeds.push(cardsImage);
+          // Use static images instead of generated dataURL (better for embeds)
+          // For cards, use a generic tarot image
+          embeds.push('https://0xagcheth.github.io/cbTARO/Assets/imagine/b.png');
 
-          // Generate AI image for CUSTOM
+          // For CUSTOM, add another image if AI interpretation exists
           if (selectedSpread === "CUSTOM" && aiInterpretation) {
-            const aiImage = await generateAITextImage(aiInterpretation);
-            embeds.push(aiImage);
+            embeds.push('https://0xagcheth.github.io/cbTARO/Assets/imagine/cr.png');
           }
 
           // Add app URL
@@ -3298,11 +3329,17 @@ Important: This must be a unique interpretation for this specific card spread. M
 
       // Generate AI interpretation when all cards are revealed in custom reading
       const generateCustomInterpretation = async () => {
-        if (selectedSpread === "CUSTOM" && isAllRevealed && !aiInterpretation) {
+        if (selectedSpread === "CUSTOM" && isAllRevealed && !aiInterpretation && userQuestion.trim()) {
           setIsGeneratingAI(true);
-          const interpretation = await getAIInterpretation(cards, userQuestion);
-          setAiInterpretation(interpretation);
-          setIsGeneratingAI(false);
+          try {
+            const interpretation = await getAIInterpretation(cards, userQuestion);
+            setAiInterpretation(interpretation);
+          } catch (error) {
+            console.error('AI interpretation failed:', error);
+            alert('Failed to generate AI interpretation. Please try again.');
+          } finally {
+            setIsGeneratingAI(false);
+          }
         }
       };
 
@@ -3677,10 +3714,18 @@ Important: This must be a unique interpretation for this specific card spread. M
                       {!aiInterpretation && !isGeneratingAI && (
                         <button
                           className="tarot-button"
-                          onClick={() => { playButtonSound(); generateCustomInterpretation(); }}
+                          onClick={() => {
+                            playButtonSound();
+                            if (!userQuestion.trim()) {
+                              alert('Please enter your question before getting a reading.');
+                              return;
+                            }
+                            generateCustomInterpretation();
+                          }}
                           style={{ marginRight: "1rem" }}
+                          disabled={isGeneratingAI}
                         >
-                          Get Reading
+                          {isGeneratingAI ? "Generating..." : "Get Reading"}
                         </button>
                       )}
                       {isGeneratingAI && (
