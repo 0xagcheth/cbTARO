@@ -2146,6 +2146,60 @@
 
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
+  <!-- Farcaster SDK ready check script -->
+  <script>
+    // Global function to check and call Farcaster SDK ready
+    window.checkFarcasterReady = function() {
+      console.log('🔍 Checking Farcaster SDK readiness...');
+
+      // Check different possible SDK global names
+      const sdk = window.farcaster || window.farcasterSDK || window.sdk || window.FarcasterSDK;
+
+      if (sdk && sdk.actions && typeof sdk.actions.ready === 'function') {
+        console.log('✅ Farcaster SDK is ready, calling actions.ready()');
+        try {
+          sdk.actions.ready();
+          console.log('✅ Successfully called farcaster.actions.ready()');
+          return true;
+        } catch (error) {
+          console.error('❌ Error in farcaster.actions.ready():', error);
+          return false;
+        }
+      } else {
+        console.log('⏳ Farcaster SDK not ready yet, will retry...');
+        return false;
+      }
+    };
+
+    // Try to initialize immediately
+    if (document.readyState === 'complete') {
+      window.checkFarcasterReady();
+    } else {
+      // Wait for DOM and then check
+      document.addEventListener('DOMContentLoaded', function() {
+        // Small delay to ensure all scripts are loaded
+        setTimeout(window.checkFarcasterReady, 100);
+      });
+
+      // Also check on window load
+      window.addEventListener('load', function() {
+        setTimeout(window.checkFarcasterReady, 50);
+      });
+    }
+
+    // Periodic check for SDK (in case it loads asynchronously)
+    let sdkCheckInterval = setInterval(function() {
+      if (window.checkFarcasterReady()) {
+        clearInterval(sdkCheckInterval);
+      }
+    }, 500);
+
+    // Clear interval after 10 seconds to avoid infinite checking
+    setTimeout(function() {
+      clearInterval(sdkCheckInterval);
+    }, 10000);
+  </script>
+
   <script type="text/babel">
     const { useState, useEffect } = React;
 
@@ -2735,15 +2789,32 @@
       const [walletAddress, setWalletAddress] = useState(null);
       const [txStatus, setTxStatus] = useState("idle"); // idle, paying, success, error
 
-      // Farcaster Mini App SDK initialization
+      // Farcaster Mini App SDK initialization (backup check)
       useEffect(() => {
-        if (window.farcaster && window.farcaster.actions) {
-          // We're in Farcaster Mini App environment
-          window.farcaster.actions.ready();
-        } else if (window.parent !== window) {
-          // Fallback for older iframe detection
-          window.parent.postMessage({ type: 'ready' }, '*');
-        }
+        console.log('🎯 React component mounted, checking Farcaster SDK...');
+
+        // Small delay to ensure global script has run
+        const timer = setTimeout(() => {
+          if (!window.checkFarcasterReady || !window.checkFarcasterReady()) {
+            // Fallback if global script failed
+            console.log('🔄 Fallback SDK check from React component');
+
+            const sdk = window.farcaster || window.farcasterSDK || window.sdk || window.FarcasterSDK;
+            if (sdk && sdk.actions && typeof sdk.actions.ready === 'function') {
+              try {
+                sdk.actions.ready();
+                console.log('✅ Fallback: farcaster.actions.ready() called');
+              } catch (error) {
+                console.error('❌ Fallback SDK error:', error);
+              }
+            } else if (window.parent !== window) {
+              console.log('📱 Fallback: iframe detected, sending ready message');
+              window.parent.postMessage({ type: 'ready' }, '*');
+            }
+          }
+        }, 2000);
+
+        return () => clearTimeout(timer);
       }, []);
 
       // Function to play button sound

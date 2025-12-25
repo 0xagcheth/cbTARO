@@ -20,8 +20,12 @@ Mystical tarot readings powered by AI on the Base network, designed as a Farcast
   - All URLs point to correct GitHub Pages domain
 
 - [x] **Farcaster SDK Integration**
-  - Added `@farcaster/frame-sdk` via CDN
-  - Implemented `ready()` call when UI loads
+  - Added `@farcaster/frame-sdk@0.0.32` via CDN
+  - Multiple SDK name detection (`window.farcaster`, `window.farcasterSDK`, `window.sdk`, `window.FarcasterSDK`)
+  - Comprehensive ready() call with multiple fallback mechanisms
+  - Global script for immediate SDK detection
+  - React component backup check
+  - Detailed console logging for debugging
   - Graceful fallback for non-Farcaster environments
 
 - [x] **Open Graph Tags**
