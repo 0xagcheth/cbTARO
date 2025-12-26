@@ -6,13 +6,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
     <!-- Farcaster Mini App embed meta tags -->
-    <meta name="fc:miniapp" content="{&quot;version&quot;:&quot;1&quot;,&quot;imageUrl&quot;:&quot;./public/Assets/imagine/b.png&quot;,&quot;button&quot;:{&quot;title&quot;:&quot;Start&quot;,&quot;action&quot;:{&quot;type&quot;:&quot;launch_frame&quot;,&quot;name&quot;:&quot;cbTARO&quot;,&quot;url&quot;:&quot;./&quot;,&quot;splashImageUrl&quot;:&quot;./public/Assets/imagine/cr.png&quot;,&quot;splashBackgroundColor&quot;:&quot;#0b1020&quot;}}}" />
-    <meta property="fc:frame" content="{&quot;version&quot;:&quot;1&quot;,&quot;imageUrl&quot;:&quot;./public/Assets/imagine/b.png&quot;,&quot;button&quot;:{&quot;title&quot;:&quot;Start&quot;,&quot;action&quot;:{&quot;type&quot;:&quot;launch_frame&quot;,&quot;name&quot;:&quot;cbTARO&quot;,&quot;url&quot;:&quot;./&quot;,&quot;splashImageUrl&quot;:&quot;./public/Assets/imagine/cr.png&quot;,&quot;splashBackgroundColor&quot;:&quot;#0b1020&quot;}}}" />
+    <meta name="fc:miniapp" content="{&quot;version&quot;:&quot;1&quot;,&quot;imageUrl&quot;:&quot;https://0xagcheth.github.io/cbTARO/Assets/imagine/b.png&quot;,&quot;button&quot;:{&quot;title&quot;:&quot;Start&quot;,&quot;action&quot;:{&quot;type&quot;:&quot;launch_frame&quot;,&quot;name&quot;:&quot;cbTARO&quot;,&quot;url&quot;:&quot;https://0xagcheth.github.io/cbTARO/&quot;,&quot;splashImageUrl&quot;:&quot;https://0xagcheth.github.io/cbTARO/Assets/imagine/cr.png&quot;,&quot;splashBackgroundColor&quot;:&quot;#0b1020&quot;}}}" />
+    <meta property="fc:frame" content="{&quot;version&quot;:&quot;1&quot;,&quot;imageUrl&quot;:&quot;https://0xagcheth.github.io/cbTARO/Assets/imagine/b.png&quot;,&quot;button&quot;:{&quot;title&quot;:&quot;Start&quot;,&quot;action&quot;:{&quot;type&quot;:&quot;launch_frame&quot;,&quot;name&quot;:&quot;cbTARO&quot;,&quot;url&quot;:&quot;https://0xagcheth.github.io/cbTARO/&quot;,&quot;splashImageUrl&quot;:&quot;https://0xagcheth.github.io/cbTARO/Assets/imagine/cr.png&quot;,&quot;splashBackgroundColor&quot;:&quot;#0b1020&quot;}}}" />
 
     <!-- Open Graph tags for sharing outside Farcaster -->
     <meta property="og:title" content="cbTARO - Mystical Tarot Reading on Base" />
     <meta property="og:description" content="Get mystical tarot readings powered by AI on the Base network" />
-    <meta property="og:image" content="./public/Assets/imagine/b.png" />
+    <meta property="og:image" content="https://0xagcheth.github.io/cbTARO/Assets/imagine/b.png" />
     <meta property="og:url" content="https://0xagcheth.github.io/cbTARO/" />
     <meta property="og:type" content="website" />
 
@@ -387,12 +387,27 @@
     }
 
     .control-buttons {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      display: flex;
-      gap: 10px;
-      z-index: 10;
+      position: fixed !important;
+      top: calc(20px + var(--safe-area-inset-top, 0)) !important;
+      right: calc(20px + var(--safe-area-inset-right, 0)) !important;
+      display: flex !important;
+      gap: 10px !important;
+      z-index: 1000 !important;
+      transform: none !important;
+      transform-origin: initial !important;
+      animation: none !important;
+      transition: none !important;
+      will-change: auto !important;
+    }
+
+    /* Ensure buttons stay in place during any animations */
+    .tarot-root.animating .control-buttons,
+    .tarot-root.table-animating .control-buttons,
+    .tarot-animating ~ .control-buttons {
+      position: fixed !important;
+      top: calc(20px + var(--safe-area-inset-top, 0)) !important;
+      right: calc(20px + var(--safe-area-inset-right, 0)) !important;
+      transform: none !important;
     }
 
     /* Export CSV button */
@@ -3947,7 +3962,7 @@ Important: This must be a unique interpretation for this specific card spread. M
                     </>
                   )}
                   <button className="tarot-button" onClick={() => { playButtonSound(); handleShare(); }}>
-                    🔁 Share reading
+                    Share
                   </button>
                   <button className="tarot-button secondary" onClick={() => { playButtonSound(); handleNewSpread(); }}>
                     &lt;
