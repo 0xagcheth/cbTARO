@@ -158,8 +158,11 @@
       margin: 0;
       position: fixed;
       top: calc(10px + var(--safe-area-inset-top, 0));
-      left: 50%;
-      transform: translateX(-50%);
+      left: 0;
+      right: 0;
+      width: 100%;
+      display: block;
+      text-align: center;
       z-index: 1001;
       color: rgba(255, 255, 255, 0.9);
       text-shadow:
@@ -616,7 +619,7 @@
     .wallet-connect-btn {
       position: fixed;
       top: calc(20px + var(--safe-area-inset-top, 0));
-      left: calc(70px + var(--safe-area-inset-left, 0));
+      left: calc(20px + var(--safe-area-inset-left, 0));
       background: linear-gradient(135deg,
         rgba(0, 123, 255, 0.2),
         rgba(0, 50, 150, 0.2),
@@ -653,6 +656,14 @@
       box-shadow:
         0 12px 40px rgba(0, 123, 255, 0.4),
         inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    }
+
+    .wallet-avatar {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid rgba(255, 255, 255, 0.3);
     }
 
     .modal-header h2 {
@@ -1700,8 +1711,11 @@
         margin: 0;
         position: fixed !important;
         top: calc(8px + var(--safe-area-inset-top, 0)) !important;
-        left: 50% !important;
-        transform: translateX(-50%) !important;
+        left: 0 !important;
+        right: 0 !important;
+        width: 100% !important;
+        display: block !important;
+        text-align: center !important;
         z-index: 1001 !important;
       }
 
@@ -1837,17 +1851,112 @@
       }
 
       .wallet-connect-btn {
-        top: 15px;
-        left: 65px;
+        top: calc(15px + var(--safe-area-inset-top, 0));
+        left: calc(15px + var(--safe-area-inset-left, 0));
         padding: 6px 8px;
         font-size: 10px;
         min-width: 70px;
+      }
+
+      .wallet-avatar {
+        width: 20px;
+        height: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.3);
       }
 
       .custom-reading-overlay-button {
         width: 120px;
         height: 75px;
         margin: 0;
+      }
+
+      /* Additional mobile optimizations for very small screens */
+      @media (max-width: 480px) {
+        .control-buttons {
+          top: calc(8px + var(--safe-area-inset-top, 0)) !important;
+          right: calc(8px + var(--safe-area-inset-right, 0)) !important;
+          gap: 4px !important;
+        }
+
+        .sound-toggle-btn,
+        .gallery-button {
+          padding: 4px 6px !important;
+          font-size: 12px !important;
+          min-width: 28px !important;
+          min-height: 28px !important;
+        }
+
+        .wallet-connect-btn {
+          top: calc(10px + var(--safe-area-inset-top, 0)) !important;
+          left: calc(10px + var(--safe-area-inset-left, 0)) !important;
+          padding: 4px 6px !important;
+          font-size: 10px !important;
+          min-width: 50px !important;
+        }
+
+        .tarot-header h1 {
+          font-size: 0.9rem !important;
+          top: calc(4px + var(--safe-area-inset-top, 0)) !important;
+          left: 0 !important;
+          right: 0 !important;
+          width: 100% !important;
+          display: block !important;
+          text-align: center !important;
+        }
+
+        .tarot-container {
+          padding-top: calc(var(--pad) + 45px + var(--safe-area-inset-top, 0)) !important;
+        }
+
+        .tarot-card {
+          width: 55px !important;
+          height: 80px !important;
+        }
+
+        .tarot-table {
+          padding: 0.15rem !important;
+          min-height: 120px !important;
+        }
+
+        .tarot-main {
+          min-height: 300px !important;
+        }
+
+        .wallet-avatar {
+          width: 18px !important;
+          height: 18px !important;
+          border: 1px solid rgba(255, 255, 255, 0.3) !important;
+        }
+      }
+
+      /* Landscape orientation optimizations */
+      @media (max-height: 500px) and (orientation: landscape) {
+        .control-buttons {
+          top: calc(5px + var(--safe-area-inset-top, 0)) !important;
+        }
+
+        .wallet-connect-btn {
+          top: calc(8px + var(--safe-area-inset-top, 0)) !important;
+          left: calc(8px + var(--safe-area-inset-left, 0)) !important;
+        }
+
+        .tarot-header h1 {
+          font-size: 0.8rem !important;
+          top: calc(3px + var(--safe-area-inset-top, 0)) !important;
+          left: 0 !important;
+          right: 0 !important;
+          width: 100% !important;
+          display: block !important;
+          text-align: center !important;
+        }
+
+        .tarot-container {
+          padding-top: calc(var(--pad) + 35px + var(--safe-area-inset-top, 0)) !important;
+        }
+
+        .tarot-table {
+          min-height: 100px !important;
+        }
       }
 
     }
@@ -2965,6 +3074,8 @@
       // Wallet and payment states
       const [isWalletConnected, setIsWalletConnected] = useState(false);
       const [walletAddress, setWalletAddress] = useState(null);
+      const [userFid, setUserFid] = useState(null);
+      const [userAvatar, setUserAvatar] = useState(null);
       const [txStatus, setTxStatus] = useState("idle"); // idle, paying, success, error
 
       // Farcaster Mini App SDK initialization (backup check)
@@ -3012,6 +3123,54 @@
       };
 
       // Wallet and payment functions
+      // Function to get user avatar from Farcaster
+      const getUserAvatar = async (fid) => {
+        if (!fid) return null;
+
+        try {
+          const response = await fetch(`https://api.neynar.com/v2/farcaster/user/bulk?fids=${fid}`, {
+            headers: {
+              'api_key': 'NEYNAR_API_DOCS' // Using public API key for demo
+            }
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            const user = data.users?.[0];
+            return user?.pfp_url || null;
+          }
+        } catch (error) {
+          console.error('Failed to fetch user avatar:', error);
+        }
+        return null;
+      };
+
+      // Function to get FID from connected wallet
+      const getFidFromWallet = async (address) => {
+        try {
+          // Check if user is already connected via Farcaster Mini App
+          if (window.farcaster && window.farcaster.user) {
+            return window.farcaster.user.fid;
+          }
+
+          // Try to get FID via Neynar API using wallet address
+          const response = await fetch(`https://api.neynar.com/v2/farcaster/user/bulk-by-address?addresses=${address}`, {
+            headers: {
+              'api_key': 'NEYNAR_API_DOCS'
+            }
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            const user = data[address]?.[0];
+            return user?.fid || null;
+          }
+        } catch (error) {
+          console.error('Failed to get FID:', error);
+        }
+        return null;
+      };
+
       const connectWallet = async () => {
         if (!window.ethereum) {
           alert('MetaMask or compatible wallet not found!');
@@ -3026,6 +3185,17 @@
 
           setIsWalletConnected(true);
           setWalletAddress(address);
+
+          // Try to get FID and avatar
+          const fid = await getFidFromWallet(address);
+          setUserFid(fid);
+
+          if (fid) {
+            const avatar = await getUserAvatar(fid);
+            setUserAvatar(avatar);
+          } else {
+            setUserAvatar(null);
+          }
 
           return { provider, signer, address };
         } catch (error) {
@@ -3069,11 +3239,11 @@
       const usageLogger = {
         // Get identity from Mini App context
         getIdentity() {
-          let fid = '';
+          let fid = userFid || '';
           let currentWalletAddress = walletAddress || '';
 
-          // Try to get FID from Farcaster context (if available in Mini App)
-          if (window.farcaster && window.farcaster.user) {
+          // Fallback: Try to get FID from Farcaster context (if available in Mini App)
+          if (!fid && window.farcaster && window.farcaster.user) {
             fid = window.farcaster.user.fid || '';
           }
 
@@ -3648,7 +3818,19 @@ Important: This must be a unique interpretation for this specific card spread. M
             onClick={async () => { playButtonSound(); await connectWallet(); }}
             title={isWalletConnected ? `Connected: ${walletAddress?.slice(0, 6)}...${walletAddress?.slice(-4)}` : "Connect Wallet"}
           >
-            {isWalletConnected ? `💰 ${walletAddress?.slice(0, 4)}...${walletAddress?.slice(-4)}` : "🔗 Connect"}
+            {isWalletConnected ? (
+              userAvatar ? (
+                <img
+                  src={userAvatar}
+                  alt="Avatar"
+                  className="wallet-avatar"
+                />
+              ) : (
+                userFid ? "👤" : "🔮"
+              )
+            ) : (
+              "🔮"
+            )}
           </button>
 
           <div className="tarot-container">
