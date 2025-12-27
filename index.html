@@ -2329,11 +2329,10 @@ Important: This must be a unique interpretation for this specific card spread. M
       flex: 1;
       display: flex;
       flex-direction: column;
-      justify-content: flex-start;
+      justify-content: center;
       align-items: center;
       padding: var(--pad) 0;
       min-height: 0;
-      padding-top: calc(var(--pad) * 0.1);
     }
 
     /* Fixed Oval Table - always same size and position */
@@ -3818,8 +3817,7 @@ Important: This must be a unique interpretation for this specific card spread. M
       }
 
       .tarot-main {
-        padding-top: calc(var(--pad) * 0.1) !important;
-        justify-content: flex-start !important;
+        justify-content: center !important;
       }
 
       .tarot-table {
@@ -4022,8 +4020,7 @@ Important: This must be a unique interpretation for this specific card spread. M
 
         .tarot-main {
           min-height: 300px !important;
-          justify-content: flex-start !important;
-          padding-top: calc(var(--pad) * 0.1) !important;
+          justify-content: center !important;
         }
 
         .tarot-table {
@@ -4060,6 +4057,10 @@ Important: This must be a unique interpretation for this specific card spread. M
 
         .tarot-container {
           padding-top: calc(var(--pad) + 35px + var(--safe-area-inset-top, 0)) !important;
+        }
+
+        .tarot-main {
+          justify-content: center !important;
         }
 
         .tarot-table {
