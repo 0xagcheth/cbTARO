@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>cbTARO Simple Test</title>
+    <style>
+        body {
+            background-color: #0a1230;
+            color: white;
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            margin: 0;
+        }
+        .tarot-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 10px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>cbTARO Simple Test</h1>
+    <p>This is a working version without React complexity.</p>
+
+    <div class="card-grid">
+        <div class="tarot-card">
+            <h3>The Fool</h3>
+            <p>New beginnings, faith in the future</p>
+        </div>
+        <div class="tarot-card">
+            <h3>The Magician</h3>
+            <p>Manifestation, resourcefulness</p>
+        </div>
+        <div class="tarot-card">
+            <h3>The High Priestess</h3>
+            <p>Intuition, inner wisdom</p>
+        </div>
+    </div>
+
+    <button onclick="alert('cbTARO is working!')">Test Button</button>
+</body>
+</html>
+
