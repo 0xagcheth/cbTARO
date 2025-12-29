@@ -1598,38 +1598,48 @@ Important: This must be a unique interpretation for this specific card spread. M
                           return (
                             <div
                               key={card.id}
-                              className={`tarot-card ${offsetClass} ${isRevealed ? "card-revealed" : ""}`}
-                              onClick={() => handleCardClick(card)}
+                              className={`card-slot ${offsetClass}`}
                             >
-                              <div className="tarot-card-inner">
-                                {/* Card back */}
-                                <div className="tarot-card-back"></div>
+                              <div
+                                className={`card-anim ${isRevealed ? "card-revealed" : ""}`}
+                                onClick={() => handleCardClick(card)}
+                                onAnimationEnd={(e) => {
+                                  // Reset transform after animation to prevent scale "sticking"
+                                  const animEl = e.currentTarget;
+                                  const finalRot = offsetClass === 'card-left' ? -15 : offsetClass === 'card-right' ? 15 : 0;
+                                  animEl.style.transform = `translate3d(0, 0, 0) rotate(${finalRot}deg) scale(1)`;
+                                }}
+                              >
+                                <div className="tarot-card-inner">
+                                  {/* Card back */}
+                                  <div className="tarot-card-back"></div>
 
-                                {/* Card face */}
-                                <div className="tarot-card-front">
-                                  {card.imagePath ? (
-                                    <img
-                                      src={card.imagePath}
-                                      alt={card.name}
-                                      className="tarot-card-image"
-                                      onError={(e) => {
-                                        console.error('Failed to load image:', card.imagePath);
-                                        e.target.style.display = 'none';
-                                        // Show fallback content
-                                        e.target.parentElement.innerHTML = `
-                                          <div class="tarot-card-fallback">
-                                            <div class="tarot-card-name">${card.name}</div>
-                                            <div class="tarot-card-keyword">${card.keyword}</div>
-                                          </div>
-                                        `;
-                                      }}
-                                    />
-                                  ) : (
-                                    <div className="tarot-card-fallback">
-                                      <div className="tarot-card-name">{card.name}</div>
-                                      <div className="tarot-card-keyword">{card.keyword}</div>
-                                    </div>
-                                  )}
+                                  {/* Card face */}
+                                  <div className="tarot-card-front">
+                                    {card.imagePath ? (
+                                      <img
+                                        src={card.imagePath}
+                                        alt={card.name}
+                                        className="tarot-card-image"
+                                        onError={(e) => {
+                                          console.error('Failed to load image:', card.imagePath);
+                                          e.target.style.display = 'none';
+                                          // Show fallback content
+                                          e.target.parentElement.innerHTML = `
+                                            <div class="tarot-card-fallback">
+                                              <div class="tarot-card-name">${card.name}</div>
+                                              <div class="tarot-card-keyword">${card.keyword}</div>
+                                            </div>
+                                          `;
+                                        }}
+                                      />
+                                    ) : (
+                                      <div className="tarot-card-fallback">
+                                        <div className="tarot-card-name">{card.name}</div>
+                                        <div className="tarot-card-keyword">{card.keyword}</div>
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
                             </div>
@@ -2087,8 +2097,12 @@ Important: This must be a unique interpretation for this specific card spread. M
       --space: var(--pad); /* alias for backwards compatibility */
       --tableW: min(92vw, 820px);
       --tableAR: 1 / 0.72; /* portrait aspect ratio */
-      --cardW: clamp(100px, 24vw, 140px);
-      --cardH: calc(var(--cardW) * 1.46);
+      --card-w: clamp(92px, 22vw, 140px);
+      --card-ratio: 1.55;
+      --card-h: calc(var(--card-w) * var(--card-ratio));
+      /* Legacy support */
+      --cardW: var(--card-w);
+      --cardH: var(--card-h);
       --deckW: clamp(100px, 24vw, 140px);
       --deckH: calc(var(--deckW) * 1.46);
       --h1: clamp(20px, 5vw, 36px);
@@ -2098,7 +2112,8 @@ Important: This must be a unique interpretation for this specific card spread. M
     @media (orientation: landscape) and (max-height: 500px) {
       :root {
         --tableAR: 1 / 0.5;
-        --cardW: clamp(87px, 21vw, 127px);
+        --card-w: clamp(92px, 26vw, 132px);
+        --cardW: var(--card-w);
         --deckW: clamp(87px, 21vw, 127px);
       }
 
@@ -3449,9 +3464,44 @@ Important: This must be a unique interpretation for this specific card spread. M
       transform: none;
     }
 
+    /* Card slot - handles ONLY position (translate/left/top) */
+    .card-slot {
+      position: relative;
+      width: var(--card-w);
+      height: var(--card-h);
+      flex-shrink: 0;
+      opacity: 0;
+    }
+
+    /* Position slots for three-card spread */
+    .tarot-spread {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: var(--pad);
+      flex-wrap: wrap;
+      width: 100%;
+      perspective: 1000px;
+      transform: none;
+    }
+
+    /* Single card - centered via flexbox */
+    /* Three cards - positioned via flexbox gap in .tarot-spread */
+
+    /* Card animation layer - handles ONLY rotate/scale/flip/animation */
+    .card-anim {
+      width: 100%;
+      height: 100%;
+      cursor: pointer;
+      position: relative;
+      transform-style: preserve-3d;
+      will-change: transform;
+    }
+
+    /* Legacy class support - map to card-anim */
     .tarot-card {
-      width: var(--cardW);
-      height: var(--cardH);
+      width: var(--card-w);
+      height: var(--card-h);
       cursor: pointer;
       position: relative;
       transition: transform 0.3s ease;
@@ -3461,95 +3511,113 @@ Important: This must be a unique interpretation for this specific card spread. M
     }
 
     /* Animation for single card - dealer throws from top to center */
-    .tarot-card.card-single {
+    .card-slot.card-single .card-anim {
       animation: dealerThrowFromTopCenter 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.2s forwards;
+      animation-fill-mode: forwards;
     }
 
     @keyframes dealerThrowFromTopCenter {
       0% {
         opacity: 0;
-        transform: translateX(0) translateY(-400px) rotate(-180deg) scale(0.8);
+        transform: translateZ(0) rotate(-180deg) scale(0.8);
       }
       60% {
         opacity: 1;
-        transform: translateX(0) translateY(20px) rotate(5deg) scale(1.05);
+        transform: translateZ(0) rotate(5deg) scale(1.05);
       }
       80% {
-        transform: translateX(0) translateY(-5px) rotate(-2deg) scale(1.02);
+        transform: translateZ(0) rotate(-2deg) scale(1.02);
       }
       100% {
         opacity: 1;
-        transform: translateZ(0) translateX(0) translateY(0) rotate(0deg) scale(1);
+        transform: translateZ(0) translate3d(0, 0, 0) rotate(0deg) scale(1);
       }
     }
 
     /* Animation for three cards - dealer throws from top, sequence left to right */
-    .tarot-card.card-left {
+    .card-slot.card-left .card-anim {
       animation: dealerThrowFromTopLeft 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.2s forwards;
+      animation-fill-mode: forwards;
     }
 
-    .tarot-card.card-center {
+    .card-slot.card-center .card-anim {
       animation: dealerThrowFromTopCenterCard 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.4s forwards;
+      animation-fill-mode: forwards;
     }
 
-    .tarot-card.card-right {
+    .card-slot.card-right .card-anim {
       animation: dealerThrowFromTopRight 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.6s forwards;
+      animation-fill-mode: forwards;
     }
 
     @keyframes dealerThrowFromTopLeft {
       0% {
         opacity: 0;
-        transform: translateX(0) translateY(-400px) rotate(-180deg) scale(0.8);
+        transform: translateZ(0) rotate(-180deg) scale(0.8);
       }
       60% {
         opacity: 1;
-        transform: translateX(-20px) translateY(20px) rotate(-12deg) scale(1.05);
+        transform: translateZ(0) rotate(-12deg) scale(1.05);
       }
       80% {
-        transform: translateX(5px) translateY(-5px) rotate(-16deg) scale(1.02);
+        transform: translateZ(0) rotate(-16deg) scale(1.02);
       }
       100% {
         opacity: 1;
-        transform: translateZ(0) translateX(0) translateY(0) rotate(-15deg) scale(1);
+        transform: translateZ(0) translate3d(0, 0, 0) rotate(-15deg) scale(1);
       }
     }
 
     @keyframes dealerThrowFromTopCenterCard {
       0% {
         opacity: 0;
-        transform: translateX(0) translateY(-400px) rotate(-180deg) scale(0.8);
+        transform: translateZ(0) rotate(-180deg) scale(0.8);
       }
       60% {
         opacity: 1;
-        transform: translateX(0) translateY(20px) rotate(5deg) scale(1.05);
+        transform: translateZ(0) rotate(5deg) scale(1.05);
       }
       80% {
-        transform: translateX(0) translateY(-5px) rotate(-2deg) scale(1.02);
+        transform: translateZ(0) rotate(-2deg) scale(1.02);
       }
       100% {
         opacity: 1;
-        transform: translateZ(0) translateX(0) translateY(0) rotate(0deg) scale(1);
+        transform: translateZ(0) translate3d(0, 0, 0) rotate(0deg) scale(1);
       }
     }
 
     @keyframes dealerThrowFromTopRight {
       0% {
         opacity: 0;
-        transform: translateX(0) translateY(-400px) rotate(-180deg) scale(0.8);
+        transform: translateZ(0) rotate(-180deg) scale(0.8);
       }
       60% {
         opacity: 1;
-        transform: translateX(20px) translateY(20px) rotate(12deg) scale(1.05);
+        transform: translateZ(0) rotate(12deg) scale(1.05);
       }
       80% {
-        transform: translateX(-5px) translateY(-5px) rotate(14deg) scale(1.02);
+        transform: translateZ(0) rotate(14deg) scale(1.02);
       }
       100% {
         opacity: 1;
-        transform: translateZ(0) translateX(0) translateY(0) rotate(15deg) scale(1);
+        transform: translateZ(0) translate3d(0, 0, 0) rotate(15deg) scale(1);
       }
     }
 
+    /* Hover effects on card-anim */
+    .card-anim:hover {
+      transform: translateZ(0) translateY(-10px) scale(1);
+    }
+
+    .card-slot.card-left .card-anim:hover {
+      transform: translateZ(0) translateY(-10px) rotate(-15deg) scale(1);
+    }
+
+    .card-slot.card-right .card-anim:hover {
+      transform: translateZ(0) translateY(-10px) rotate(15deg) scale(1);
+    }
+
+    /* Legacy hover support */
     .tarot-card:hover {
       transform: translateY(-10px);
     }
@@ -3570,6 +3638,11 @@ Important: This must be a unique interpretation for this specific card spread. M
       transition: transform 0.6s ease;
     }
 
+    .card-anim.card-revealed .tarot-card-inner {
+      transform: rotateY(180deg);
+    }
+
+    /* Legacy support */
     .tarot-card.card-revealed .tarot-card-inner {
       transform: rotateY(180deg);
     }
@@ -3612,7 +3685,8 @@ Important: This must be a unique interpretation for this specific card spread. M
     .tarot-card-image {
       width: 100%;
       height: 100%;
-      object-fit: fill;
+      object-fit: contain;
+      display: block;
       position: absolute;
       top: 0;
       left: 0;
@@ -3877,6 +3951,12 @@ Important: This must be a unique interpretation for this specific card spread. M
         margin: calc(var(--pad) * 0.1) 0 !important;
       }
 
+      .card-slot {
+        width: var(--card-w);
+        height: var(--card-h);
+      }
+
+      /* Legacy support */
       .tarot-card {
         width: var(--cardW);
         height: var(--cardH);
@@ -3886,13 +3966,8 @@ Important: This must be a unique interpretation for this specific card spread. M
         gap: 0.5rem;
       }
 
-      .tarot-card.card-left {
-        transform: rotate(-10deg);
-      }
-
-      .tarot-card.card-right {
-        transform: rotate(10deg);
-      }
+      /* Rotation handled by animation, not by static transform */
+      /* Remove static transforms - they're in animations now */
 
       /* Mobile spread selection - stack vertically */
 
@@ -4014,6 +4089,11 @@ Important: This must be a unique interpretation for this specific card spread. M
 
       /* Additional mobile optimizations for very small screens */
       @media (max-width: 480px) {
+        :root {
+          --card-w: clamp(92px, 26vw, 132px);
+          --cardW: var(--card-w);
+        }
+
         .control-buttons {
           top: calc(8px + var(--safe-area-inset-top, 0)) !important;
           right: calc(8px + var(--safe-area-inset-right, 0)) !important;
@@ -4059,9 +4139,15 @@ Important: This must be a unique interpretation for this specific card spread. M
           padding-top: calc(var(--pad) + 45px + var(--safe-area-inset-top, 0)) !important;
         }
 
+        .card-slot {
+          width: var(--card-w) !important;
+          height: var(--card-h) !important;
+        }
+
+        /* Legacy support */
         .tarot-card {
-          width: 55px !important;
-          height: 80px !important;
+          width: var(--card-w) !important;
+          height: var(--card-h) !important;
         }
 
         .tarot-table {
@@ -4569,4 +4655,5 @@ Important: This must be a unique interpretation for this specific card spread. M
     }
   </style>
 </body>
+</html>
 </html>
