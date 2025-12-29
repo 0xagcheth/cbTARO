@@ -1608,6 +1608,7 @@ Important: This must be a unique interpretation for this specific card spread. M
                                   const animEl = e.currentTarget;
                                   const finalRot = offsetClass === 'card-left' ? -15 : offsetClass === 'card-right' ? 15 : 0;
                                   animEl.style.transform = `translate3d(0, 0, 0) rotate(${finalRot}deg) scale(1)`;
+                                  animEl.style.opacity = '1';
                                 }}
                               >
                                 <div className="tarot-card-inner">
@@ -3470,7 +3471,8 @@ Important: This must be a unique interpretation for this specific card spread. M
       width: var(--card-w);
       height: var(--card-h);
       flex-shrink: 0;
-      opacity: 0;
+      /* Ensure slot is visible */
+      display: block;
     }
 
     /* Position slots for three-card spread */
@@ -3496,7 +3498,20 @@ Important: This must be a unique interpretation for this specific card spread. M
       position: relative;
       transform-style: preserve-3d;
       will-change: transform;
+      opacity: 1;
+      /* Ensure visibility */
+      display: block;
+      min-height: 1px;
     }
+    
+    /* Set opacity to 0 for animation start */
+    .card-slot.card-single .card-anim,
+    .card-slot.card-left .card-anim,
+    .card-slot.card-center .card-anim,
+    .card-slot.card-right .card-anim {
+      opacity: 0;
+    }
+    
 
     /* Legacy class support - map to card-anim */
     .tarot-card {
@@ -3513,7 +3528,6 @@ Important: This must be a unique interpretation for this specific card spread. M
     /* Animation for single card - dealer throws from top to center */
     .card-slot.card-single .card-anim {
       animation: dealerThrowFromTopCenter 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.2s forwards;
-      animation-fill-mode: forwards;
     }
 
     @keyframes dealerThrowFromTopCenter {
@@ -3537,17 +3551,14 @@ Important: This must be a unique interpretation for this specific card spread. M
     /* Animation for three cards - dealer throws from top, sequence left to right */
     .card-slot.card-left .card-anim {
       animation: dealerThrowFromTopLeft 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.2s forwards;
-      animation-fill-mode: forwards;
     }
 
     .card-slot.card-center .card-anim {
       animation: dealerThrowFromTopCenterCard 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.4s forwards;
-      animation-fill-mode: forwards;
     }
 
     .card-slot.card-right .card-anim {
       animation: dealerThrowFromTopRight 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.6s forwards;
-      animation-fill-mode: forwards;
     }
 
     @keyframes dealerThrowFromTopLeft {
@@ -3861,6 +3872,7 @@ Important: This must be a unique interpretation for this specific card spread. M
     .tarot-reading-card-image {
       text-align: center;
       margin: 1rem 0;
+      transform: none;
     }
 
     .tarot-reading-card-image img {
@@ -3873,6 +3885,8 @@ Important: This must be a unique interpretation for this specific card spread. M
       box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
       display: block;
       margin: 0 auto;
+      transform: none;
+      scale: 1;
     }
 
     .tarot-reading-keyword {
@@ -4009,8 +4023,19 @@ Important: This must be a unique interpretation for this specific card spread. M
         margin: 0 0 0.25rem 0;
       }
 
+      .tarot-reading-card-image {
+        transform: none !important;
+      }
+
       .tarot-reading-card-image img {
-        width: 80px;
+        width: 80px !important;
+        max-width: 80px !important;
+        height: auto !important;
+        transform: none !important;
+        scale: 1 !important;
+        object-fit: contain !important;
+        display: block !important;
+        margin: 0 auto !important;
       }
 
       .tarot-reading-keyword {
