@@ -734,6 +734,25 @@
           return () => clearTimeout(timer);
         }, []);
 
+        // Debug: track gameStage changes after animating
+        useEffect(() => {
+          if (gameStage === "spread" || gameStage === "reading") {
+            // Small delay to ensure DOM is updated
+            setTimeout(() => {
+              if (window.location.search.includes('debug=1')) {
+                console.log('spread sizes (after animating removed)', {
+                  vw: window.innerWidth,
+                  vh: window.innerHeight,
+                  table: getComputedStyle(document.querySelector('.tarot-table'))?.transform || 'none',
+                  content: getComputedStyle(document.querySelector('.tarot-table-content'))?.transform || 'none',
+                  spread: getComputedStyle(document.querySelector('.tarot-spread'))?.transform || 'none',
+                  card: document.querySelector('.tarot-card') ? getComputedStyle(document.querySelector('.tarot-card'))?.transform : null,
+                });
+              }
+            }, 100);
+          }
+        }, [gameStage]);
+
         // Function to play button sound
         const playButtonSound = () => {
           if (!soundEnabled) return;
@@ -1371,6 +1390,20 @@ Important: This must be a unique interpretation for this specific card spread. M
               setRevealedIds([]);
               setActiveCard(null);
               setGameStage("spread");
+              
+              // Debug log after spread
+              setTimeout(() => {
+                if (window.location.search.includes('debug=1')) {
+                  console.log('spread sizes', {
+                    vw: window.innerWidth,
+                    vh: window.innerHeight,
+                    table: getComputedStyle(document.querySelector('.tarot-table'))?.transform || 'none',
+                    content: getComputedStyle(document.querySelector('.tarot-table-content'))?.transform || 'none',
+                    spread: getComputedStyle(document.querySelector('.tarot-spread'))?.transform || 'none',
+                    card: document.querySelector('.tarot-card') ? getComputedStyle(document.querySelector('.tarot-card'))?.transform : null,
+                  });
+                }
+              }, 100);
             }, 1200);
           } catch (err) {
             console.error("Error:", err);
@@ -1536,9 +1569,10 @@ Important: This must be a unique interpretation for this specific card spread. M
                 </div>
 
                 {/* Fixed Oval Table - always same size and position */}
-                <div className={`tarot-table ${gameStage === "animating" ? "table-animating" : ""}`}>
-                  {/* Content overlay - all content is absolutely positioned */}
-                  <div className="tarot-table-content">
+                <div className="tarot-table-wrap">
+                  <div className={`tarot-table ${gameStage === "animating" ? "table-animating" : ""}`}>
+                    {/* Content overlay - all content is absolutely positioned */}
+                    <div className="tarot-table-content">
                     {/* When there's no spread — show deck */}
                     {gameStage === "idle" && (
                       <div className="tarot-deck" onClick={handleChooseSpreadClick}>
@@ -1816,6 +1850,7 @@ Important: This must be a unique interpretation for this specific card spread. M
                       )}
                     </footer>
                   </div>
+                </div>
                 </div>
 
                 {/* Payment state (not used, as payment is disabled) */}
@@ -2335,6 +2370,14 @@ Important: This must be a unique interpretation for this specific card spread. M
       min-height: 0;
     }
 
+    /* Wrapper for table - handles translateY positioning */
+    .tarot-table-wrap {
+      position: relative;
+      transform: translateY(-10vh);
+      transform-origin: center center;
+      will-change: transform;
+    }
+
     /* Fixed Oval Table - always same size and position */
     .tarot-table {
       position: relative;
@@ -2350,11 +2393,13 @@ Important: This must be a unique interpretation for this specific card spread. M
       margin: calc(var(--pad) * 0.1) auto;
       transition: box-shadow 0.3s ease;
       transform-origin: center center;
+      transform: translateZ(0);
       overflow: visible;
       /* Fixed dimensions - never change */
       min-width: var(--tableW);
       max-width: var(--tableW);
       flex-shrink: 0;
+      will-change: transform;
     }
 
     /* Content overlay inside table - all absolutely positioned */
@@ -2393,10 +2438,10 @@ Important: This must be a unique interpretation for this specific card spread. M
 
     @keyframes tablePulse {
       0%, 100% {
-        transform: scale(1);
+        transform: translateZ(0) scale(1);
       }
       50% {
-        transform: scale(1.05);
+        transform: translateZ(0) scale(1.05);
       }
     }
 
@@ -3401,6 +3446,7 @@ Important: This must be a unique interpretation for this specific card spread. M
       flex-wrap: wrap;
       width: 100%;
       perspective: 1000px;
+      transform: none;
     }
 
     .tarot-card {
@@ -3411,6 +3457,7 @@ Important: This must be a unique interpretation for this specific card spread. M
       transition: transform 0.3s ease;
       opacity: 0;
       flex-shrink: 0;
+      transform-style: preserve-3d;
     }
 
     /* Animation for single card - dealer throws from top to center */
@@ -3432,7 +3479,7 @@ Important: This must be a unique interpretation for this specific card spread. M
       }
       100% {
         opacity: 1;
-        transform: translateX(0) translateY(0) rotate(0deg) scale(1);
+        transform: translateZ(0) translateX(0) translateY(0) rotate(0deg) scale(1);
       }
     }
 
@@ -3463,7 +3510,7 @@ Important: This must be a unique interpretation for this specific card spread. M
       }
       100% {
         opacity: 1;
-        transform: translateX(0) translateY(0) rotate(-15deg) scale(1);
+        transform: translateZ(0) translateX(0) translateY(0) rotate(-15deg) scale(1);
       }
     }
 
@@ -3481,7 +3528,7 @@ Important: This must be a unique interpretation for this specific card spread. M
       }
       100% {
         opacity: 1;
-        transform: translateX(0) translateY(0) rotate(0deg) scale(1);
+        transform: translateZ(0) translateX(0) translateY(0) rotate(0deg) scale(1);
       }
     }
 
@@ -3499,7 +3546,7 @@ Important: This must be a unique interpretation for this specific card spread. M
       }
       100% {
         opacity: 1;
-        transform: translateX(0) translateY(0) rotate(15deg) scale(1);
+        transform: translateZ(0) translateX(0) translateY(0) rotate(15deg) scale(1);
       }
     }
 
@@ -3820,6 +3867,10 @@ Important: This must be a unique interpretation for this specific card spread. M
         justify-content: center !important;
       }
 
+      .tarot-table-wrap {
+        transform: translateY(-8vh) !important;
+      }
+
       .tarot-table {
         min-height: 150px;
         padding: 0.25rem;
@@ -4023,6 +4074,10 @@ Important: This must be a unique interpretation for this specific card spread. M
           justify-content: center !important;
         }
 
+        .tarot-table-wrap {
+          transform: translateY(-6vh) !important;
+        }
+
         .tarot-table {
           margin: calc(var(--pad) * 0.05) 0 !important;
         }
@@ -4061,6 +4116,10 @@ Important: This must be a unique interpretation for this specific card spread. M
 
         .tarot-main {
           justify-content: center !important;
+        }
+
+        .tarot-table-wrap {
+          transform: translateY(-5vh) !important;
         }
 
         .tarot-table {
