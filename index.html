@@ -697,6 +697,7 @@
         const [isGeneratingAI, setIsGeneratingAI] = useState(false);
         const [showGallery, setShowGallery] = useState(false);
         const [previousGameStage, setPreviousGameStage] = useState("idle");
+        const [readingSource, setReadingSource] = useState(null); // 'gallery' | 'spread' | 'ai' | null
         const [soundEnabled, setSoundEnabled] = useState(true);
 
         // Wallet and payment states
@@ -1433,6 +1434,9 @@ Important: This must be a unique interpretation for this specific card spread. M
         // 3. Click on card → flip + show description
         const handleCardClick = (card) => {
           playButtonSound();
+          // Set reading source to 'spread' when clicking card in spread
+          setReadingSource('spread');
+          
           // If card is already revealed — show description
           if (revealedIds.includes(card.id)) {
             setActiveCard(card);
@@ -1458,14 +1462,36 @@ Important: This must be a unique interpretation for this specific card spread. M
 
         // 4. Close card description (click on background / "Close" button)
         const handleCloseReading = () => {
-          // If there are still unrevealed cards → return to spread
-          if (cards.some((c) => !revealedIds.includes(c.id))) {
-            setGameStage("spread");
+          const source = readingSource;
+          setReadingSource(null);
+          
+          if (source === 'gallery') {
+            // Return to gallery - just close the overlay, keep gallery open
+            setActiveCard(null);
+            // Keep showGallery=true and gameStage as is
+            return;
+          } else if (source === 'spread') {
+            // Return to spread
+            if (cards.some((c) => !revealedIds.includes(c.id))) {
+              setGameStage("spread");
+            } else {
+              // All cards revealed → theoretically can show "New Reading" button
+              setGameStage("spread");
+            }
+            setActiveCard(null);
+          } else if (source === 'ai') {
+            // Return to AI panel (if needed in future)
+            setActiveCard(null);
+            // Keep gameStage as is for AI interpretation
           } else {
-            // All cards revealed → theoretically can show "New Reading" button
-            setGameStage("spread");
+            // Fallback: default behavior (return to spread)
+            if (cards.some((c) => !revealedIds.includes(c.id))) {
+              setGameStage("spread");
+            } else {
+              setGameStage("spread");
+            }
+            setActiveCard(null);
           }
-          setActiveCard(null);
         };
 
         // 5. New reading (reset state)
@@ -1879,25 +1905,6 @@ Important: This must be a unique interpretation for this specific card spread. M
                 )}
               </main>
 
-            {/* Reading panel (card description) */}
-            {activeCard && gameStage === "reading" && (
-              <div className="tarot-reading-overlay" onClick={handleCloseReading}>
-                <div className="tarot-reading-panel" onClick={(e) => e.stopPropagation()}>
-                  <h2>{activeCard.name}</h2>
-                  {activeCard.imagePath && (
-                    <div className="tarot-reading-card-image">
-                      <img src={activeCard.imagePath} alt={activeCard.name} />
-                    </div>
-                  )}
-                  {activeCard.positionLabel && (
-                    <p className="tarot-reading-position">{activeCard.positionLabel}</p>
-                  )}
-                  <p className="tarot-reading-keyword">Keyword: {activeCard.keyword}</p>
-                  <p className="tarot-reading-text">{activeCard.description}</p>
-                </div>
-              </div>
-            )}
-
             {/* Gallery modal */}
             {showGallery && (
               <div className="tarot-reading-overlay" onClick={() => setShowGallery(false)}>
@@ -1910,9 +1917,10 @@ Important: This must be a unique interpretation for this specific card spread. M
                         {ALL_CARDS.slice(0, 22).map((card) => (
                           <div key={card.id} className="gallery-card" onClick={() => {
                             playButtonSound();
+                            setReadingSource('gallery');
                             setActiveCard(card);
                             setGameStage("reading");
-                            setShowGallery(false);
+                            // Keep showGallery=true - overlay will be on top
                           }}>
                             <img src={card.imagePath} alt={card.name} />
                             <div className="gallery-card-info">
@@ -1931,9 +1939,10 @@ Important: This must be a unique interpretation for this specific card spread. M
                         {ALL_CARDS.slice(22, 36).map((card) => (
                           <div key={card.id} className="gallery-card" onClick={() => {
                             playButtonSound();
+                            setReadingSource('gallery');
                             setActiveCard(card);
                             setGameStage("reading");
-                            setShowGallery(false);
+                            // Keep showGallery=true - overlay will be on top
                           }}>
                             <img src={card.imagePath} alt={card.name} />
                             <div className="gallery-card-info">
@@ -1952,9 +1961,10 @@ Important: This must be a unique interpretation for this specific card spread. M
                         {ALL_CARDS.slice(36, 50).map((card) => (
                           <div key={card.id} className="gallery-card" onClick={() => {
                             playButtonSound();
+                            setReadingSource('gallery');
                             setActiveCard(card);
                             setGameStage("reading");
-                            setShowGallery(false);
+                            // Keep showGallery=true - overlay will be on top
                           }}>
                             <img src={card.imagePath} alt={card.name} />
                             <div className="gallery-card-info">
@@ -1973,9 +1983,10 @@ Important: This must be a unique interpretation for this specific card spread. M
                         {ALL_CARDS.slice(50, 64).map((card) => (
                           <div key={card.id} className="gallery-card" onClick={() => {
                             playButtonSound();
+                            setReadingSource('gallery');
                             setActiveCard(card);
                             setGameStage("reading");
-                            setShowGallery(false);
+                            // Keep showGallery=true - overlay will be on top
                           }}>
                             <img src={card.imagePath} alt={card.name} />
                             <div className="gallery-card-info">
@@ -1994,9 +2005,10 @@ Important: This must be a unique interpretation for this specific card spread. M
                         {ALL_CARDS.slice(64, 78).map((card) => (
                           <div key={card.id} className="gallery-card" onClick={() => {
                             playButtonSound();
+                            setReadingSource('gallery');
                             setActiveCard(card);
                             setGameStage("reading");
-                            setShowGallery(false);
+                            // Keep showGallery=true - overlay will be on top
                           }}>
                             <img src={card.imagePath} alt={card.name} />
                             <div className="gallery-card-info">
@@ -2008,9 +2020,34 @@ Important: This must be a unique interpretation for this specific card spread. M
                       </div>
                     </div>
                   </div>
-                  <button className="gallery-close-btn" onClick={() => { playButtonSound(); setShowGallery(false); setGameStage(previousGameStage); }}>
+                  <button className="gallery-close-btn" onClick={() => { 
+                    playButtonSound(); 
+                    setShowGallery(false); 
+                    setGameStage(previousGameStage);
+                    setReadingSource(null);
+                    setActiveCard(null);
+                  }}>
                     Close Gallery
                   </button>
+                </div>
+              </div>
+            )}
+
+            {/* Reading panel (card description) - rendered AFTER gallery to be on top */}
+            {activeCard && (gameStage === "reading" || readingSource === 'gallery') && (
+              <div className="tarot-reading-overlay" style={{ zIndex: 2100 }} onClick={handleCloseReading}>
+                <div className="tarot-reading-panel" onClick={(e) => e.stopPropagation()}>
+                  <h2>{activeCard.name}</h2>
+                  {activeCard.imagePath && (
+                    <div className="tarot-reading-card-image">
+                      <img src={activeCard.imagePath} alt={activeCard.name} />
+                    </div>
+                  )}
+                  {activeCard.positionLabel && (
+                    <p className="tarot-reading-position">{activeCard.positionLabel}</p>
+                  )}
+                  <p className="tarot-reading-keyword">Keyword: {activeCard.keyword}</p>
+                  <p className="tarot-reading-text">{activeCard.description}</p>
                 </div>
               </div>
             )}
@@ -2905,6 +2942,7 @@ Important: This must be a unique interpretation for this specific card spread. M
       box-shadow: 0 0 50px rgba(0, 123, 255, 0.4);
       display: flex;
       flex-direction: column;
+      z-index: 1500;
     }
 
     .gallery-modal h2 {
@@ -3807,7 +3845,7 @@ Important: This must be a unique interpretation for this specific card spread. M
       height: 100%;
       background: rgba(0, 0, 0, 0.8);
       backdrop-filter: blur(5px);
-      z-index: 1000;
+      z-index: 2000;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -4018,6 +4056,21 @@ Important: This must be a unique interpretation for this specific card spread. M
         max-height: 85vh;
       }
 
+      .tarot-reading-overlay {
+        transform: none !important;
+        scale: 1 !important;
+      }
+
+      .tarot-reading-panel {
+        transform: none !important;
+        scale: 1 !important;
+      }
+
+      .tarot-reading-panel * {
+        transform: none !important;
+        scale: 1 !important;
+      }
+
       .tarot-reading-panel h2 {
         font-size: 1.2rem;
         margin: 0 0 0.25rem 0;
@@ -4025,17 +4078,31 @@ Important: This must be a unique interpretation for this specific card spread. M
 
       .tarot-reading-card-image {
         transform: none !important;
+        scale: 1 !important;
+        width: auto !important;
+        height: auto !important;
+        display: block !important;
+        position: relative !important;
+      }
+
+      .tarot-reading-card-image * {
+        transform: none !important;
+        scale: 1 !important;
       }
 
       .tarot-reading-card-image img {
         width: 80px !important;
         max-width: 80px !important;
+        min-width: 80px !important;
         height: auto !important;
         transform: none !important;
         scale: 1 !important;
+        zoom: 1 !important;
         object-fit: contain !important;
         display: block !important;
         margin: 0 auto !important;
+        box-sizing: border-box !important;
+        position: relative !important;
       }
 
       .tarot-reading-keyword {
