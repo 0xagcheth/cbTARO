@@ -707,6 +707,10 @@
         const [userAvatar, setUserAvatar] = useState(null);
         const [txStatus, setTxStatus] = useState("idle"); // idle, paying, success, error
 
+        // Farcaster Mini App context states
+        const [fcUser, setFcUser] = useState(null); // {fid, username, displayName, pfpUrl}
+        const [fcReady, setFcReady] = useState(false);
+
         // Farcaster Mini App SDK initialization (backup check)
         useEffect(() => {
           console.log('🎯 React component mounted, checking Farcaster SDK...');
@@ -731,6 +735,99 @@
               }
             }
           }, 2000);
+
+          return () => clearTimeout(timer);
+        }, []);
+
+        // Farcaster Mini App context auto-detection
+        useEffect(() => {
+          const loadFarcasterContext = async () => {
+            try {
+              // Try different SDK access patterns
+              const sdk = window.farcaster || window.farcasterSDK || window.sdk || window.FarcasterSDK;
+              
+              if (!sdk) {
+                console.log('📱 No Farcaster SDK found - running in regular browser');
+                setFcReady(true); // Mark as ready even if no SDK
+                return;
+              }
+
+              // Call ready() if available
+              if (sdk.actions && typeof sdk.actions.ready === 'function') {
+                try {
+                  await sdk.actions.ready();
+                  console.log('✅ Farcaster SDK ready() called');
+                } catch (readyError) {
+                  console.warn('⚠️ SDK ready() error (non-fatal):', readyError);
+                }
+              }
+
+              // Get context - try different methods
+              let ctx = null;
+              if (sdk.context) {
+                ctx = sdk.context;
+                // If context is a Promise, await it
+                if (ctx && typeof ctx.then === 'function') {
+                  ctx = await ctx;
+                }
+              } else if (typeof sdk.getContext === 'function') {
+                ctx = await sdk.getContext();
+              } else if (sdk.user) {
+                // Direct user access
+                ctx = { user: sdk.user };
+              }
+
+              if (!ctx) {
+                console.log('📱 No Farcaster context available');
+                setFcReady(true);
+                return;
+              }
+
+              // Extract user from context
+              const user = ctx.user || ctx.viewer || ctx;
+              
+              if (!user) {
+                console.log('📱 No user in Farcaster context');
+                setFcReady(true);
+                return;
+              }
+
+              // Normalize user data
+              const normalized = {
+                fid: user.fid || user.userFid || null,
+                username: user.username || null,
+                displayName: user.displayName || user.display_name || null,
+                pfpUrl: user.pfpUrl || user.pfp_url || user.avatarUrl || user.avatar_url || null
+              };
+
+              if (normalized.fid) {
+                console.log('✅ Farcaster user context loaded:', {
+                  fid: normalized.fid,
+                  username: normalized.username,
+                  hasAvatar: !!normalized.pfpUrl
+                });
+
+                // Update states
+                setFcUser(normalized);
+                setUserFid(normalized.fid);
+                if (normalized.pfpUrl) {
+                  setUserAvatar(normalized.pfpUrl);
+                }
+              } else {
+                console.log('📱 Farcaster context found but no FID');
+              }
+
+              setFcReady(true);
+            } catch (error) {
+              console.warn('⚠️ Error loading Farcaster context (non-fatal):', error);
+              setFcReady(true); // Mark as ready even on error
+            }
+          };
+
+          // Small delay to ensure SDK is initialized
+          const timer = setTimeout(() => {
+            loadFarcasterContext();
+          }, 500);
 
           return () => clearTimeout(timer);
         }, []);
@@ -775,6 +872,12 @@
         const getUserAvatar = async (fid) => {
           if (!fid) return null;
 
+          // First check if we have avatar from Farcaster context
+          if (fcUser?.fid === fid && fcUser?.pfpUrl) {
+            return fcUser.pfpUrl;
+          }
+
+          // Fallback to Neynar API only if no context available
           try {
             const response = await fetch(`https://api.neynar.com/v2/farcaster/user/bulk?fids=${fid}`, {
               headers: {
@@ -796,12 +899,17 @@
         // Function to get FID from connected wallet
         const getFidFromWallet = async (address) => {
           try {
-            // Check if user is already connected via Farcaster Mini App
+            // First check if we have FID from Farcaster context
+            if (fcUser?.fid) {
+              return fcUser.fid;
+            }
+
+            // Check if user is already connected via Farcaster Mini App (legacy check)
             if (window.farcaster && window.farcaster.user) {
               return window.farcaster.user.fid;
             }
 
-            // Try to get FID via Neynar API using wallet address
+            // Fallback: Try to get FID via Neynar API using wallet address
             const response = await fetch(`https://api.neynar.com/v2/farcaster/user/bulk-by-address?addresses=${address}`, {
               headers: {
                 'api_key': 'NEYNAR_API_DOCS'
@@ -834,26 +942,51 @@
             setIsWalletConnected(true);
             setWalletAddress(address);
 
+            // If we already have FID/avatar from Farcaster context, don't overwrite
+            if (fcUser?.fid && userFid === fcUser.fid && userAvatar === fcUser.pfpUrl) {
+              // Already set from context, skip wallet-based lookup
+              return { provider, signer, address };
+            }
+
             // Try to get FID and avatar (don't fail if this errors)
             try {
               const fid = await getFidFromWallet(address);
-              setUserFid(fid);
+              // Only update if we don't already have it from context
+              if (fid && !fcUser?.fid) {
+                setUserFid(fid);
+              } else if (fid) {
+                setUserFid(fid); // Update anyway if wallet provides different FID
+              }
 
               if (fid) {
                 try {
                   const avatar = await getUserAvatar(fid);
-                  setUserAvatar(avatar);
+                  // Only update if we don't already have it from context
+                  if (avatar && !fcUser?.pfpUrl) {
+                    setUserAvatar(avatar);
+                  } else if (avatar) {
+                    setUserAvatar(avatar); // Update anyway if wallet provides different avatar
+                  }
                 } catch (avatarError) {
                   console.warn('Failed to get avatar:', avatarError);
-                  setUserAvatar(null);
+                  // Don't clear if we have it from context
+                  if (!fcUser?.pfpUrl) {
+                    setUserAvatar(null);
+                  }
                 }
               } else {
-                setUserAvatar(null);
+                // Don't clear if we have it from context
+                if (!fcUser?.fid) {
+                  setUserAvatar(null);
+                }
               }
             } catch (fidError) {
               console.warn('Failed to get FID:', fidError);
-              setUserFid(null);
-              setUserAvatar(null);
+              // Don't clear if we have it from context
+              if (!fcUser?.fid) {
+                setUserFid(null);
+                setUserAvatar(null);
+              }
             }
 
             return { provider, signer, address };
@@ -899,10 +1032,11 @@
         const usageLogger = {
           // Get identity from Mini App context
           getIdentity() {
-            let fid = userFid || '';
+            // First check Farcaster context state
+            let fid = fcUser?.fid || userFid || '';
             let currentWalletAddress = walletAddress || '';
 
-            // Fallback: Try to get FID from Farcaster context (if available in Mini App)
+            // Fallback: Try to get FID from Farcaster context (legacy check)
             if (!fid && window.farcaster && window.farcaster.user) {
               fid = window.farcaster.user.fid || '';
             }
@@ -1523,16 +1657,15 @@ Important: This must be a unique interpretation for this specific card spread. M
               }}
               title={isWalletConnected ? `Connected: ${walletAddress?.slice(0, 6)}...${walletAddress?.slice(-4)}` : "Connect Wallet"}
             >
-              {isWalletConnected ? (
-                userAvatar ? (
-                  <img
-                    src={userAvatar}
-                    alt="Avatar"
-                    className="wallet-avatar"
-                  />
-                ) : (
-                  userFid ? "👤" : "🔮"
-                )
+              {/* Show avatar from Farcaster context or wallet connection */}
+              {userAvatar ? (
+                <img
+                  src={userAvatar}
+                  alt="Avatar"
+                  className="wallet-avatar"
+                />
+              ) : userFid || fcUser?.fid ? (
+                "👤"
               ) : (
                 "🔮"
               )}
