@@ -16,6 +16,11 @@
     <meta property="og:type" content="website" />
 
     <title>cbTARO - Mystical Tarot Reading on Base</title>
+    
+    <!-- Preconnect to speed up avatar loading -->
+    <link rel="preconnect" href="https://warpcast.com" />
+    <link rel="preconnect" href="https://i.imgur.com" />
+    <link rel="preconnect" href="https://res.cloudinary.com" />
   </head>
   <body>
     <div id="root"></div>
@@ -684,6 +689,54 @@
         return shuffled.slice(0, count);
       }
 
+      // Profile cache management
+      const PROFILE_CACHE_KEY = 'cbTARO_profile_cache';
+      const CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+      const getCachedProfile = () => {
+        try {
+          const cached = localStorage.getItem(PROFILE_CACHE_KEY);
+          if (!cached) return null;
+          
+          const data = JSON.parse(cached);
+          const now = Date.now();
+          
+          // Check if cache is still valid
+          if (data.updatedAt && (now - data.updatedAt) < CACHE_TTL) {
+            return {
+              fid: data.fid || null,
+              username: data.username || null,
+              displayName: data.displayName || null,
+              pfpUrl: data.pfpUrl || null
+            };
+          }
+          
+          // Cache expired, remove it
+          localStorage.removeItem(PROFILE_CACHE_KEY);
+          return null;
+        } catch (error) {
+          console.warn('⚠️ Failed to read profile cache:', error);
+          return null;
+        }
+      };
+
+      const saveProfileCache = (profile) => {
+        if (!profile || !profile.fid) return;
+        
+        try {
+          const cacheData = {
+            fid: profile.fid,
+            username: profile.username || null,
+            displayName: profile.displayName || null,
+            pfpUrl: profile.pfpUrl || null,
+            updatedAt: Date.now()
+          };
+          localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(cacheData));
+        } catch (error) {
+          console.warn('⚠️ Failed to save profile cache:', error);
+        }
+      };
+
       // Helper function to resolve Farcaster profile by wallet address
       const resolveFarcasterProfileByAddress = async (address) => {
         if (!address) return null;
@@ -735,26 +788,47 @@
       const useAuthIdentity = () => {
         const DEV = window.location.search.includes('debug=1');
         
-        const [authState, setAuthState] = useState('loading'); // loading, miniapp_authed, wallet_disconnected, wallet_connected_fetching_profile, wallet_connected_profile_ready, error
-        const [profile, setProfile] = useState(null); // {fid, username, displayName, pfpUrl}
+        // Layer 1: Load cached profile immediately for instant rendering
+        const cachedProfile = getCachedProfile();
+        
+        const [authState, setAuthState] = useState(cachedProfile?.pfpUrl ? 'wallet_disconnected' : 'loading'); // Start with cached if available
+        const [profile, setProfile] = useState(cachedProfile); // {fid, username, displayName, pfpUrl} - start with cache
         const [walletAddress, setWalletAddress] = useState(null);
         const [isMiniApp, setIsMiniApp] = useState(false);
 
-        // Detect environment and load Mini App context
+        // Layer 2: Detect environment and load Mini App context (authoritative)
         useEffect(() => {
           const initAuth = async () => {
             try {
-              // Check for Farcaster Mini App SDK
+              // Detect Mini App environment - check for Mini App SDK (not Frame SDK)
+              // Mini App SDK is typically available as window.farcaster with context API
               const sdk = window.farcaster || window.farcasterSDK || window.sdk || window.FarcasterSDK;
               
               if (!sdk) {
                 if (DEV) console.log('📱 No Farcaster SDK - browser mode');
                 setIsMiniApp(false);
-                setAuthState('wallet_disconnected');
+                // If we have cached profile, keep it visible
+                const cached = getCachedProfile();
+                if (cached?.pfpUrl) {
+                  setProfile(cached);
+                  setAuthState('wallet_disconnected'); // Show cached avatar but allow wallet connect
+                } else {
+                  setAuthState('wallet_disconnected');
+                }
                 return;
               }
 
-              // Try to get context
+              // Call ready() if available (Mini App SDK)
+              if (sdk.actions && typeof sdk.actions.ready === 'function') {
+                try {
+                  await sdk.actions.ready();
+                  if (DEV) console.log('✅ Mini App SDK ready() called');
+                } catch (readyError) {
+                  if (DEV) console.warn('⚠️ SDK ready() error (non-fatal):', readyError);
+                }
+              }
+
+              // Try to get context - Mini App SDK provides viewer identity
               let ctx = null;
               try {
                 if (sdk.context) {
@@ -766,6 +840,8 @@
                   ctx = await sdk.getContext();
                 } else if (sdk.user) {
                   ctx = { user: sdk.user };
+                } else if (sdk.viewer) {
+                  ctx = { viewer: sdk.viewer };
                 }
               } catch (ctxError) {
                 if (DEV) console.warn('⚠️ Context access error:', ctxError);
@@ -783,27 +859,46 @@
                   
                   if (normalized.fid) {
                     if (DEV) console.log('✅ Mini App context loaded:', normalized);
+                    // Update profile from authoritative source
                     setProfile(normalized);
+                    saveProfileCache(normalized); // Update cache
                     setIsMiniApp(true);
                     setAuthState('miniapp_authed');
-                    return;
+                    return; // Mini App context found, skip wallet/Neynar
                   }
                 }
               }
 
-              // Not a Mini App or no context
+              // Not a Mini App or no context - fallback to wallet mode
               setIsMiniApp(false);
-              setAuthState('wallet_disconnected');
+              // Keep cached profile visible if available
+              const cached = getCachedProfile();
+              if (cached?.pfpUrl) {
+                setProfile(cached);
+                setAuthState('wallet_disconnected');
+              } else {
+                setAuthState('wallet_disconnected');
+              }
             } catch (error) {
               if (DEV) console.warn('⚠️ Auth init error:', error);
-              setAuthState('error');
+              // Keep cached profile visible on error
+              const cached = getCachedProfile();
+              if (cached?.pfpUrl) {
+                setProfile(cached);
+                setAuthState('wallet_disconnected');
+              } else {
+                setAuthState('error');
+              }
             }
           };
 
-          initAuth();
+          // Small delay to ensure SDK is initialized
+          setTimeout(() => {
+            initAuth();
+          }, 100);
         }, []);
 
-        // Auto-check wallet connection in browser mode
+        // Auto-check wallet connection in browser mode (non-blocking)
         useEffect(() => {
           if (isMiniApp || authState === 'miniapp_authed') return;
 
@@ -818,16 +913,28 @@
               if (accounts && accounts.length > 0) {
                 const address = accounts[0];
                 setWalletAddress(address);
-                setAuthState('wallet_connected_fetching_profile');
                 
-                // Try to resolve profile
-                const resolvedProfile = await resolveFarcasterProfileByAddress(address);
-                if (resolvedProfile?.fid) {
-                  setProfile(resolvedProfile);
-                  setAuthState('wallet_connected_profile_ready');
-                } else {
-                  setAuthState('wallet_connected_profile_ready'); // Connected but no Farcaster profile
+                // Don't change state to fetching - keep showing cached avatar if available
+                // Only update state if we don't have a profile yet
+                if (!profile?.pfpUrl) {
+                  setAuthState('wallet_connected_fetching_profile');
                 }
+                
+                // Try to resolve profile (non-blocking - don't replace cached avatar immediately)
+                resolveFarcasterProfileByAddress(address).then((resolvedProfile) => {
+                  if (resolvedProfile?.fid) {
+                    // Only update if we got a better profile (with pfpUrl)
+                    if (resolvedProfile.pfpUrl && (!profile?.pfpUrl || profile.fid !== resolvedProfile.fid)) {
+                      setProfile(resolvedProfile);
+                      saveProfileCache(resolvedProfile);
+                    }
+                    setAuthState('wallet_connected_profile_ready');
+                  } else {
+                    setAuthState('wallet_connected_profile_ready'); // Connected but no Farcaster profile
+                  }
+                }).catch(() => {
+                  setAuthState('wallet_connected_profile_ready'); // Error but keep showing cached
+                });
               } else {
                 setAuthState('wallet_disconnected');
               }
@@ -848,7 +955,11 @@
           }
 
           try {
-            setAuthState('wallet_connected_fetching_profile');
+            // Don't show spinner if we have cached avatar
+            if (!profile?.pfpUrl) {
+              setAuthState('wallet_connected_fetching_profile');
+            }
+            
             const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
             
             if (!accounts || accounts.length === 0) {
@@ -859,14 +970,19 @@
             const address = accounts[0];
             setWalletAddress(address);
             
-            // Resolve profile
-            const resolvedProfile = await resolveFarcasterProfileByAddress(address);
-            if (resolvedProfile?.fid) {
-              setProfile(resolvedProfile);
-              setAuthState('wallet_connected_profile_ready');
-            } else {
-              setAuthState('wallet_connected_profile_ready'); // Connected but no profile
-            }
+            // Resolve profile (non-blocking - keep showing cached avatar)
+            resolveFarcasterProfileByAddress(address).then((resolvedProfile) => {
+              if (resolvedProfile?.fid) {
+                // Update profile and cache
+                setProfile(resolvedProfile);
+                saveProfileCache(resolvedProfile);
+                setAuthState('wallet_connected_profile_ready');
+              } else {
+                setAuthState('wallet_connected_profile_ready'); // Connected but no profile
+              }
+            }).catch(() => {
+              setAuthState('wallet_connected_profile_ready'); // Error but keep showing cached
+            });
 
             return { address };
           } catch (error) {
@@ -914,33 +1030,31 @@
         };
 
         const renderButtonContent = () => {
-          switch (authState) {
-            case 'loading':
-              return <span className="spinner orbSpinner">⏳</span>;
-            
-            case 'wallet_connected_fetching_profile':
-              return <span className="spinner orbSpinner">⏳</span>;
-            
-            case 'miniapp_authed':
-            case 'wallet_connected_profile_ready':
-            case 'wallet_disconnected':
-            case 'error':
-            default:
-              // Показываем аватарку если есть pfpUrl и не было ошибки загрузки
-              if (profile?.pfpUrl && !avatarFailed) {
-                return (
-                  <img
-                    className="orbAvatar"
-                    src={profile.pfpUrl}
-                    alt=""
-                    referrerPolicy="no-referrer"
-                    onError={() => setAvatarFailed(true)}
-                  />
-                );
-              }
-              // Fallback: показываем шар
-              return <span className="orbFallback">🔮</span>;
+          // Priority 1: Show avatar if pfpUrl exists (from cache or context) and not failed
+          if (profile?.pfpUrl && !avatarFailed) {
+            return (
+              <img
+                className="orbAvatar"
+                src={profile.pfpUrl}
+                alt=""
+                width="64"
+                height="64"
+                loading="eager"
+                decoding="async"
+                fetchPriority="high"
+                referrerPolicy="no-referrer"
+                onError={() => setAvatarFailed(true)}
+              />
+            );
           }
+
+          // Priority 2: Show spinner only if we're actively fetching AND no cached avatar
+          if (authState === 'loading' || (authState === 'wallet_connected_fetching_profile' && !profile?.pfpUrl)) {
+            return <span className="spinner orbSpinner">⏳</span>;
+          }
+
+          // Priority 3: Fallback to orb
+          return <span className="orbFallback">🔮</span>;
         };
 
         const getTitle = () => {
@@ -3296,15 +3410,19 @@ Important: This must be a unique interpretation for this specific card spread. M
       height: 64px;
       min-width: 64px;
       min-height: 64px;
+      max-width: 64px;
+      max-height: 64px;
       padding: 0;
       border-radius: 12px; /* Такая же форма, как у кнопки звука */
       overflow: hidden;
       display: flex;
       align-items: center;
       justify-content: center;
+      /* Ensure fixed size for avatar clipping */
+      box-sizing: border-box;
     }
 
-    /* Аватарка внутри рамки */
+    /* Аватарка внутри рамки - точно под размер орба */
     .orbAvatar {
       position: absolute;
       inset: 0;
@@ -3313,6 +3431,11 @@ Important: This must be a unique interpretation for this specific card spread. M
       object-fit: cover;
       display: block;
       border-radius: 12px; /* Такая же форма, как у кнопки звука */
+      /* Ensure avatar fills orb exactly */
+      min-width: 100%;
+      min-height: 100%;
+      max-width: 100%;
+      max-height: 100%;
     }
 
     /* Fallback шар */
