@@ -2003,21 +2003,24 @@ Important: This must be a unique interpretation for this specific card spread. M
             {/* Mystical background */}
             <div className="tarot-background" />
 
-            {/* Unified Identity Button */}
-            <UnifiedIdentityButton playButtonSound={playButtonSound} />
+            {/* Control buttons container - both buttons together */}
+            <div className="control-buttons-left">
+              {/* Unified Identity Button */}
+              <UnifiedIdentityButton playButtonSound={playButtonSound} />
 
-            {/* Sound toggle button - positioned under wallet button */}
-            <button
-              className="sound-toggle-btn sound-toggle-btn-left"
-              onClick={(e) => { 
-                e.stopPropagation();
-                if (soundEnabled) playButtonSound();
-                setSoundEnabled(!soundEnabled);
-              }}
-              title={soundEnabled ? "Disable sound" : "Enable sound"}
-            >
-              {soundEnabled ? "🔊" : "🔇"}
-            </button>
+              {/* Sound toggle button */}
+              <button
+                className="sound-toggle-btn sound-toggle-btn-left"
+                onClick={(e) => { 
+                  e.stopPropagation();
+                  if (soundEnabled) playButtonSound();
+                  setSoundEnabled(!soundEnabled);
+                }}
+                title={soundEnabled ? "Disable sound" : "Enable sound"}
+              >
+                {soundEnabled ? "🔊" : "🔇"}
+              </button>
+            </div>
 
             <div className="tarot-container">
               {/* Header / greeting */}
@@ -2035,13 +2038,6 @@ Important: This must be a unique interpretation for this specific card spread. M
                 )}
               </header>
 
-              {/* Small block with hash after "payment" (hidden, as payment is disabled) */}
-              {txHash && (
-                <div className="tarot-hash">
-                  <span>Your reading is recorded:</span>
-                  <code>{txHash}</code>
-                </div>
-              )}
 
               {/* Main area with table and deck/cards */}
               <main className="tarot-main">
@@ -3221,13 +3217,29 @@ Important: This must be a unique interpretation for this specific card spread. M
       min-height: 64px;
     }
 
-    /* Sound toggle button positioned above wallet button */
+    /* Container for left control buttons (avatar + sound) */
+    .control-buttons-left {
+      position: fixed;
+      top: calc(20px + var(--safe-area-inset-top, 0));
+      left: calc(20px + var(--safe-area-inset-left, 0));
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 10000;
+      pointer-events: none; /* Позволяет кликать через контейнер на кнопки */
+    }
+
+    .control-buttons-left > * {
+      pointer-events: auto; /* Восстанавливаем клики на кнопках */
+    }
+
+    /* Sound toggle button positioned under wallet button */
     .sound-toggle-btn-left {
-      position: fixed !important;
-      top: calc(20px + var(--safe-area-inset-top, 0)) !important; /* Выше кнопки с аватаркой */
-      left: calc(20px + var(--safe-area-inset-left, 0)) !important;
+      position: relative !important; /* Теперь относительно контейнера */
+      top: auto !important;
+      left: auto !important;
       margin-right: 0 !important;
-      z-index: 10001 !important; /* Выше wallet-connect-btn (z-index: 10000) */
+      z-index: auto !important;
     }
 
     .sound-toggle-btn:hover {
@@ -3246,11 +3258,11 @@ Important: This must be a unique interpretation for this specific card spread. M
       border-color: rgba(255, 255, 255, 0.3);
     }
 
-    /* Wallet connect button */
+    /* Wallet connect button - same style as sound button */
     .wallet-connect-btn {
-      position: fixed;
-      top: calc(20px + 64px + 8px + var(--safe-area-inset-top, 0)); /* Ниже кнопки звука */
-      left: calc(20px + var(--safe-area-inset-left, 0));
+      position: relative; /* Теперь относительно контейнера */
+      top: auto;
+      left: auto;
       background: linear-gradient(135deg,
         rgba(0, 123, 255, 0.2),
         rgba(0, 50, 150, 0.2),
@@ -3258,27 +3270,26 @@ Important: This must be a unique interpretation for this specific card spread. M
       );
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
-      border: 1px solid rgba(255, 255, 255, 0.16);
-      border-radius: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
       color: #fff;
-      padding: 16px 24px;
-      font-size: 24px;
-      font-weight: 500;
+      padding: 12px 16px;
+      font-size: 28px;
       cursor: pointer;
-      transition: all 0.3s ease;
+      transition: all 0.2s ease;
       box-shadow:
-        0 8px 32px rgba(0, 123, 255, 0.3),
+        0 2px 12px rgba(0, 123, 255, 0.3),
         inset 0 1px 0 rgba(255, 255, 255, 0.1),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.1),
-        inset 0 0 80px rgba(0, 123, 255, 0.1);
-      min-width: 160px;
+        inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+      margin-right: 0;
+      min-width: 64px;
       min-height: 64px;
       text-align: center;
-      z-index: 10000;
+      z-index: auto;
       pointer-events: auto;
     }
 
-    /* Контейнер-рамка для шара/аватарки */
+    /* Контейнер-рамка для шара/аватарки - same style as sound button */
     .orbFrame {
       position: relative;
       width: 64px;
@@ -3286,7 +3297,7 @@ Important: This must be a unique interpretation for this specific card spread. M
       min-width: 64px;
       min-height: 64px;
       padding: 0;
-      border-radius: 50%;
+      border-radius: 12px; /* Такая же форма, как у кнопки звука */
       overflow: hidden;
       display: flex;
       align-items: center;
@@ -3301,7 +3312,7 @@ Important: This must be a unique interpretation for this specific card spread. M
       height: 100%;
       object-fit: cover;
       display: block;
-      border-radius: 50%;
+      border-radius: 12px; /* Такая же форма, как у кнопки звука */
     }
 
     /* Fallback шар */
@@ -3333,10 +3344,12 @@ Important: This must be a unique interpretation for this specific card spread. M
       );
       backdrop-filter: blur(25px);
       -webkit-backdrop-filter: blur(25px);
-      transform: scale(1.05);
+      transform: scale(1.1);
       box-shadow:
         0 12px 40px rgba(0, 123, 255, 0.4),
-        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        inset 0 1px 0 rgba(255, 255, 255, 0.2),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.05);
+      border-color: rgba(255, 255, 255, 0.3);
     }
 
     .wallet-avatar {
@@ -4459,7 +4472,7 @@ Important: This must be a unique interpretation for this specific card spread. M
       scale: 1;
     }
 
-    /* Mobile: увеличиваем картинку карты в 2 раза */
+    /* Mobile: уменьшаем картинку карты в 2 раза */
     @media (max-width: 480px) {
       .card-media {
         display: flex;
@@ -4470,10 +4483,10 @@ Important: This must be a unique interpretation for this specific card spread. M
       }
 
       .card-image {
-        width: min(92vw, 480px) !important;
-        max-width: none !important;
+        width: min(46vw, 240px) !important;
+        max-width: 240px !important;
         height: auto;
-        max-height: 75vh;
+        max-height: 40vh;
         object-fit: contain;
       }
 
@@ -4666,13 +4679,13 @@ Important: This must be a unique interpretation for this specific card spread. M
         position: relative !important;
       }
 
-      /* Переопределяем для увеличенной картинки карты */
+      /* Переопределяем для уменьшенной картинки карты */
       .card-image {
-        width: min(92vw, 480px) !important;
-        max-width: none !important;
+        width: min(46vw, 240px) !important;
+        max-width: 240px !important;
         min-width: unset !important;
         height: auto !important;
-        max-height: 75vh !important;
+        max-height: 40vh !important;
         object-fit: contain !important;
       }
 
@@ -4720,9 +4733,15 @@ Important: This must be a unique interpretation for this specific card spread. M
         margin: 0.5rem auto;
       }
 
+      .control-buttons-left {
+        top: calc(15px + var(--safe-area-inset-top, 0));
+        left: calc(15px + var(--safe-area-inset-left, 0));
+      }
+
       .sound-toggle-btn-left {
-        top: calc(15px + var(--safe-area-inset-top, 0)) !important; /* Выше кнопки с аватаркой */
-        left: calc(15px + var(--safe-area-inset-left, 0)) !important;
+        position: relative !important;
+        top: auto !important;
+        left: auto !important;
         padding: 16px 20px !important;
         font-size: 32px !important;
         min-width: 80px !important;
@@ -4730,20 +4749,27 @@ Important: This must be a unique interpretation for this specific card spread. M
       }
 
       .wallet-connect-btn {
-        top: calc(15px + 80px + 8px + var(--safe-area-inset-top, 0)); /* Ниже кнопки звука */
-        left: calc(15px + var(--safe-area-inset-left, 0));
-        padding: 12px 16px;
-        font-size: 20px;
-        min-width: 140px;
+        position: relative;
+        top: auto;
+        left: auto;
+        padding: 16px 20px;
+        font-size: 32px;
+        min-width: 80px;
         min-height: 80px;
+        border-radius: 12px;
       }
 
       .orbFrame {
-        width: 56px;
-        height: 56px;
-        min-width: 56px;
-        min-height: 56px;
+        width: 80px;
+        height: 80px;
+        min-width: 80px;
+        min-height: 80px;
         padding: 0;
+        border-radius: 12px;
+      }
+
+      .orbAvatar {
+        border-radius: 12px;
       }
 
       .orbFallback {
@@ -4779,9 +4805,15 @@ Important: This must be a unique interpretation for this specific card spread. M
           gap: 4px !important;
         }
 
-        .sound-toggle-btn-left {
-          top: calc(10px + var(--safe-area-inset-top, 0)) !important; /* Выше кнопки с аватаркой */
+        .control-buttons-left {
+          top: calc(10px + var(--safe-area-inset-top, 0)) !important;
           left: calc(10px + var(--safe-area-inset-left, 0)) !important;
+        }
+
+        .sound-toggle-btn-left {
+          position: relative !important;
+          top: auto !important;
+          left: auto !important;
           padding: 8px 12px !important;
           font-size: 24px !important;
           min-width: 56px !important;
@@ -4796,20 +4828,27 @@ Important: This must be a unique interpretation for this specific card spread. M
         }
 
         .wallet-connect-btn {
-          top: calc(10px + 56px + 8px + var(--safe-area-inset-top, 0)) !important; /* Ниже кнопки звука */
-          left: calc(10px + var(--safe-area-inset-left, 0)) !important;
+          position: relative !important;
+          top: auto !important;
+          left: auto !important;
           padding: 8px 12px !important;
-          font-size: 20px !important;
-          min-width: 100px !important;
+          font-size: 24px !important;
+          min-width: 56px !important;
           min-height: 56px !important;
+          border-radius: 12px !important;
         }
 
         .orbFrame {
-          width: 48px !important;
-          height: 48px !important;
-          min-width: 48px !important;
-          min-height: 48px !important;
+          width: 56px !important;
+          height: 56px !important;
+          min-width: 56px !important;
+          min-height: 56px !important;
           padding: 0 !important;
+          border-radius: 12px !important;
+        }
+
+        .orbAvatar {
+          border-radius: 12px !important;
         }
 
         .orbFallback {
