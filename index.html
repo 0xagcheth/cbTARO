@@ -1084,28 +1084,10 @@
             {showProfileModal && (
               <div className="tarot-reading-overlay" onClick={() => setShowProfileModal(false)} style={{ zIndex: 2100 }}>
                 <div className="tarot-reading-panel" onClick={(e) => e.stopPropagation()}>
-                  <h2>Profile</h2>
                   {profile?.pfpUrl && (
                     <div className="tarot-reading-card-image">
                       <img src={profile.pfpUrl} alt="Avatar" />
                     </div>
-                  )}
-                  {profile?.displayName && (
-                    <p className="tarot-reading-keyword">Name: {profile.displayName}</p>
-                  )}
-                  {profile?.username && (
-                    <p className="tarot-reading-keyword">Handle: @{profile.username}</p>
-                  )}
-                  {profile?.fid && (
-                    <p className="tarot-reading-keyword">FID: {profile.fid}</p>
-                  )}
-                  {walletAddress && (
-                    <p className="tarot-reading-keyword">Wallet: {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}</p>
-                  )}
-                  {isMiniApp && (
-                    <p className="tarot-reading-text" style={{ fontSize: '0.9em', opacity: 0.8 }}>
-                      Connected via Farcaster Mini App
-                    </p>
                   )}
                   <button 
                     className="tarot-button" 
