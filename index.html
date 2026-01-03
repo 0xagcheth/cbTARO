@@ -684,6 +684,326 @@
         return shuffled.slice(0, count);
       }
 
+      // Helper function to resolve Farcaster profile by wallet address
+      const resolveFarcasterProfileByAddress = async (address) => {
+        if (!address) return null;
+        
+        const DEV = window.location.search.includes('debug=1');
+        const NEYNAR_API_KEY = window.VITE_NEYNAR_API_KEY || 'NEYNAR_API_DOCS';
+        
+        try {
+          if (DEV) console.log('🔍 Resolving Farcaster profile for address:', address);
+          
+          const response = await fetch(
+            `https://api.neynar.com/v2/farcaster/user/bulk-by-address?addresses=${address}`,
+            {
+              headers: {
+                'api_key': NEYNAR_API_KEY
+              }
+            }
+          );
+
+          if (!response.ok) {
+            if (DEV) console.warn('⚠️ Neynar API error:', response.status);
+            return null;
+          }
+
+          const data = await response.json();
+          const user = data[address]?.[0];
+          
+          if (!user) {
+            if (DEV) console.log('📱 No Farcaster user found for address');
+            return null;
+          }
+
+          const profile = {
+            fid: user.fid || null,
+            username: user.username || null,
+            displayName: user.display_name || user.displayName || null,
+            pfpUrl: user.pfp_url || user.pfp?.url || user.pfpUrl || null
+          };
+
+          if (DEV) console.log('✅ Farcaster profile resolved:', profile);
+          return profile;
+        } catch (error) {
+          if (DEV) console.warn('⚠️ Error resolving Farcaster profile:', error);
+          return null;
+        }
+      };
+
+      // Hook for unified identity management
+      const useAuthIdentity = () => {
+        const DEV = window.location.search.includes('debug=1');
+        
+        const [authState, setAuthState] = useState('loading'); // loading, miniapp_authed, wallet_disconnected, wallet_connected_fetching_profile, wallet_connected_profile_ready, error
+        const [profile, setProfile] = useState(null); // {fid, username, displayName, pfpUrl}
+        const [walletAddress, setWalletAddress] = useState(null);
+        const [isMiniApp, setIsMiniApp] = useState(false);
+
+        // Detect environment and load Mini App context
+        useEffect(() => {
+          const initAuth = async () => {
+            try {
+              // Check for Farcaster Mini App SDK
+              const sdk = window.farcaster || window.farcasterSDK || window.sdk || window.FarcasterSDK;
+              
+              if (!sdk) {
+                if (DEV) console.log('📱 No Farcaster SDK - browser mode');
+                setIsMiniApp(false);
+                setAuthState('wallet_disconnected');
+                return;
+              }
+
+              // Try to get context
+              let ctx = null;
+              try {
+                if (sdk.context) {
+                  ctx = sdk.context;
+                  if (ctx && typeof ctx.then === 'function') {
+                    ctx = await ctx;
+                  }
+                } else if (typeof sdk.getContext === 'function') {
+                  ctx = await sdk.getContext();
+                } else if (sdk.user) {
+                  ctx = { user: sdk.user };
+                }
+              } catch (ctxError) {
+                if (DEV) console.warn('⚠️ Context access error:', ctxError);
+              }
+
+              if (ctx) {
+                const user = ctx.user || ctx.viewer || ctx;
+                if (user?.fid) {
+                  const normalized = {
+                    fid: user.fid || user.userFid || null,
+                    username: user.username || null,
+                    displayName: user.displayName || user.display_name || null,
+                    pfpUrl: user.pfpUrl || user.pfp_url || user.avatarUrl || user.avatar_url || null
+                  };
+                  
+                  if (normalized.fid) {
+                    if (DEV) console.log('✅ Mini App context loaded:', normalized);
+                    setProfile(normalized);
+                    setIsMiniApp(true);
+                    setAuthState('miniapp_authed');
+                    return;
+                  }
+                }
+              }
+
+              // Not a Mini App or no context
+              setIsMiniApp(false);
+              setAuthState('wallet_disconnected');
+            } catch (error) {
+              if (DEV) console.warn('⚠️ Auth init error:', error);
+              setAuthState('error');
+            }
+          };
+
+          initAuth();
+        }, []);
+
+        // Auto-check wallet connection in browser mode
+        useEffect(() => {
+          if (isMiniApp || authState === 'miniapp_authed') return;
+
+          const checkWallet = async () => {
+            if (!window.ethereum) {
+              setAuthState('wallet_disconnected');
+              return;
+            }
+
+            try {
+              const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+              if (accounts && accounts.length > 0) {
+                const address = accounts[0];
+                setWalletAddress(address);
+                setAuthState('wallet_connected_fetching_profile');
+                
+                // Try to resolve profile
+                const resolvedProfile = await resolveFarcasterProfileByAddress(address);
+                if (resolvedProfile?.fid) {
+                  setProfile(resolvedProfile);
+                  setAuthState('wallet_connected_profile_ready');
+                } else {
+                  setAuthState('wallet_connected_profile_ready'); // Connected but no Farcaster profile
+                }
+              } else {
+                setAuthState('wallet_disconnected');
+              }
+            } catch (error) {
+              if (DEV) console.warn('⚠️ Wallet check error:', error);
+              setAuthState('wallet_disconnected');
+            }
+          };
+
+          checkWallet();
+        }, [isMiniApp, authState]);
+
+        const connectWallet = async () => {
+          if (!window.ethereum) {
+            alert('MetaMask or compatible wallet not found!');
+            setAuthState('error');
+            return null;
+          }
+
+          try {
+            setAuthState('wallet_connected_fetching_profile');
+            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+            
+            if (!accounts || accounts.length === 0) {
+              setAuthState('wallet_disconnected');
+              return null;
+            }
+
+            const address = accounts[0];
+            setWalletAddress(address);
+            
+            // Resolve profile
+            const resolvedProfile = await resolveFarcasterProfileByAddress(address);
+            if (resolvedProfile?.fid) {
+              setProfile(resolvedProfile);
+              setAuthState('wallet_connected_profile_ready');
+            } else {
+              setAuthState('wallet_connected_profile_ready'); // Connected but no profile
+            }
+
+            return { address };
+          } catch (error) {
+            if (DEV) console.warn('⚠️ Wallet connection error:', error);
+            setAuthState('wallet_disconnected');
+            return null;
+          }
+        };
+
+        return {
+          authState,
+          profile,
+          walletAddress,
+          isMiniApp,
+          connectWallet
+        };
+      };
+
+      // Unified Identity Button Component
+      const UnifiedIdentityButton = ({ playButtonSound }) => {
+        const DEV = window.location.search.includes('debug=1');
+        const { authState, profile, walletAddress, isMiniApp, connectWallet } = useAuthIdentity();
+        const [showProfileModal, setShowProfileModal] = useState(false);
+
+        const handleClick = async (e) => {
+          e.stopPropagation();
+          
+          if (authState === 'miniapp_authed' || authState === 'wallet_connected_profile_ready') {
+            // Open profile modal
+            if (playButtonSound) playButtonSound();
+            setShowProfileModal(true);
+          } else if (authState === 'wallet_disconnected' || authState === 'error') {
+            // Connect wallet
+            if (playButtonSound) playButtonSound();
+            await connectWallet();
+          }
+        };
+
+        const renderButtonContent = () => {
+          switch (authState) {
+            case 'loading':
+              return <span className="spinner">⏳</span>;
+            
+            case 'miniapp_authed':
+            case 'wallet_connected_profile_ready':
+              if (profile?.pfpUrl) {
+                return (
+                  <img
+                    src={profile.pfpUrl}
+                    alt="Avatar"
+                    className="wallet-avatar"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      e.target.nextSibling.style.display = 'inline';
+                    }}
+                  />
+                );
+              }
+              return profile?.fid ? "👤" : "🔮";
+            
+            case 'wallet_connected_fetching_profile':
+              return <span className="spinner">⏳</span>;
+            
+            case 'wallet_disconnected':
+            case 'error':
+            default:
+              return "🔮";
+          }
+        };
+
+        const getTitle = () => {
+          if (authState === 'miniapp_authed' && profile) {
+            return profile.displayName || profile.username || `FID: ${profile.fid}`;
+          }
+          if (authState === 'wallet_connected_profile_ready' && walletAddress) {
+            return profile ? 
+              (profile.displayName || profile.username || `FID: ${profile.fid}`) :
+              `Connected: ${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`;
+          }
+          return "Connect Wallet (Click to connect)";
+        };
+
+        return (
+          <>
+            <button
+              className="wallet-connect-btn"
+              onClick={handleClick}
+              title={getTitle()}
+              disabled={authState === 'loading' || authState === 'wallet_connected_fetching_profile'}
+            >
+              {renderButtonContent()}
+              {!profile?.pfpUrl && (profile?.fid || walletAddress) && (
+                <span style={{ display: 'none' }}>👤</span>
+              )}
+            </button>
+
+            {/* Profile Modal */}
+            {showProfileModal && (
+              <div className="tarot-reading-overlay" onClick={() => setShowProfileModal(false)} style={{ zIndex: 2100 }}>
+                <div className="tarot-reading-panel" onClick={(e) => e.stopPropagation()}>
+                  <h2>Profile</h2>
+                  {profile?.pfpUrl && (
+                    <div className="tarot-reading-card-image">
+                      <img src={profile.pfpUrl} alt="Avatar" />
+                    </div>
+                  )}
+                  {profile?.displayName && (
+                    <p className="tarot-reading-keyword">Name: {profile.displayName}</p>
+                  )}
+                  {profile?.username && (
+                    <p className="tarot-reading-keyword">Handle: @{profile.username}</p>
+                  )}
+                  {profile?.fid && (
+                    <p className="tarot-reading-keyword">FID: {profile.fid}</p>
+                  )}
+                  {walletAddress && (
+                    <p className="tarot-reading-keyword">Wallet: {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}</p>
+                  )}
+                  {isMiniApp && (
+                    <p className="tarot-reading-text" style={{ fontSize: '0.9em', opacity: 0.8 }}>
+                      Connected via Farcaster Mini App
+                    </p>
+                  )}
+                  <button 
+                    className="tarot-button" 
+                    onClick={() => setShowProfileModal(false)}
+                    style={{ marginTop: '1rem' }}
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        );
+      };
+
       function TarotApp() {
         const [gameStage, setGameStage] = useState("idle");
         const [selectedSpread, setSelectedSpread] = useState(null);
@@ -700,16 +1020,38 @@
         const [readingSource, setReadingSource] = useState(null); // 'gallery' | 'spread' | 'ai' | null
         const [soundEnabled, setSoundEnabled] = useState(true);
 
-        // Wallet and payment states
+        // Wallet and payment states (kept for backward compatibility with payment logic)
         const [isWalletConnected, setIsWalletConnected] = useState(false);
         const [walletAddress, setWalletAddress] = useState(null);
         const [userFid, setUserFid] = useState(null);
         const [userAvatar, setUserAvatar] = useState(null);
         const [txStatus, setTxStatus] = useState("idle"); // idle, paying, success, error
 
-        // Farcaster Mini App context states
+        // Farcaster Mini App context states (kept for backward compatibility)
         const [fcUser, setFcUser] = useState(null); // {fid, username, displayName, pfpUrl}
         const [fcReady, setFcReady] = useState(false);
+
+        // Use unified auth identity hook
+        const authIdentity = useAuthIdentity();
+
+        // Sync auth identity data with legacy states for backward compatibility
+        useEffect(() => {
+          if (authIdentity.profile) {
+            if (authIdentity.profile.fid && !userFid) {
+              setUserFid(authIdentity.profile.fid);
+            }
+            if (authIdentity.profile.pfpUrl && !userAvatar) {
+              setUserAvatar(authIdentity.profile.pfpUrl);
+            }
+            if (!fcUser) {
+              setFcUser(authIdentity.profile);
+            }
+          }
+          if (authIdentity.walletAddress) {
+            setWalletAddress(authIdentity.walletAddress);
+            setIsWalletConnected(true);
+          }
+        }, [authIdentity.profile, authIdentity.walletAddress]);
 
         // Farcaster Mini App SDK initialization (backup check)
         useEffect(() => {
@@ -928,6 +1270,17 @@
         };
 
         const connectWallet = async () => {
+          // If already connected via authIdentity, use that
+          if (authIdentity.walletAddress && authIdentity.authState === 'wallet_connected_profile_ready') {
+            try {
+              const provider = new ethers.providers.Web3Provider(window.ethereum);
+              const signer = provider.getSigner();
+              return { provider, signer, address: authIdentity.walletAddress };
+            } catch (error) {
+              console.error('Failed to get provider:', error);
+            }
+          }
+
           if (!window.ethereum) {
             alert('MetaMask or compatible wallet not found!');
             return null;
@@ -1647,29 +2000,8 @@ Important: This must be a unique interpretation for this specific card spread. M
             {/* Mystical background */}
             <div className="tarot-background" />
 
-            {/* Wallet connect button */}
-            <button
-              className="wallet-connect-btn"
-              onClick={async (e) => { 
-                e.stopPropagation();
-                playButtonSound(); 
-                await connectWallet(); 
-              }}
-              title={isWalletConnected ? `Connected: ${walletAddress?.slice(0, 6)}...${walletAddress?.slice(-4)}` : "Connect Wallet"}
-            >
-              {/* Show avatar from Farcaster context or wallet connection */}
-              {userAvatar ? (
-                <img
-                  src={userAvatar}
-                  alt="Avatar"
-                  className="wallet-avatar"
-                />
-              ) : userFid || fcUser?.fid ? (
-                "👤"
-              ) : (
-                "🔮"
-              )}
-            </button>
+            {/* Unified Identity Button */}
+            <UnifiedIdentityButton playButtonSound={playButtonSound} />
 
             {/* Sound toggle button - positioned under wallet button */}
             <button
@@ -2963,6 +3295,22 @@ Important: This must be a unique interpretation for this specific card spread. M
       border-radius: 50%;
       object-fit: cover;
       border: 2px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .wallet-connect-btn .spinner {
+      display: inline-block;
+      animation: spin 1s linear infinite;
+      font-size: 24px;
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .wallet-connect-btn:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
     }
 
     .modal-header h2 {
