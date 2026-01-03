@@ -890,6 +890,14 @@
         const DEV = window.location.search.includes('debug=1');
         const { authState, profile, walletAddress, isMiniApp, connectWallet } = useAuthIdentity();
         const [showProfileModal, setShowProfileModal] = useState(false);
+        const [avatarFailed, setAvatarFailed] = useState(false);
+
+        // Сбрасываем avatarFailed при изменении pfpUrl
+        useEffect(() => {
+          if (profile?.pfpUrl) {
+            setAvatarFailed(false);
+          }
+        }, [profile?.pfpUrl]);
 
         const handleClick = async (e) => {
           e.stopPropagation();
@@ -908,32 +916,30 @@
         const renderButtonContent = () => {
           switch (authState) {
             case 'loading':
-              return <span className="spinner">⏳</span>;
+              return <span className="spinner orbSpinner">⏳</span>;
+            
+            case 'wallet_connected_fetching_profile':
+              return <span className="spinner orbSpinner">⏳</span>;
             
             case 'miniapp_authed':
             case 'wallet_connected_profile_ready':
-              if (profile?.pfpUrl) {
-                return (
-                  <img
-                    src={profile.pfpUrl}
-                    alt="Avatar"
-                    className="wallet-avatar"
-                    onError={(e) => {
-                      e.target.style.display = 'none';
-                      e.target.nextSibling.style.display = 'inline';
-                    }}
-                  />
-                );
-              }
-              return profile?.fid ? "👤" : "🔮";
-            
-            case 'wallet_connected_fetching_profile':
-              return <span className="spinner">⏳</span>;
-            
             case 'wallet_disconnected':
             case 'error':
             default:
-              return "🔮";
+              // Показываем аватарку если есть pfpUrl и не было ошибки загрузки
+              if (profile?.pfpUrl && !avatarFailed) {
+                return (
+                  <img
+                    className="orbAvatar"
+                    src={profile.pfpUrl}
+                    alt=""
+                    referrerPolicy="no-referrer"
+                    onError={() => setAvatarFailed(true)}
+                  />
+                );
+              }
+              // Fallback: показываем шар
+              return <span className="orbFallback">🔮</span>;
           }
         };
 
@@ -952,15 +958,12 @@
         return (
           <>
             <button
-              className="wallet-connect-btn"
+              className="wallet-connect-btn orbFrame"
               onClick={handleClick}
               title={getTitle()}
               disabled={authState === 'loading' || authState === 'wallet_connected_fetching_profile'}
             >
               {renderButtonContent()}
-              {!profile?.pfpUrl && (profile?.fid || walletAddress) && (
-                <span style={{ display: 'none' }}>👤</span>
-              )}
             </button>
 
             {/* Profile Modal */}
@@ -2504,8 +2507,8 @@ Important: This must be a unique interpretation for this specific card spread. M
                 <div className="tarot-reading-panel" onClick={(e) => e.stopPropagation()}>
                   <h2>{activeCard.name}</h2>
                   {activeCard.imagePath && (
-                    <div className="tarot-reading-card-image">
-                      <img src={activeCard.imagePath} alt={activeCard.name} />
+                    <div className="tarot-reading-card-image card-media">
+                      <img className="card-image" src={activeCard.imagePath} alt={activeCard.name} />
                     </div>
                   )}
                   {activeCard.positionLabel && (
@@ -3218,13 +3221,13 @@ Important: This must be a unique interpretation for this specific card spread. M
       min-height: 64px;
     }
 
-    /* Sound toggle button positioned under wallet button */
+    /* Sound toggle button positioned above wallet button */
     .sound-toggle-btn-left {
       position: fixed !important;
-      top: calc(20px + 64px + 8px + var(--safe-area-inset-top, 0)) !important;
+      top: calc(20px + var(--safe-area-inset-top, 0)) !important; /* Выше кнопки с аватаркой */
       left: calc(20px + var(--safe-area-inset-left, 0)) !important;
       margin-right: 0 !important;
-      z-index: 10000 !important;
+      z-index: 10001 !important; /* Выше wallet-connect-btn (z-index: 10000) */
     }
 
     .sound-toggle-btn:hover {
@@ -3246,7 +3249,7 @@ Important: This must be a unique interpretation for this specific card spread. M
     /* Wallet connect button */
     .wallet-connect-btn {
       position: fixed;
-      top: calc(20px + var(--safe-area-inset-top, 0));
+      top: calc(20px + 64px + 8px + var(--safe-area-inset-top, 0)); /* Ниже кнопки звука */
       left: calc(20px + var(--safe-area-inset-left, 0));
       background: linear-gradient(135deg,
         rgba(0, 123, 255, 0.2),
@@ -3273,6 +3276,53 @@ Important: This must be a unique interpretation for this specific card spread. M
       text-align: center;
       z-index: 10000;
       pointer-events: auto;
+    }
+
+    /* Контейнер-рамка для шара/аватарки */
+    .orbFrame {
+      position: relative;
+      width: 64px;
+      height: 64px;
+      min-width: 64px;
+      min-height: 64px;
+      padding: 0;
+      border-radius: 50%;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Аватарка внутри рамки */
+    .orbAvatar {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      border-radius: 50%;
+    }
+
+    /* Fallback шар */
+    .orbFallback {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      line-height: 1;
+    }
+
+    /* Спиннер внутри рамки */
+    .orbSpinner {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
     }
 
     .wallet-connect-btn:hover {
@@ -4394,7 +4444,8 @@ Important: This must be a unique interpretation for this specific card spread. M
       transform: none;
     }
 
-    .tarot-reading-card-image img {
+    .tarot-reading-card-image img,
+    .card-image {
       width: 100%;
       max-width: 240px;
       height: auto;
@@ -4406,6 +4457,35 @@ Important: This must be a unique interpretation for this specific card spread. M
       margin: 0 auto;
       transform: none;
       scale: 1;
+    }
+
+    /* Mobile: увеличиваем картинку карты в 2 раза */
+    @media (max-width: 480px) {
+      .card-media {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: visible;
+        margin: 1.5rem 0;
+      }
+
+      .card-image {
+        width: min(92vw, 480px) !important;
+        max-width: none !important;
+        height: auto;
+        max-height: 75vh;
+        object-fit: contain;
+      }
+
+      .tarot-reading-panel {
+        width: min(92vw, 560px);
+        max-height: 90vh;
+        padding: 1.5rem;
+      }
+
+      .tarot-reading-text {
+        margin-top: 1rem;
+      }
     }
 
     .tarot-reading-keyword {
@@ -4571,7 +4651,7 @@ Important: This must be a unique interpretation for this specific card spread. M
         scale: 1 !important;
       }
 
-      .tarot-reading-card-image img {
+      .tarot-reading-card-image img:not(.card-image) {
         width: 80px !important;
         max-width: 80px !important;
         min-width: 80px !important;
@@ -4584,6 +4664,16 @@ Important: This must be a unique interpretation for this specific card spread. M
         margin: 0 auto !important;
         box-sizing: border-box !important;
         position: relative !important;
+      }
+
+      /* Переопределяем для увеличенной картинки карты */
+      .card-image {
+        width: min(92vw, 480px) !important;
+        max-width: none !important;
+        min-width: unset !important;
+        height: auto !important;
+        max-height: 75vh !important;
+        object-fit: contain !important;
       }
 
       .tarot-reading-keyword {
@@ -4631,7 +4721,7 @@ Important: This must be a unique interpretation for this specific card spread. M
       }
 
       .sound-toggle-btn-left {
-        top: calc(15px + 80px + 8px + var(--safe-area-inset-top, 0)) !important;
+        top: calc(15px + var(--safe-area-inset-top, 0)) !important; /* Выше кнопки с аватаркой */
         left: calc(15px + var(--safe-area-inset-left, 0)) !important;
         padding: 16px 20px !important;
         font-size: 32px !important;
@@ -4640,12 +4730,28 @@ Important: This must be a unique interpretation for this specific card spread. M
       }
 
       .wallet-connect-btn {
-        top: calc(15px + var(--safe-area-inset-top, 0));
+        top: calc(15px + 80px + 8px + var(--safe-area-inset-top, 0)); /* Ниже кнопки звука */
         left: calc(15px + var(--safe-area-inset-left, 0));
         padding: 12px 16px;
         font-size: 20px;
         min-width: 140px;
         min-height: 80px;
+      }
+
+      .orbFrame {
+        width: 56px;
+        height: 56px;
+        min-width: 56px;
+        min-height: 56px;
+        padding: 0;
+      }
+
+      .orbFallback {
+        font-size: 28px;
+      }
+
+      .orbSpinner {
+        font-size: 20px;
       }
 
       .wallet-avatar {
@@ -4674,7 +4780,7 @@ Important: This must be a unique interpretation for this specific card spread. M
         }
 
         .sound-toggle-btn-left {
-          top: calc(10px + 56px + 8px + var(--safe-area-inset-top, 0)) !important;
+          top: calc(10px + var(--safe-area-inset-top, 0)) !important; /* Выше кнопки с аватаркой */
           left: calc(10px + var(--safe-area-inset-left, 0)) !important;
           padding: 8px 12px !important;
           font-size: 24px !important;
@@ -4690,12 +4796,28 @@ Important: This must be a unique interpretation for this specific card spread. M
         }
 
         .wallet-connect-btn {
-          top: calc(10px + var(--safe-area-inset-top, 0)) !important;
+          top: calc(10px + 56px + 8px + var(--safe-area-inset-top, 0)) !important; /* Ниже кнопки звука */
           left: calc(10px + var(--safe-area-inset-left, 0)) !important;
           padding: 8px 12px !important;
           font-size: 20px !important;
           min-width: 100px !important;
           min-height: 56px !important;
+        }
+
+        .orbFrame {
+          width: 48px !important;
+          height: 48px !important;
+          min-width: 48px !important;
+          min-height: 48px !important;
+          padding: 0 !important;
+        }
+
+        .orbFallback {
+          font-size: 24px !important;
+        }
+
+        .orbSpinner {
+          font-size: 18px !important;
         }
 
         .tarot-header h1 {
