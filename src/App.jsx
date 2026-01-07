@@ -954,40 +954,18 @@ Got a real answer.
       const getCardImageUrl = (imagePath) => {
         if (!imagePath) return null;
         // Convert "./Assets/imagine/taro_cards/THE FOOL.png" 
-        // to "https://0xagcheth.github.io/cbTARO/Assets/imagine/taro_cards/THE FOOL.png"
+        // to "https://0xagcheth.github.io/cbTARO/Assets/imagine/taro_cards/THE%20FOOL.png"
         const cleanPath = imagePath.replace(/^\.\//, '');
-        return `https://0xagcheth.github.io/cbTARO/${cleanPath}`;
+        return `https://0xagcheth.github.io/cbTARO/${encodeURI(cleanPath)}`;
       };
 
       const handleShare = async () => {
         try {
           playButtonSound();
 
-          // Get Farcaster Mini App SDK
-          const sdk = window.farcaster || window.farcasterSDK || window.sdk || window.FarcasterSDK;
-          
-          if (!sdk || !sdk.actions || !sdk.actions.composeCast) {
-            // Fallback to Warpcast URL if SDK not available
-            console.warn('Farcaster Mini App SDK not available, using fallback');
-            const shareText = getShareText(selectedSpread);
-            const embeds = [];
-            embeds.push('./Assets/imagine/b.png');
-            if (selectedSpread === "CUSTOM" && aiInterpretation) {
-              embeds.push('./Assets/imagine/cr.png');
-            }
-            embeds.push('./');
-            const baseUrl = 'https://warpcast.com/~/compose';
-            const params = new URLSearchParams({ text: shareText });
-            embeds.forEach((embed, index) => {
-              params.append(`embeds[${index}]`, embed);
-            });
-            const shareUrl = `${baseUrl}?${params.toString()}`;
-            window.open(shareUrl, '_blank', 'noopener,noreferrer');
-            return;
-          }
-
-          // Get card information
+          // Get card information first (needed for both branches)
           const appUrl = "https://0xagcheth.github.io/cbTARO/";
+          const previewImg = "https://0xagcheth.github.io/cbTARO/Assets/imagine/b.png";
           let cardImageUrl = null;
           let cardSlug = "";
 
@@ -1004,11 +982,42 @@ Got a real answer.
             shareText = `🔮 Reveal Your Reading\nCard: ${cardSlug}\n\n${shareText}`;
           }
 
-          // Build embeds array
+          // Get Farcaster Mini App SDK
+          const sdk = window.farcaster || window.farcasterSDK || window.sdk || window.FarcasterSDK;
+          
+          // Diagnostic logs
+          console.log("SHARE sdk =", sdk);
+          console.log("SHARE has composeCast =", !!sdk?.actions?.composeCast);
+          
+          if (!sdk || !sdk.actions || !sdk.actions.composeCast) {
+            // Fallback to Warpcast URL if SDK not available
+            console.warn('Farcaster Mini App SDK not available, using fallback');
+            
+            // Build embeds array with ABSOLUTE URLs only
+            const embeds = [appUrl];
+            if (cardImageUrl) {
+              embeds.push(cardImageUrl);
+            }
+            
+            const baseUrl = 'https://warpcast.com/~/compose';
+            const params = new URLSearchParams({ text: shareText });
+            embeds.forEach((embed, index) => {
+              params.append(`embeds[${index}]`, embed);
+            });
+            const shareUrl = `${baseUrl}?${params.toString()}`;
+            console.log("SHARE fallback URL =", shareUrl);
+            window.open(shareUrl, '_blank', 'noopener,noreferrer');
+            return;
+          }
+
+          // Build embeds array for composeCast
           const embeds = [appUrl];
           if (cardImageUrl) {
             embeds.push(cardImageUrl);
           }
+          
+          console.log("SHARE embeds =", embeds);
+          console.log("SHARE text =", shareText);
 
           // Use Farcaster Mini App SDK to compose cast
           await sdk.actions.composeCast({
