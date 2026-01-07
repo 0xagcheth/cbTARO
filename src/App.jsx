@@ -1024,84 +1024,45 @@ Got a real answer.
         return null;
       }
 
-      const handleShare = async () => {
-        try {
-          playButtonSound();
+      const handleShare = () => {
+        alert("SHARE CLICKED");
+        
+        const APP_URL = "https://0xagcheth.github.io/cbTARO/";
 
-          // Get card name (from current cards or last saved draw)
-          let cardName = "";
-          let cardImageUrl = null;
-          
-          // Try to get from current cards first
-          const firstCard = getFirstDrawnCard(cards);
-          if (firstCard) {
-            cardName = firstCard.name || "Unknown Card";
-            cardImageUrl = getFirstCardImageUrl(cards);
-          } else {
-            // Fallback to last saved draw from localStorage
-            const lastDraw = loadLastDraw();
-            if (lastDraw) {
-              cardName = lastDraw.name || "Unknown Card";
-              cardImageUrl = lastDraw.imageUrl;
-            }
-          }
-          
-          // If still no card image, use fallback f.png
-          if (!cardImageUrl) {
-            const fallbackPath = normalizePath("Assets/imagine/f.png");
-            cardImageUrl = toAbsoluteGhPagesUrl(fallbackPath);
-          }
+        // 1. Берём ПЕРВУЮ карту
+        const card = cards && cards.length > 0 ? cards[0] : null;
 
-          // Build share text: prepend card name to existing text
-          let shareText = getShareText(selectedSpread);
-          if (cardName) {
-            shareText = `🔮 Reveal Your Reading\nCard: ${cardName}\n\n${shareText}`;
+        // 2. Абсолютный URL картинки
+        let cardImageUrl = "";
+        if (card?.imagePath) {
+          // Убираем "./" если есть
+          let cleanPath = card.imagePath.replace(/^\.\//, "");
+          // Добавляем "public/" если его нет (на GitHub Pages файлы доступны С /public/ в пути)
+          if (!cleanPath.startsWith("public/")) {
+            cleanPath = "public/" + cleanPath;
           }
-
-          // Build embeds array: ALWAYS include app URL, then card image
-          const embeds = [APP_URL];
-          if (cardImageUrl) {
-            embeds.push(cardImageUrl);
-          }
-
-          // Get Farcaster Mini App SDK
-          const sdk = window.farcaster || window.farcasterSDK || window.sdk || window.FarcasterSDK;
-          
-          // Diagnostic logs
-          console.log("SHARE sdk =", sdk);
-          console.log("SHARE has composeCast =", !!sdk?.actions?.composeCast);
-          console.log("SHARE embeds =", embeds);
-          console.log("SHARE text =", shareText);
-          
-          if (sdk?.actions?.composeCast) {
-            // SDK branch: Use Farcaster Mini App SDK
-            console.log("using SDK composeCast");
-            await sdk.actions.composeCast({
-              text: shareText,
-              embeds: embeds
-            });
-          } else {
-            // Fallback: Use Farcaster compose intent URL
-            console.log("using fallback compose url");
-            
-            const baseUrl = 'https://farcaster.xyz/~/compose';
-            const params = new URLSearchParams();
-            params.set("text", shareText);
-            
-            // Use embeds[] format (repeated parameters)
-            embeds.forEach((embed) => {
-              params.append("embeds[]", embed);
-            });
-            
-            const shareUrl = `${baseUrl}?${params.toString()}`;
-            console.log("SHARE compose URL =", shareUrl);
-            window.open(shareUrl, '_blank', 'noopener,noreferrer');
-          }
-
-        } catch (error) {
-          console.error('Share failed:', error);
-          alert('Failed to share reading. Please try again.');
+          cardImageUrl = APP_URL + encodeURI(cleanPath);
+          console.log("CARD imagePath =", card.imagePath);
+          console.log("CARD cleanPath =", cleanPath);
+          console.log("CARD imageUrl =", cardImageUrl);
         }
+
+        // 3. Текст
+        let text = getShareText(selectedSpread);
+        if (card?.name) {
+          text = `🔮 Reveal Your Reading\nCard: ${card.name}\n\n${text}`;
+        }
+
+        // 4. Compose URL — БЕЗ SDK
+        const params = new URLSearchParams();
+        params.set("text", text);
+        params.append("embeds[]", APP_URL);
+        if (cardImageUrl) params.append("embeds[]", cardImageUrl);
+
+        const url = `https://farcaster.xyz/~/compose?${params.toString()}`;
+
+        console.log("SHARE URL:", url);
+        window.open(url, "_blank");
       };
 
       // 1. Click "Choose Your Spread"
