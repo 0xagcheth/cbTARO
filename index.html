@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
     <!-- Farcaster Mini App embed meta tags -->
-    <meta name="fc:miniapp" content="{&quot;version&quot;:&quot;1&quot;,&quot;imageUrl&quot;:&quot;https://0xagcheth.github.io/cbTARO/public/Assets/imagine/f.png&quot;,&quot;button&quot;:{&quot;title&quot;:&quot;Reveal&quot;,&quot;action&quot;:{&quot;type&quot;:&quot;launch_frame&quot;,&quot;name&quot;:&quot;cbTARO&quot;,&quot;url&quot;:&quot;https://0xagcheth.github.io/cbTARO/&quot;,&quot;splashImageUrl&quot;:&quot;https://0xagcheth.github.io/cbTARO/Assets/imagine/cr.png&quot;,&quot;splashBackgroundColor&quot;:&quot;#0b1020&quot;}}}" />
+    <meta name="fc:miniapp" content="{&quot;version&quot;:&quot;1&quot;,&quot;imageUrl&quot;:&quot;https://0xagcheth.github.io/cbTARO/public/Assets/imagine/f.png&quot;,&quot;iconUrl&quot;:&quot;https://0xagcheth.github.io/cbTARO/public/Assets/imagine/i.png&quot;,&quot;button&quot;:{&quot;title&quot;:&quot;Reveal&quot;,&quot;action&quot;:{&quot;type&quot;:&quot;launch_frame&quot;,&quot;name&quot;:&quot;cbTARO&quot;,&quot;url&quot;:&quot;https://0xagcheth.github.io/cbTARO/&quot;,&quot;splashImageUrl&quot;:&quot;https://0xagcheth.github.io/cbTARO/Assets/imagine/cr.png&quot;,&quot;splashBackgroundColor&quot;:&quot;#0b1020&quot;}}}" />
 
     <!-- Open Graph tags for sharing outside Farcaster -->
     <meta property="og:title" content="cbTARO" />
@@ -1704,39 +1704,71 @@ Got a real answer.
           return canvas.toDataURL('image/png');
         };
 
+        // Helper function to convert card imagePath to full URL
+        const getCardImageUrl = (imagePath) => {
+          if (!imagePath) return null;
+          // Convert "./public/Assets/imagine/taro_cards/THE FOOL.png" 
+          // to "https://0xagcheth.github.io/cbTARO/public/Assets/imagine/taro_cards/THE FOOL.png"
+          const cleanPath = imagePath.replace(/^\.\//, '').replace(/^public\//, '');
+          return `https://0xagcheth.github.io/cbTARO/public/${cleanPath}`;
+        };
+
         const handleShare = async () => {
           try {
             playButtonSound();
 
-            const shareText = getShareText(selectedSpread);
-            const embeds = [];
-
-            // Use static images instead of generated dataURL (better for embeds)
-            // For cards, use a generic tarot image
-            embeds.push('https://0xagcheth.github.io/cbTARO/Assets/imagine/b.png');
-
-            // For CUSTOM, add another image if AI interpretation exists
-            if (selectedSpread === "CUSTOM" && aiInterpretation) {
-              embeds.push('https://0xagcheth.github.io/cbTARO/Assets/imagine/cr.png');
+            // Get Farcaster Mini App SDK
+            const sdk = window.farcaster || window.farcasterSDK || window.sdk || window.FarcasterSDK;
+            
+            if (!sdk || !sdk.actions || !sdk.actions.composeCast) {
+              // Fallback to Warpcast URL if SDK not available
+              console.warn('Farcaster Mini App SDK not available, using fallback');
+              const shareText = getShareText(selectedSpread);
+              const embeds = [];
+              embeds.push('https://0xagcheth.github.io/cbTARO/Assets/imagine/b.png');
+              if (selectedSpread === "CUSTOM" && aiInterpretation) {
+                embeds.push('https://0xagcheth.github.io/cbTARO/Assets/imagine/cr.png');
+              }
+              embeds.push('https://0xagcheth.github.io/cbTARO/');
+              const baseUrl = 'https://warpcast.com/~/compose';
+              const params = new URLSearchParams({ text: shareText });
+              embeds.forEach((embed, index) => {
+                params.append(`embeds[${index}]`, embed);
+              });
+              const shareUrl = `${baseUrl}?${params.toString()}`;
+              window.open(shareUrl, '_blank', 'noopener,noreferrer');
+              return;
             }
 
-            // Add app URL
-            embeds.push('https://0xagcheth.github.io/cbTARO/');
+            // Get card information
+            const appUrl = "https://0xagcheth.github.io/cbTARO/";
+            let cardImageUrl = null;
+            let cardSlug = "";
 
-            // Create Warpcast intent URL
-            const baseUrl = 'https://warpcast.com/~/compose';
-            const params = new URLSearchParams({
+            // Get first card for image and name
+            if (cards && cards.length > 0) {
+              const firstCard = cards[0];
+              cardSlug = firstCard.name || "Unknown Card";
+              cardImageUrl = getCardImageUrl(firstCard.imagePath);
+            }
+
+            // Build share text with card name
+            let shareText = getShareText(selectedSpread);
+            if (cardSlug) {
+              shareText = `🔮 Reveal Your Reading\nCard: ${cardSlug}\n\n${shareText}`;
+            }
+
+            // Build embeds array
+            const embeds = [appUrl];
+            if (cardImageUrl) {
+              embeds.push(cardImageUrl);
+            }
+
+            // Use Farcaster Mini App SDK to compose cast
+            await sdk.actions.composeCast({
               text: shareText,
+              embeds: embeds
             });
-
-            embeds.forEach((embed, index) => {
-              params.append(`embeds[${index}]`, embed);
-            });
-
-            const shareUrl = `${baseUrl}?${params.toString()}`;
-
-            // Open in new window/tab
-            window.open(shareUrl, '_blank', 'noopener,noreferrer');
 
           } catch (error) {
             console.error('Share failed:', error);
