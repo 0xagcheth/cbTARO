@@ -807,27 +807,34 @@ function TaroApp() {
 
       // Share functions
       const getShareText = (spreadType) => {
+        const APP_LINK = "https://0xagcheth.github.io/cbTARO/";
         if (spreadType === "ONE") {
           return `🃏 Daily Taro
 
 Today's card gave me a clear signal.
 Sometimes one card is all you need.
 
-🔮 Pulled with cbTARO on Base`;
+🔮 Pulled with cbTARO on Base
+
+${APP_LINK}`;
         } else if (spreadType === "THREE") {
           return `🔮 3-Card Taro Reading
 
 Past. Present. Direction.
 The pattern actually makes sense.
 
-✨ Pulled with cbTARO on Base`;
+✨ Pulled with cbTARO on Base
+
+${APP_LINK}`;
         } else if (spreadType === "CUSTOM") {
           return `🧿 Custom Taro Reading
 
 Asked a real question.
 Got a real answer.
 
-✨ cbTARO · Taro on Base`;
+✨ cbTARO · Taro on Base
+
+${APP_LINK}`;
         }
         return "";
       };
