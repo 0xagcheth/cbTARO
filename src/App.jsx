@@ -1045,6 +1045,10 @@ Got a real answer.
           console.log("CARD imagePath =", card.imagePath);
           console.log("CARD cleanPath =", cleanPath);
           console.log("CARD imageUrl =", cardImageUrl);
+        } else {
+          // Fallback на f.png если карты нет
+          cardImageUrl = APP_URL + encodeURI("public/Assets/imagine/f.png");
+          console.log("NO CARD - using fallback f.png");
         }
 
         // 3. Текст
@@ -1057,7 +1061,11 @@ Got a real answer.
         const params = new URLSearchParams();
         params.set("text", text);
         params.append("embeds[]", APP_URL);
-        if (cardImageUrl) params.append("embeds[]", cardImageUrl);
+        params.append("embeds[]", cardImageUrl); // ВСЕГДА добавляем картинку
+        
+        console.log("SHARE - cards =", cards);
+        console.log("SHARE - card =", card);
+        console.log("SHARE - cardImageUrl =", cardImageUrl);
 
         const url = `https://farcaster.xyz/~/compose?${params.toString()}`;
 
