@@ -953,15 +953,30 @@ Got a real answer.
       // Helper functions for URL handling
       const APP_URL = "https://0xagcheth.github.io/cbTARO/";
       
-      function toAbsoluteAssetUrl(relPath) {
-        // relPath вида "./Assets/..." или "Assets/..."
-        // вернуть APP_URL + relPath без ведущего "./"
-        const cleanPath = relPath.replace(/^\.\//, '');
-        return APP_URL + cleanPath;
+      // Normalize image path: remove leading "./" and "./public/" if present
+      function normalizeImagePath(imagePath) {
+        if (!imagePath) return null;
+        // Remove leading "./" if present
+        let cleanPath = imagePath.replace(/^\.\//, '');
+        // Remove "public/" if present (GitHub Pages serves /public at root)
+        cleanPath = cleanPath.replace(/^public\//, '');
+        return cleanPath;
       }
       
-      function safeUrl(url) {
-        return encodeURI(url);
+      // Convert clean path to absolute URL with encoding
+      function toAbsoluteUrl(cleanPath) {
+        return `${APP_URL}${encodeURI(cleanPath)}`;
+      }
+      
+      // Get first card image URL or null
+      function getFirstCardImageUrl(cards) {
+        if (cards && cards.length > 0 && cards[0]?.imagePath) {
+          const normalized = normalizeImagePath(cards[0].imagePath);
+          if (normalized) {
+            return toAbsoluteUrl(normalized);
+          }
+        }
+        return null;
       }
 
       const handleShare = async () => {
@@ -974,25 +989,25 @@ Got a real answer.
             cardSlug = cards[0].name || "Unknown Card";
           }
 
-          // Build share text with card name
+          // Build share text with card name prepended
           let shareText = getShareText(selectedSpread);
           if (cardSlug) {
             shareText = `🔮 Reveal Your Reading\nCard: ${cardSlug}\n\n${shareText}`;
           }
 
-          // Determine cardImageUrl
-          let cardImageUrl;
-          if (cards && cards.length > 0 && cards[0]?.imagePath) {
-            cardImageUrl = safeUrl(toAbsoluteAssetUrl(cards[0].imagePath));
-          } else {
-            cardImageUrl = safeUrl(toAbsoluteAssetUrl("Assets/imagine/f.png"));
+          // Get card image URL (first card or fallback to f.png)
+          let cardImageUrl = getFirstCardImageUrl(cards);
+          if (!cardImageUrl) {
+            // Fallback to f.png if no card image
+            const fallbackPath = normalizeImagePath("Assets/imagine/f.png");
+            cardImageUrl = toAbsoluteUrl(fallbackPath);
           }
 
           // Build embeds array: [appUrl, cardImageUrl]
           const embeds = [
-            safeUrl(APP_URL),
+            APP_URL,
             cardImageUrl
-          ];
+          ].filter(Boolean);
 
           // Get Farcaster Mini App SDK
           const sdk = window.farcaster || window.farcasterSDK || window.sdk || window.FarcasterSDK;
@@ -1004,13 +1019,14 @@ Got a real answer.
           console.log("SHARE text =", shareText);
           
           if (!sdk || !sdk.actions || !sdk.actions.composeCast) {
-            // Fallback to Warpcast URL if SDK not available
+            // Fallback to Farcaster compose intent URL
             console.log("using fallback compose url");
             
-            const baseUrl = 'https://warpcast.com/~/compose';
-            const params = new URLSearchParams({ text: shareText });
+            const baseUrl = 'https://farcaster.xyz/~/compose';
+            const params = new URLSearchParams();
+            params.set("text", shareText);
             
-            // Use embeds[] format (not embeds[0], embeds[1])
+            // Use embeds[] format (repeated parameters, not embeds[0], embeds[1])
             embeds.forEach((embed) => {
               params.append("embeds[]", embed);
             });
