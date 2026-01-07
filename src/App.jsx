@@ -950,30 +950,28 @@ Got a real answer.
         return canvas.toDataURL('image/png');
       };
 
-      // Helper function to convert card imagePath to full URL
-      const getCardImageUrl = (imagePath) => {
-        if (!imagePath) return null;
-        // Convert "./Assets/imagine/taro_cards/THE FOOL.png" 
-        // to "https://0xagcheth.github.io/cbTARO/Assets/imagine/taro_cards/THE%20FOOL.png"
-        const cleanPath = imagePath.replace(/^\.\//, '');
-        return `https://0xagcheth.github.io/cbTARO/${encodeURI(cleanPath)}`;
-      };
+      // Helper functions for URL handling
+      const APP_URL = "https://0xagcheth.github.io/cbTARO/";
+      
+      function toAbsoluteAssetUrl(relPath) {
+        // relPath вида "./Assets/..." или "Assets/..."
+        // вернуть APP_URL + relPath без ведущего "./"
+        const cleanPath = relPath.replace(/^\.\//, '');
+        return APP_URL + cleanPath;
+      }
+      
+      function safeUrl(url) {
+        return encodeURI(url);
+      }
 
       const handleShare = async () => {
         try {
           playButtonSound();
 
-          // Get card information first (needed for both branches)
-          const appUrl = "https://0xagcheth.github.io/cbTARO/";
-          const previewImg = "https://0xagcheth.github.io/cbTARO/Assets/imagine/b.png";
-          let cardImageUrl = null;
+          // Get card slug for text
           let cardSlug = "";
-
-          // Get first card for image and name
           if (cards && cards.length > 0) {
-            const firstCard = cards[0];
-            cardSlug = firstCard.name || "Unknown Card";
-            cardImageUrl = getCardImageUrl(firstCard.imagePath);
+            cardSlug = cards[0].name || "Unknown Card";
           }
 
           // Build share text with card name
@@ -982,44 +980,49 @@ Got a real answer.
             shareText = `🔮 Reveal Your Reading\nCard: ${cardSlug}\n\n${shareText}`;
           }
 
+          // Determine cardImageUrl
+          let cardImageUrl;
+          if (cards && cards.length > 0 && cards[0]?.imagePath) {
+            cardImageUrl = safeUrl(toAbsoluteAssetUrl(cards[0].imagePath));
+          } else {
+            cardImageUrl = safeUrl(toAbsoluteAssetUrl("Assets/imagine/f.png"));
+          }
+
+          // Build embeds array: [appUrl, cardImageUrl]
+          const embeds = [
+            safeUrl(APP_URL),
+            cardImageUrl
+          ];
+
           // Get Farcaster Mini App SDK
           const sdk = window.farcaster || window.farcasterSDK || window.sdk || window.FarcasterSDK;
           
           // Diagnostic logs
           console.log("SHARE sdk =", sdk);
           console.log("SHARE has composeCast =", !!sdk?.actions?.composeCast);
+          console.log("SHARE embeds =", embeds);
+          console.log("SHARE text =", shareText);
           
           if (!sdk || !sdk.actions || !sdk.actions.composeCast) {
             // Fallback to Warpcast URL if SDK not available
-            console.warn('Farcaster Mini App SDK not available, using fallback');
-            
-            // Build embeds array with ABSOLUTE URLs only
-            const embeds = [appUrl];
-            if (cardImageUrl) {
-              embeds.push(cardImageUrl);
-            }
+            console.log("using fallback compose url");
             
             const baseUrl = 'https://warpcast.com/~/compose';
             const params = new URLSearchParams({ text: shareText });
-            embeds.forEach((embed, index) => {
-              params.append(`embeds[${index}]`, embed);
+            
+            // Use embeds[] format (not embeds[0], embeds[1])
+            embeds.forEach((embed) => {
+              params.append("embeds[]", embed);
             });
+            
             const shareUrl = `${baseUrl}?${params.toString()}`;
             console.log("SHARE fallback URL =", shareUrl);
             window.open(shareUrl, '_blank', 'noopener,noreferrer');
             return;
           }
 
-          // Build embeds array for composeCast
-          const embeds = [appUrl];
-          if (cardImageUrl) {
-            embeds.push(cardImageUrl);
-          }
-          
-          console.log("SHARE embeds =", embeds);
-          console.log("SHARE text =", shareText);
-
-          // Use Farcaster Mini App SDK to compose cast
+          // SDK branch: Use Farcaster Mini App SDK to compose cast
+          console.log("using SDK composeCast");
           await sdk.actions.composeCast({
             text: shareText,
             embeds: embeds
