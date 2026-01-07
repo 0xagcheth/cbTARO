@@ -19,7 +19,7 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:image" content="https://0xagcheth.github.io/cbTARO/public/Assets/imagine/f.png" />
 
-    <title>cbTARO - Mystical Tarot Reading on Base</title>
+    <title>cbTARO - Mystical Taro Reading on Base</title>
     
     <!-- Preconnect to speed up avatar loading -->
     <link rel="preconnect" href="https://warpcast.com" />
@@ -132,7 +132,7 @@
         console.error('ethers.js not loaded');
       }
 
-      // Tarot card data based on tarot.com meanings
+      // Taro card data based on tarot.com meanings
       // Source: https://www.tarot.com/tarot/cards
       const ALL_CARDS = [
         // Major Arcana
@@ -1086,15 +1086,15 @@
 
             {/* Profile Modal */}
             {showProfileModal && (
-              <div className="tarot-reading-overlay" onClick={() => setShowProfileModal(false)} style={{ zIndex: 2100 }}>
-                <div className="tarot-reading-panel" onClick={(e) => e.stopPropagation()}>
+              <div className="taro-reading-overlay" onClick={() => setShowProfileModal(false)} style={{ zIndex: 2100 }}>
+                <div className="taro-reading-panel" onClick={(e) => e.stopPropagation()}>
                   {profile?.pfpUrl && (
-                    <div className="tarot-reading-card-image">
+                    <div className="taro-reading-card-image">
                       <img src={profile.pfpUrl} alt="Avatar" />
                     </div>
                   )}
                   <button 
-                    className="tarot-button" 
+                    className="taro-button" 
                     onClick={() => setShowProfileModal(false)}
                     style={{ marginTop: '1rem' }}
                   >
@@ -1107,7 +1107,7 @@
         );
       };
 
-      function TarotApp() {
+      function TaroApp() {
         const [gameStage, setGameStage] = useState("idle");
         const [selectedSpread, setSelectedSpread] = useState(null);
         const [cards, setCards] = useState([]);
@@ -1286,10 +1286,10 @@
                 console.log('spread sizes (after animating removed)', {
                   vw: window.innerWidth,
                   vh: window.innerHeight,
-                  table: getComputedStyle(document.querySelector('.tarot-table'))?.transform || 'none',
-                  content: getComputedStyle(document.querySelector('.tarot-table-content'))?.transform || 'none',
-                  spread: getComputedStyle(document.querySelector('.tarot-spread'))?.transform || 'none',
-                  card: document.querySelector('.tarot-card') ? getComputedStyle(document.querySelector('.tarot-card'))?.transform : null,
+                  table: getComputedStyle(document.querySelector('.taro-table'))?.transform || 'none',
+                  content: getComputedStyle(document.querySelector('.taro-table-content'))?.transform || 'none',
+                  spread: getComputedStyle(document.querySelector('.taro-spread'))?.transform || 'none',
+                  card: document.querySelector('.taro-card') ? getComputedStyle(document.querySelector('.taro-card'))?.transform : null,
                 });
               }
             }, 100);
@@ -1409,7 +1409,7 @@
               const fid = await getFidFromWallet(address);
               // Only update if we don't already have it from context
               if (fid && !fcUser?.fid) {
-                setUserFid(fid);
+              setUserFid(fid);
               } else if (fid) {
                 setUserFid(fid); // Update anyway if wallet provides different FID
               }
@@ -1419,7 +1419,7 @@
                   const avatar = await getUserAvatar(fid);
                   // Only update if we don't already have it from context
                   if (avatar && !fcUser?.pfpUrl) {
-                    setUserAvatar(avatar);
+                  setUserAvatar(avatar);
                   } else if (avatar) {
                     setUserAvatar(avatar); // Update anyway if wallet provides different avatar
                   }
@@ -1427,21 +1427,21 @@
                   console.warn('Failed to get avatar:', avatarError);
                   // Don't clear if we have it from context
                   if (!fcUser?.pfpUrl) {
-                    setUserAvatar(null);
+                  setUserAvatar(null);
                   }
                 }
               } else {
                 // Don't clear if we have it from context
                 if (!fcUser?.fid) {
-                  setUserAvatar(null);
+                setUserAvatar(null);
                 }
               }
             } catch (fidError) {
               console.warn('Failed to get FID:', fidError);
               // Don't clear if we have it from context
               if (!fcUser?.fid) {
-                setUserFid(null);
-                setUserAvatar(null);
+              setUserFid(null);
+              setUserAvatar(null);
               }
             }
 
@@ -1562,26 +1562,26 @@
         // Share functions
         const getShareText = (spreadType) => {
           if (spreadType === "ONE") {
-            return `🃏 Daily Tarot
+            return `🃏 Daily Taro
 
 Today's card gave me a clear signal.
 Sometimes one card is all you need.
 
 🔮 Pulled with cbTARO on Base`;
           } else if (spreadType === "THREE") {
-            return `🔮 3-Card Tarot Reading
+            return `🔮 3-Card Taro Reading
 
 Past. Present. Direction.
 The pattern actually makes sense.
 
 ✨ Pulled with cbTARO on Base`;
           } else if (spreadType === "CUSTOM") {
-            return `🧿 Custom Tarot Reading
+            return `🧿 Custom Taro Reading
 
 Asked a real question.
 Got a real answer.
 
-✨ cbTARO · Tarot on Base`;
+✨ cbTARO · Taro on Base`;
           }
           return "";
         };
@@ -1653,7 +1653,7 @@ Got a real answer.
           ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
           ctx.font = '16px Arial';
           ctx.textAlign = 'center';
-          ctx.fillText('cbTARO · Tarot on Base', canvas.width / 2, canvas.height - 20);
+          ctx.fillText('cbTARO · Taro on Base', canvas.width / 2, canvas.height - 20);
 
           return canvas.toDataURL('image/png');
         };
@@ -1672,7 +1672,7 @@ Got a real answer.
           ctx.fillStyle = '#fff';
           ctx.font = 'bold 24px Georgia, serif';
           ctx.textAlign = 'center';
-          ctx.fillText('Custom Tarot Interpretation', canvas.width / 2, 50);
+          ctx.fillText('Custom Taro Interpretation', canvas.width / 2, 50);
 
           // AI Text with word wrapping
           ctx.fillStyle = '#fff';
@@ -1723,20 +1723,20 @@ Got a real answer.
             if (!sdk || !sdk.actions || !sdk.actions.composeCast) {
               // Fallback to Warpcast URL if SDK not available
               console.warn('Farcaster Mini App SDK not available, using fallback');
-              const shareText = getShareText(selectedSpread);
-              const embeds = [];
-              embeds.push('https://0xagcheth.github.io/cbTARO/Assets/imagine/b.png');
-              if (selectedSpread === "CUSTOM" && aiInterpretation) {
-                embeds.push('https://0xagcheth.github.io/cbTARO/Assets/imagine/cr.png');
-              }
-              embeds.push('https://0xagcheth.github.io/cbTARO/');
-              const baseUrl = 'https://warpcast.com/~/compose';
+            const shareText = getShareText(selectedSpread);
+            const embeds = [];
+            embeds.push('https://0xagcheth.github.io/cbTARO/Assets/imagine/b.png');
+            if (selectedSpread === "CUSTOM" && aiInterpretation) {
+              embeds.push('https://0xagcheth.github.io/cbTARO/Assets/imagine/cr.png');
+            }
+            embeds.push('https://0xagcheth.github.io/cbTARO/');
+            const baseUrl = 'https://warpcast.com/~/compose';
               const params = new URLSearchParams({ text: shareText });
-              embeds.forEach((embed, index) => {
-                params.append(`embeds[${index}]`, embed);
-              });
-              const shareUrl = `${baseUrl}?${params.toString()}`;
-              window.open(shareUrl, '_blank', 'noopener,noreferrer');
+            embeds.forEach((embed, index) => {
+              params.append(`embeds[${index}]`, embed);
+            });
+            const shareUrl = `${baseUrl}?${params.toString()}`;
+            window.open(shareUrl, '_blank', 'noopener,noreferrer');
               return;
             }
 
@@ -1791,7 +1791,7 @@ Got a real answer.
             const cardKeywords = cards.map(c => c.keyword).join(", ");
             const cardDescriptions = cards.map(c => c.description).join("\n");
 
-            const prompt = `You are a master tarot reader who creates deeply personalized, spiritually resonant interpretations based on the unique energies of each card combination.
+            const prompt = `You are a master taro reader who creates deeply personalized, spiritually resonant interpretations based on the unique energies of each card combination.
 
 CRITICAL: Respond ONLY in English, regardless of the question's language. Always provide the reading in English.
 
@@ -2020,10 +2020,10 @@ Important: This must be a unique interpretation for this specific card spread. M
                   console.log('spread sizes', {
                     vw: window.innerWidth,
                     vh: window.innerHeight,
-                    table: getComputedStyle(document.querySelector('.tarot-table'))?.transform || 'none',
-                    content: getComputedStyle(document.querySelector('.tarot-table-content'))?.transform || 'none',
-                    spread: getComputedStyle(document.querySelector('.tarot-spread'))?.transform || 'none',
-                    card: document.querySelector('.tarot-card') ? getComputedStyle(document.querySelector('.tarot-card'))?.transform : null,
+                    table: getComputedStyle(document.querySelector('.taro-table'))?.transform || 'none',
+                    content: getComputedStyle(document.querySelector('.taro-table-content'))?.transform || 'none',
+                    spread: getComputedStyle(document.querySelector('.taro-spread'))?.transform || 'none',
+                    card: document.querySelector('.taro-card') ? getComputedStyle(document.querySelector('.taro-card'))?.transform : null,
                   });
                 }
               }, 100);
@@ -2094,13 +2094,13 @@ Important: This must be a unique interpretation for this specific card spread. M
             return;
           } else if (source === 'spread') {
             // Return to spread
-            if (cards.some((c) => !revealedIds.includes(c.id))) {
-              setGameStage("spread");
-            } else {
-              // All cards revealed → theoretically can show "New Reading" button
-              setGameStage("spread");
-            }
-            setActiveCard(null);
+          if (cards.some((c) => !revealedIds.includes(c.id))) {
+            setGameStage("spread");
+          } else {
+            // All cards revealed → theoretically can show "New Reading" button
+            setGameStage("spread");
+          }
+          setActiveCard(null);
           } else if (source === 'ai') {
             // Return to AI panel (if needed in future)
             setActiveCard(null);
@@ -2131,9 +2131,9 @@ Important: This must be a unique interpretation for this specific card spread. M
         const isAllRevealed = cards.length > 0 && cards.every((c) => revealedIds.includes(c.id));
 
         return (
-          <div className="tarot-root">
+          <div className="taro-root">
             {/* Mystical background */}
-            <div className="tarot-background" />
+            <div className="taro-background" />
 
             {/* Control buttons container - both buttons together */}
             <div className="control-buttons-left">
@@ -2141,22 +2141,22 @@ Important: This must be a unique interpretation for this specific card spread. M
               <UnifiedIdentityButton playButtonSound={playButtonSound} />
 
               {/* Sound toggle button */}
-              <button
-                className="sound-toggle-btn sound-toggle-btn-left"
-                onClick={(e) => { 
-                  e.stopPropagation();
-                  if (soundEnabled) playButtonSound();
-                  setSoundEnabled(!soundEnabled);
-                }}
-                title={soundEnabled ? "Disable sound" : "Enable sound"}
-              >
-                {soundEnabled ? "🔊" : "🔇"}
-              </button>
+            <button
+              className="sound-toggle-btn sound-toggle-btn-left"
+              onClick={(e) => { 
+                e.stopPropagation();
+                if (soundEnabled) playButtonSound();
+                setSoundEnabled(!soundEnabled);
+              }}
+              title={soundEnabled ? "Disable sound" : "Enable sound"}
+            >
+              {soundEnabled ? "🔊" : "🔇"}
+            </button>
             </div>
 
-            <div className="tarot-container">
+            <div className="taro-container">
               {/* Header / greeting */}
-              <header className="tarot-header">
+              <header className="taro-header">
                 <h1>cbTaro</h1>
 
                 {/* Transaction status - moved below title */}
@@ -2172,8 +2172,8 @@ Important: This must be a unique interpretation for this specific card spread. M
 
 
               {/* Main area with table and deck/cards */}
-              <main className="tarot-main">
-                {/* Control buttons container - moved outside tarot-table */}
+              <main className="taro-main">
+                {/* Control buttons container - moved outside taro-table */}
                 <div className="control-buttons">
                   {/* Gallery button */}
                   <button
@@ -2184,27 +2184,27 @@ Important: This must be a unique interpretation for this specific card spread. M
                       setPreviousGameStage(gameStage);
                       setShowGallery(true);
                     }}
-                    title="View all tarot cards"
+                    title="View all taro cards"
                   >
                     ☰
                   </button>
                 </div>
 
                 {/* Fixed Oval Table - always same size and position */}
-                <div className="tarot-table-wrap">
-                  <div className={`tarot-table ${gameStage === "animating" ? "table-animating" : ""}`}>
-                    {/* Content overlay - all content is absolutely positioned */}
-                    <div className="tarot-table-content">
+                <div className="taro-table-wrap">
+                <div className={`taro-table ${gameStage === "animating" ? "table-animating" : ""}`}>
+                  {/* Content overlay - all content is absolutely positioned */}
+                  <div className="taro-table-content">
                     {/* When there's no spread — show deck */}
                     {gameStage === "idle" && (
-                      <div className="tarot-deck" onClick={handleChooseSpreadClick}>
-                        <div className="tarot-deck-inner" />
+                      <div className="taro-deck" onClick={handleChooseSpreadClick}>
+                        <div className="taro-deck-inner" />
                       </div>
                     )}
 
                     {/* Card spread (1 or 3 cards) */}
                     {(gameStage === "spread" || gameStage === "reading") && (
-                      <div className="tarot-spread">
+                      <div className="taro-spread">
                         {cards.map((card, index) => {
                           const isRevealed = revealedIds.includes(card.id);
                           const spreadType = selectedSpread;
@@ -2224,7 +2224,7 @@ Important: This must be a unique interpretation for this specific card spread. M
                             >
                               <div
                                 className={`card-anim ${isRevealed ? "card-revealed" : ""}`}
-                                onClick={() => handleCardClick(card)}
+                              onClick={() => handleCardClick(card)}
                                 onAnimationEnd={(e) => {
                                   // Reset transform after animation to prevent scale "sticking"
                                   const animEl = e.currentTarget;
@@ -2232,36 +2232,36 @@ Important: This must be a unique interpretation for this specific card spread. M
                                   animEl.style.transform = `translate3d(0, 0, 0) rotate(${finalRot}deg) scale(1)`;
                                   animEl.style.opacity = '1';
                                 }}
-                              >
-                                <div className="tarot-card-inner">
-                                  {/* Card back */}
-                                  <div className="tarot-card-back"></div>
+                            >
+                              <div className="taro-card-inner">
+                                {/* Card back */}
+                                <div className="taro-card-back"></div>
 
-                                  {/* Card face */}
-                                  <div className="tarot-card-front">
-                                    {card.imagePath ? (
-                                      <img
-                                        src={card.imagePath}
-                                        alt={card.name}
-                                        className="tarot-card-image"
-                                        onError={(e) => {
-                                          console.error('Failed to load image:', card.imagePath);
-                                          e.target.style.display = 'none';
-                                          // Show fallback content
-                                          e.target.parentElement.innerHTML = `
-                                            <div class="tarot-card-fallback">
-                                              <div class="tarot-card-name">${card.name}</div>
-                                              <div class="tarot-card-keyword">${card.keyword}</div>
-                                            </div>
-                                          `;
-                                        }}
-                                      />
-                                    ) : (
-                                      <div className="tarot-card-fallback">
-                                        <div className="tarot-card-name">{card.name}</div>
-                                        <div className="tarot-card-keyword">{card.keyword}</div>
-                                      </div>
-                                    )}
+                                {/* Card face */}
+                                <div className="taro-card-front">
+                                  {card.imagePath ? (
+                                    <img
+                                      src={card.imagePath}
+                                      alt={card.name}
+                                      className="taro-card-image"
+                                      onError={(e) => {
+                                        console.error('Failed to load image:', card.imagePath);
+                                        e.target.style.display = 'none';
+                                        // Show fallback content
+                                        e.target.parentElement.innerHTML = `
+                                          <div class="taro-card-fallback">
+                                            <div class="taro-card-name">${card.name}</div>
+                                            <div class="taro-card-keyword">${card.keyword}</div>
+                                          </div>
+                                        `;
+                                      }}
+                                    />
+                                  ) : (
+                                    <div className="taro-card-fallback">
+                                      <div className="taro-card-name">{card.name}</div>
+                                      <div className="taro-card-keyword">{card.keyword}</div>
+                                    </div>
+                                  )}
                                   </div>
                                 </div>
                               </div>
@@ -2273,7 +2273,7 @@ Important: This must be a unique interpretation for this specific card spread. M
 
                     {/* Custom reading modal - positioned inside table oval */}
                     {gameStage === "custom" && (
-                      <div className="tarot-modal custom-reading-modal">
+                      <div className="taro-modal custom-reading-modal">
                         <div className="custom-modal-content">
                           <textarea
                             className="custom-modal-input"
@@ -2309,7 +2309,7 @@ Important: This must be a unique interpretation for this specific card spread. M
                     {/* Spread selection modal - positioned inside table oval */}
                     {gameStage === "choosing" && (
                       <div 
-                        className="tarot-modal choosing-modal"
+                        className="taro-modal choosing-modal"
                         onClick={(e) => {
                           // Close modal if clicking on the background (not on content)
                           const clickedElement = e.target;
@@ -2435,14 +2435,14 @@ Important: This must be a unique interpretation for this specific card spread. M
                     )}
 
                     {/* Interaction panel at bottom - positioned inside table oval */}
-                    <footer className="tarot-footer">
+                    <footer className="taro-footer">
                       {isAllRevealed && gameStage !== "paying" && (
                         <>
                           {selectedSpread === "CUSTOM" && (
                             <>
                               {!aiInterpretation && !isGeneratingAI && (
                                 <button
-                                  className="tarot-button"
+                                  className="taro-button"
                                   onClick={() => {
                                     playButtonSound();
                                     if (!userQuestion.trim()) {
@@ -2458,13 +2458,13 @@ Important: This must be a unique interpretation for this specific card spread. M
                                 </button>
                               )}
                               {isGeneratingAI && (
-                                <div className="tarot-generating" style={{ marginRight: "1rem", color: "#ffd700" }}>
+                                <div className="taro-generating" style={{ marginRight: "1rem", color: "#ffd700" }}>
                                   ✨ Generating reading...
                                 </div>
                               )}
                               {aiInterpretation && (
                                 <button
-                                  className="tarot-button"
+                                  className="taro-button"
                                   onClick={() => { playButtonSound(); setActiveCard(null); setGameStage("reading"); }}
                                   style={{ marginRight: "1rem" }}
                                 >
@@ -2473,22 +2473,22 @@ Important: This must be a unique interpretation for this specific card spread. M
                               )}
                             </>
                           )}
-                          <button className="tarot-button secondary" onClick={() => { playButtonSound(); handleNewSpread(); }}>
+                          <button className="taro-button secondary" onClick={() => { playButtonSound(); handleNewSpread(); }}>
                             &lt;
                           </button>
-                          <button className="tarot-button" onClick={() => { playButtonSound(); handleShare(); }}>
+                          <button className="taro-button" onClick={() => { playButtonSound(); handleShare(); }}>
                             Share
                           </button>
                         </>
                       )}
                     </footer>
                   </div>
-                </div>
+                  </div>
                 </div>
 
                 {/* Payment state (not used, as payment is disabled) */}
                 {gameStage === "paying" && (
-                  <div className="tarot-modal">
+                  <div className="taro-modal">
                     <h2>Processing Transaction…</h2>
                     <p>Please confirm payment in your wallet.</p>
                   </div>
@@ -2496,14 +2496,14 @@ Important: This must be a unique interpretation for this specific card spread. M
 
                 {/* Animation before spread */}
                 {gameStage === "animating" && (
-                  <div className="tarot-animating">
+                  <div className="taro-animating">
                   </div>
                 )}
               </main>
 
             {/* Gallery modal */}
             {showGallery && (
-              <div className="tarot-reading-overlay" onClick={() => setShowGallery(false)}>
+              <div className="taro-reading-overlay" onClick={() => setShowGallery(false)}>
                 <div className="gallery-modal" onClick={(e) => e.stopPropagation()}>
                   <div className="gallery-content">
                     {/* Major Arcana */}
@@ -2631,37 +2631,37 @@ Important: This must be a unique interpretation for this specific card spread. M
 
             {/* Reading panel (card description) - rendered AFTER gallery to be on top */}
             {activeCard && (gameStage === "reading" || readingSource === 'gallery') && (
-              <div className="tarot-reading-overlay" style={{ zIndex: 2100 }} onClick={handleCloseReading}>
-                <div className="tarot-reading-panel" onClick={(e) => e.stopPropagation()}>
+              <div className="taro-reading-overlay" style={{ zIndex: 2100 }} onClick={handleCloseReading}>
+                <div className="taro-reading-panel" onClick={(e) => e.stopPropagation()}>
                   <h2>{activeCard.name}</h2>
                   {activeCard.imagePath && (
-                    <div className="tarot-reading-card-image card-media">
+                    <div className="taro-reading-card-image card-media">
                       <img className="card-image" src={activeCard.imagePath} alt={activeCard.name} />
                     </div>
                   )}
                   {activeCard.positionLabel && (
-                    <p className="tarot-reading-position">{activeCard.positionLabel}</p>
+                    <p className="taro-reading-position">{activeCard.positionLabel}</p>
                   )}
-                  <p className="tarot-reading-keyword">Keyword: {activeCard.keyword}</p>
-                  <p className="tarot-reading-text">{activeCard.description}</p>
+                  <p className="taro-reading-keyword">Keyword: {activeCard.keyword}</p>
+                  <p className="taro-reading-text">{activeCard.description}</p>
                 </div>
               </div>
             )}
 
             {/* AI Interpretation panel for custom reading */}
             {selectedSpread === "CUSTOM" && isAllRevealed && aiInterpretation && (
-              <div className="tarot-reading-overlay" onClick={() => setAiInterpretation(null)}>
-                <div className="tarot-reading-panel tarot-ai-panel" onClick={(e) => e.stopPropagation()}>
+              <div className="taro-reading-overlay" onClick={() => setAiInterpretation(null)}>
+                <div className="taro-reading-panel taro-ai-panel" onClick={(e) => e.stopPropagation()}>
                   <h2>✨ Your Personalized Reading</h2>
-                  <p className="tarot-reading-question">Question: "{userQuestion}"</p>
+                  <p className="taro-reading-question">Question: "{userQuestion}"</p>
                   {isGeneratingAI ? (
-                    <div className="tarot-ai-loading">
+                    <div className="taro-ai-loading">
                       Generating reading...
                     </div>
                   ) : (
                     <div dangerouslySetInnerHTML={{ __html: aiInterpretation.replace(/\n/g, '<br/>') }} />
                   )}
-                  <button className="tarot-button" onClick={() => setAiInterpretation(null)}>
+                  <button className="taro-button" onClick={() => setAiInterpretation(null)}>
                     Close
                   </button>
                 </div>
@@ -2687,7 +2687,7 @@ Important: This must be a unique interpretation for this specific card spread. M
     window.addEventListener('resize', updateViewportInfo);
     updateViewportInfo();
 
-    root.render(<TarotApp />);
+    root.render(<TaroApp />);
   </script>
 
   <style>
@@ -2752,7 +2752,7 @@ Important: This must be a unique interpretation for this specific card spread. M
       }
 
       /* Adjust footer position for landscape - still positioned at bottom of oval */
-      .tarot-footer {
+      .taro-footer {
         bottom: calc(var(--pad) * 0.2) !important;
         left: 50% !important;
         transform: translateX(-50%) !important;
@@ -2761,7 +2761,7 @@ Important: This must be a unique interpretation for this specific card spread. M
     }
 
     /* Background */
-    .tarot-root {
+    .taro-root {
       position: relative;
       min-height: calc(var(--vh, 1vh) * 100);
       width: 100%;
@@ -2769,7 +2769,7 @@ Important: This must be a unique interpretation for this specific card spread. M
       font-family: 'Georgia', 'Times New Roman', serif;
     }
 
-      .tarot-background {
+      .taro-background {
       position: fixed;
       top: 0;
       left: 0;
@@ -2784,17 +2784,17 @@ Important: This must be a unique interpretation for this specific card spread. M
     }
 
     @media (max-width: 768px) {
-      .tarot-background {
+      .taro-background {
         background-attachment: scroll;
         background-position: center 40%;
       }
       }
 
     @media (max-width: 768px) and (max-height: 700px) {
-      .tarot-background { background-position: center 35%; }
+      .taro-background { background-position: center 35%; }
     }
 
-    .tarot-background::before {
+    .taro-background::before {
       content: '';
       position: absolute;
       top: 0;
@@ -2814,11 +2814,11 @@ Important: This must be a unique interpretation for this specific card spread. M
       }
     }
 
-    .tarot-root, .tarot-container{
+    .taro-root, .taro-container{
       padding-top: calc(70px + env(safe-area-inset-top));
     }
 
-    .tarot-container {
+    .taro-container {
       position: relative;
       z-index: 1;
       min-height: calc(var(--vh, 1vh) * 100);
@@ -2829,13 +2829,13 @@ Important: This must be a unique interpretation for this specific card spread. M
       box-sizing: border-box;
     }
 
-    .tarot-header {
+    .taro-header {
       text-align: center;
       margin-bottom: 0.25rem;
       color: #fff;
     }
 
-    .tarot-header h1 {
+    .taro-header h1 {
       font-size: calc(var(--h1) * 1.2);
       margin: 0;
       position: fixed;
@@ -2855,7 +2855,7 @@ Important: This must be a unique interpretation for this specific card spread. M
       animation: liquidText 4s ease-in-out infinite;
     }
 
-    .tarot-header h1::before {
+    .taro-header h1::before {
       content: 'cbTaro';
       position: absolute;
       top: 0;
@@ -2872,7 +2872,7 @@ Important: This must be a unique interpretation for this specific card spread. M
       z-index: -1;
     }
 
-    .tarot-header h1::after {
+    .taro-header h1::after {
       content: 'cbTaro';
       position: absolute;
       top: 0;
@@ -2937,7 +2937,7 @@ Important: This must be a unique interpretation for this specific card spread. M
       }
     }
 
-    .tarot-header p {
+    .taro-header p {
       font-size: calc(var(--p) * 0.7);
       color: rgba(255, 255, 255, 0.8);
       margin: 0;
@@ -2992,7 +2992,7 @@ Important: This must be a unique interpretation for this specific card spread. M
       opacity: 0.8;
     }
 
-    .tarot-hash {
+    .taro-hash {
       text-align: center;
       padding: 1rem;
       background: rgba(0, 0, 0, 0.3);
@@ -3001,7 +3001,7 @@ Important: This must be a unique interpretation for this specific card spread. M
       color: #fff;
     }
 
-    .tarot-hash code {
+    .taro-hash code {
       display: block;
       margin-top: 0.5rem;
       font-family: 'Courier New', monospace;
@@ -3009,7 +3009,7 @@ Important: This must be a unique interpretation for this specific card spread. M
       word-break: break-all;
     }
 
-    .tarot-main {
+    .taro-main {
       flex: 1;
       display: flex;
       flex-direction: column;
@@ -3020,7 +3020,7 @@ Important: This must be a unique interpretation for this specific card spread. M
     }
 
     /* Wrapper for table - handles translateY positioning */
-    .tarot-table-wrap {
+    .taro-table-wrap {
       position: relative;
       transform: translateY(-10vh);
       transform-origin: center center;
@@ -3028,7 +3028,7 @@ Important: This must be a unique interpretation for this specific card spread. M
     }
 
     /* Fixed Oval Table - always same size and position */
-    .tarot-table {
+    .taro-table {
       position: relative;
       width: var(--tableW);
       aspect-ratio: var(--tableAR);
@@ -3052,7 +3052,7 @@ Important: This must be a unique interpretation for this specific card spread. M
     }
 
     /* Content overlay inside table - all absolutely positioned */
-    .tarot-table-content {
+    .taro-table-content {
       position: absolute;
       top: 0;
       left: 0;
@@ -3065,7 +3065,7 @@ Important: This must be a unique interpretation for this specific card spread. M
     }
 
     /* Enable pointer events for interactive elements */
-    .tarot-table-content > * {
+    .taro-table-content > * {
       pointer-events: auto;
     }
 
@@ -3135,9 +3135,9 @@ Important: This must be a unique interpretation for this specific card spread. M
     }
 
     /* Ensure buttons stay in place during any animations */
-    .tarot-root.animating .control-buttons,
-    .tarot-root.table-animating .control-buttons,
-    .tarot-animating ~ .control-buttons {
+    .taro-root.animating .control-buttons,
+    .taro-root.table-animating .control-buttons,
+    .taro-animating ~ .control-buttons {
       position: fixed !important;
       top: calc(20px + var(--safe-area-inset-top, 0)) !important;
       right: calc(20px + var(--safe-area-inset-right, 0)) !important;
@@ -3169,7 +3169,7 @@ Important: This must be a unique interpretation for this specific card spread. M
       box-shadow: 0 6px 16px rgba(34, 197, 94, 0.4);
     }
 
-    .tarot-deck {
+    .taro-deck {
       position: relative;
       width: var(--deckW);
       height: var(--deckH);
@@ -3178,16 +3178,16 @@ Important: This must be a unique interpretation for this specific card spread. M
       flex-shrink: 0;
     }
 
-    .tarot-deck:hover {
+    .taro-deck:hover {
       transform: translateY(-5px) scale(1.05);
       filter: brightness(1.1);
     }
 
-    .tarot-deck:active {
+    .taro-deck:active {
       transform: translateY(-2px) scale(1.02);
     }
 
-    .tarot-deck-inner {
+    .taro-deck-inner {
       width: 100%;
       height: 100%;
       background: linear-gradient(135deg, #2d1b3d 0%, #1a0a2e 100%);
@@ -3202,7 +3202,7 @@ Important: This must be a unique interpretation for this specific card spread. M
       border: 2px solid rgba(0, 123, 255, 0.5);
       position: relative;
     }
-    .tarot-modal {
+    .taro-modal {
       background: rgba(0, 0, 0, 0.7);
       backdrop-filter: blur(10px);
       border-radius: 15px;
@@ -3216,7 +3216,7 @@ Important: This must be a unique interpretation for this specific card spread. M
     }
 
     /* Modals outside table (e.g., payment, reading panel) keep default positioning */
-    .tarot-main > .tarot-modal {
+    .taro-main > .taro-modal {
       position: fixed;
       top: 50%;
       left: 50%;
@@ -3225,8 +3225,8 @@ Important: This must be a unique interpretation for this specific card spread. M
     }
 
     /* Modals positioned absolutely relative to table oval */
-    .tarot-table-content .choosing-modal,
-    .tarot-table-content .custom-reading-modal {
+    .taro-table-content .choosing-modal,
+    .taro-table-content .custom-reading-modal {
       position: absolute !important;
       left: 50% !important;
       top: 50% !important;
@@ -3750,27 +3750,27 @@ Important: This must be a unique interpretation for this specific card spread. M
     /* Clean responsive system - Mobile-first */
 
     /* Base mobile styles (applied to all screens) */
-    .tarot-main {
+    .taro-main {
       min-height: unset;
     }
 
     /* Mobile optimizations */
     @media (max-width: 768px) {
       /* Container allows scrolling on very small screens */
-      .tarot-container {
+      .taro-container {
         overflow-y: auto;
         min-height: calc(var(--vh, 1vh) * 100);
       }
 
       /* Modals fit viewport with safe scroll */
-      .tarot-reading-overlay,
-      .tarot-modal,
+      .taro-reading-overlay,
+      .taro-modal,
       .gallery-modal {
         padding: var(--pad);
       }
 
-      .tarot-reading-panel,
-      .tarot-modal,
+      .taro-reading-panel,
+      .taro-modal,
       .gallery-modal {
         max-height: calc(100svh - (var(--pad) * 2) - var(--safe-area-inset-top, 0) - var(--safe-area-inset-bottom, 0));
         overflow-y: auto;
@@ -3800,12 +3800,12 @@ Important: This must be a unique interpretation for this specific card spread. M
 
     /* Tablet and desktop adjustments */
     @media (min-width: 769px) {
-      .tarot-main {
+      .taro-main {
         min-height: 400px;
       }
 
-      .tarot-reading-panel,
-      .tarot-modal,
+      .taro-reading-panel,
+      .taro-modal,
       .gallery-modal {
         max-height: 80vh;
         width: auto;
@@ -3813,13 +3813,13 @@ Important: This must be a unique interpretation for this specific card spread. M
         }
     }
 
-    .tarot-modal h2 {
+    .taro-modal h2 {
       color: #fff;
       margin-bottom: 0.5rem;
       font-size: 1.2rem;
     }
 
-    .tarot-option {
+    .taro-option {
       display: block;
       width: 100%;
       max-width: 300px;
@@ -3845,7 +3845,7 @@ Important: This must be a unique interpretation for this specific card spread. M
         inset 0 -1px 0 rgba(0, 0, 0, 0.1);
     }
 
-    .tarot-option:hover:not(:disabled) {
+    .taro-option:hover:not(:disabled) {
       background: linear-gradient(135deg,
         rgba(0, 123, 255, 0.25),
         rgba(0, 50, 150, 0.25),
@@ -3861,7 +3861,7 @@ Important: This must be a unique interpretation for this specific card spread. M
       border-color: rgba(255, 255, 255, 0.3);
     }
 
-    .tarot-option:disabled {
+    .taro-option:disabled {
       opacity: 0.5;
       cursor: not-allowed;
     }
@@ -3903,7 +3903,7 @@ Important: This must be a unique interpretation for this specific card spread. M
     }
 
     /* Custom reading modal */
-    .tarot-custom-modal {
+    .taro-custom-modal {
       max-width: 500px;
       width: 90%;
     }
@@ -4047,21 +4047,21 @@ Important: This must be a unique interpretation for this specific card spread. M
       width: 100%;
     }
 
-    .tarot-custom-hint {
+    .taro-custom-hint {
       color: rgba(255, 255, 255, 0.8);
       font-size: 1rem;
       margin-bottom: 0.5rem;
       font-style: italic;
     }
 
-    .tarot-custom-note {
+    .taro-custom-note {
       color: rgba(255, 215, 0, 0.8);
       font-size: 0.9rem;
       margin-bottom: 1rem;
       font-weight: 500;
     }
 
-    .tarot-question-input {
+    .taro-question-input {
       width: 100%;
       padding: 1rem;
       font-size: 1rem;
@@ -4075,34 +4075,34 @@ Important: This must be a unique interpretation for this specific card spread. M
       transition: all 0.3s ease;
     }
 
-    .tarot-question-input:focus {
+    .taro-question-input:focus {
       outline: none;
       border-color: rgba(0, 123, 255, 0.8);
       background: rgba(255, 255, 255, 0.15);
       box-shadow: 0 0 20px rgba(0, 123, 255, 0.3);
     }
 
-    .tarot-question-input::placeholder {
+    .taro-question-input::placeholder {
       color: rgba(255, 255, 255, 0.5);
     }
 
-    .tarot-custom-buttons {
+    .taro-custom-buttons {
       display: flex;
       gap: 1rem;
       justify-content: center;
     }
 
-    .tarot-custom-buttons .tarot-button {
+    .taro-custom-buttons .taro-button {
       flex: 1;
       max-width: 150px;
     }
 
     /* AI Interpretation panel */
-    .tarot-ai-panel {
+    .taro-ai-panel {
       max-width: 700px;
     }
 
-    .tarot-reading-question {
+    .taro-reading-question {
       font-size: 1.1rem;
       color: rgba(255, 215, 0, 0.9);
       font-style: italic;
@@ -4113,32 +4113,32 @@ Important: This must be a unique interpretation for this specific card spread. M
       border-left: 3px solid rgba(255, 215, 0, 0.6);
     }
 
-    .tarot-ai-interpretation {
+    .taro-ai-interpretation {
       line-height: 1.8;
       font-size: 1rem;
       margin: 1.5rem 0;
     }
 
-    .tarot-ai-interpretation strong {
+    .taro-ai-interpretation strong {
       color: #ffd700;
       font-weight: 600;
     }
 
-    .tarot-ai-interpretation p {
+    .taro-ai-interpretation p {
       margin-bottom: 1.5rem;
     }
 
-    .tarot-ai-loading {
+    .taro-ai-loading {
       text-align: center;
       padding: 2rem;
     }
 
-    .tarot-ai-loading .tarot-sparkles {
+    .taro-ai-loading .taro-sparkles {
       font-size: 3rem;
       animation: sparkle 1s ease-in-out infinite;
       margin-bottom: 1rem;
     }
-    .tarot-generating {
+    .taro-generating {
       display: flex;
       align-items: center;
       gap: 0.5rem;
@@ -4156,7 +4156,7 @@ Important: This must be a unique interpretation for this specific card spread. M
       }
     }
     /* Animation before spread - dealer effect */
-    .tarot-animating {
+    .taro-animating {
       text-align: center;
       color: #fff;
       position: relative;
@@ -4177,7 +4177,7 @@ Important: This must be a unique interpretation for this specific card spread. M
     }
 
     /* Card spread layout */
-    .tarot-spread {
+    .taro-spread {
       display: flex;
       justify-content: center;
       align-items: center;
@@ -4199,7 +4199,7 @@ Important: This must be a unique interpretation for this specific card spread. M
     }
 
     /* Position slots for three-card spread */
-    .tarot-spread {
+    .taro-spread {
       display: flex;
       justify-content: center;
       align-items: center;
@@ -4211,7 +4211,7 @@ Important: This must be a unique interpretation for this specific card spread. M
     }
 
     /* Single card - centered via flexbox */
-    /* Three cards - positioned via flexbox gap in .tarot-spread */
+    /* Three cards - positioned via flexbox gap in .taro-spread */
 
     /* Card animation layer - handles ONLY rotate/scale/flip/animation */
     .card-anim {
@@ -4237,7 +4237,7 @@ Important: This must be a unique interpretation for this specific card spread. M
     
 
     /* Legacy class support - map to card-anim */
-    .tarot-card {
+    .taro-card {
       width: var(--card-w);
       height: var(--card-h);
       cursor: pointer;
@@ -4352,19 +4352,19 @@ Important: This must be a unique interpretation for this specific card spread. M
     }
 
     /* Legacy hover support */
-    .tarot-card:hover {
+    .taro-card:hover {
       transform: translateY(-10px);
     }
 
-    .tarot-card.card-left:hover {
+    .taro-card.card-left:hover {
       transform: rotate(-15deg) translateY(-10px);
     }
 
-    .tarot-card.card-right:hover {
+    .taro-card.card-right:hover {
       transform: rotate(15deg) translateY(-10px);
     }
 
-    .tarot-card-inner {
+    .taro-card-inner {
       width: 100%;
       height: 100%;
       position: relative;
@@ -4372,16 +4372,16 @@ Important: This must be a unique interpretation for this specific card spread. M
       transition: transform 0.6s ease;
     }
 
-    .card-anim.card-revealed .tarot-card-inner {
+    .card-anim.card-revealed .taro-card-inner {
       transform: rotateY(180deg);
     }
 
     /* Legacy support */
-    .tarot-card.card-revealed .tarot-card-inner {
+    .taro-card.card-revealed .taro-card-inner {
       transform: rotateY(180deg);
     }
 
-    .tarot-card-back {
+    .taro-card-back {
       position: absolute;
       width: 100%;
       height: 100%;
@@ -4400,7 +4400,7 @@ Important: This must be a unique interpretation for this specific card spread. M
       justify-content: center;
       align-items: center;
     }
-    .tarot-card-front {
+    .taro-card-front {
       position: absolute;
       width: 100%;
       height: 100%;
@@ -4416,7 +4416,7 @@ Important: This must be a unique interpretation for this specific card spread. M
       position: relative;
     }
 
-    .tarot-card-image {
+    .taro-card-image {
       width: 100%;
       height: 100%;
       object-fit: contain;
@@ -4427,7 +4427,7 @@ Important: This must be a unique interpretation for this specific card spread. M
       border-radius: inherit;
     }
 
-    .tarot-card-fallback {
+    .taro-card-fallback {
       padding: 1rem;
       display: flex;
       flex-direction: column;
@@ -4436,20 +4436,20 @@ Important: This must be a unique interpretation for this specific card spread. M
       height: 100%;
       text-align: center;
     }
-    .tarot-card-name {
+    .taro-card-name {
       font-size: 1.1rem;
       font-weight: bold;
       margin-bottom: 0.5rem;
       color: #007bff;
     }
 
-    .tarot-card-keyword {
+    .taro-card-keyword {
       font-size: 0.9rem;
       font-style: italic;
       color: #4a5568;
       margin-bottom: 0.5rem;
     }
-    .tarot-footer {
+    .taro-footer {
       position: absolute;
       bottom: calc(var(--pad) * 0.3);
       left: 50%;
@@ -4465,7 +4465,7 @@ Important: This must be a unique interpretation for this specific card spread. M
       pointer-events: auto;
     }
 
-    .tarot-button {
+    .taro-button {
       padding: 2rem 5rem;
       font-size: 2.4rem;
       background: linear-gradient(135deg,
@@ -4487,7 +4487,7 @@ Important: This must be a unique interpretation for this specific card spread. M
         inset 0 -1px 0 rgba(0, 0, 0, 0.1);
     }
 
-    .tarot-button:hover {
+    .taro-button:hover {
       background: linear-gradient(135deg,
         rgba(0, 123, 255, 0.3),
         rgba(0, 50, 150, 0.3),
@@ -4503,7 +4503,7 @@ Important: This must be a unique interpretation for this specific card spread. M
       border-color: rgba(255, 255, 255, 0.3);
     }
 
-    .tarot-button.secondary {
+    .taro-button.secondary {
       background: linear-gradient(135deg,
         rgba(0, 50, 150, 0.2),
         rgba(0, 123, 255, 0.2),
@@ -4511,7 +4511,7 @@ Important: This must be a unique interpretation for this specific card spread. M
       );
     }
 
-    .tarot-button.secondary:hover {
+    .taro-button.secondary:hover {
       background: linear-gradient(135deg,
         rgba(0, 50, 150, 0.3),
         rgba(0, 123, 255, 0.3),
@@ -4522,7 +4522,7 @@ Important: This must be a unique interpretation for this specific card spread. M
       border-color: rgba(255, 255, 255, 0.3);
     }
 
-    .tarot-reading-overlay {
+    .taro-reading-overlay {
       position: fixed;
       top: 0;
       left: 0;
@@ -4547,7 +4547,7 @@ Important: This must be a unique interpretation for this specific card spread. M
       }
     }
 
-    .tarot-reading-panel {
+    .taro-reading-panel {
       background: linear-gradient(135deg, rgba(26, 10, 46, 0.95), rgba(22, 33, 62, 0.95));
       border: 2px solid rgba(0, 123, 255, 0.6);
       border-radius: 20px;
@@ -4572,7 +4572,7 @@ Important: This must be a unique interpretation for this specific card spread. M
       }
     }
 
-    .tarot-reading-panel h2 {
+    .taro-reading-panel h2 {
       font-size: 1.8rem;
       margin: 0 0 0.5rem 0;
       background: linear-gradient(135deg, #ffd700, #ff8c00);
@@ -4581,7 +4581,7 @@ Important: This must be a unique interpretation for this specific card spread. M
       background-clip: text;
     }
 
-    .tarot-reading-position {
+    .taro-reading-position {
       font-size: 0.9rem;
       color: rgba(0, 123, 255, 0.9);
       font-weight: 600;
@@ -4592,13 +4592,13 @@ Important: This must be a unique interpretation for this specific card spread. M
       border-left: 3px solid rgba(0, 123, 255, 0.6);
     }
 
-    .tarot-reading-card-image {
+    .taro-reading-card-image {
       text-align: center;
       margin: 1rem 0;
       transform: none;
     }
 
-    .tarot-reading-card-image img,
+    .taro-reading-card-image img,
     .card-image {
       width: 100%;
       max-width: 240px;
@@ -4631,48 +4631,48 @@ Important: This must be a unique interpretation for this specific card spread. M
         object-fit: contain;
       }
 
-      .tarot-reading-panel {
+      .taro-reading-panel {
         width: min(92vw, 560px);
         max-height: 90vh;
         padding: 1.5rem;
       }
 
-      .tarot-reading-text {
+      .taro-reading-text {
         margin-top: 1rem;
       }
     }
 
-    .tarot-reading-keyword {
+    .taro-reading-keyword {
       font-size: 1rem;
       font-style: italic;
       color: #ffd700;
       margin: 0.5rem 0;
     }
 
-    .tarot-reading-text {
+    .taro-reading-text {
       font-size: 0.9rem;
       line-height: 1.5;
       color: rgba(255, 255, 255, 0.9);
       margin: 0.75rem 0;
     }
 
-    .tarot-reading-panel .tarot-button {
+    .taro-reading-panel .taro-button {
       margin-top: 1.5rem;
       width: 100%;
     }
 
     @media (max-width: 768px) {
-      .tarot-container {
+      .taro-container {
         padding: calc(var(--pad) + 60px + var(--safe-area-inset-top, 0)) var(--pad) var(--pad) var(--pad);
         min-height: calc(var(--vh, 1vh) * 100);
         height: auto;
       }
 
-      .tarot-header {
+      .taro-header {
         margin-bottom: 0.5rem;
       }
 
-      .tarot-header h1 {
+      .taro-header h1 {
         font-size: 1.2rem;
         margin: 0;
         position: fixed !important;
@@ -4685,7 +4685,7 @@ Important: This must be a unique interpretation for this specific card spread. M
         z-index: 1001 !important;
       }
 
-      .tarot-header p {
+      .taro-header p {
         font-size: 0.7rem;
         margin-top: 0.1rem;
       }
@@ -4704,15 +4704,15 @@ Important: This must be a unique interpretation for this specific card spread. M
         font-size: 0.8rem;
       }
 
-      .tarot-main {
+      .taro-main {
         justify-content: center !important;
       }
 
-      .tarot-table-wrap {
+      .taro-table-wrap {
         transform: translateY(-8vh) !important;
       }
 
-      .tarot-table {
+      .taro-table {
         min-height: 150px;
         padding: 0.25rem;
         margin: calc(var(--pad) * 0.1) 0 !important;
@@ -4724,12 +4724,12 @@ Important: This must be a unique interpretation for this specific card spread. M
       }
 
       /* Legacy support */
-      .tarot-card {
+      .taro-card {
         width: var(--cardW);
         height: var(--cardH);
       }
 
-      .tarot-spread {
+      .taro-spread {
         gap: 0.5rem;
       }
 
@@ -4751,7 +4751,7 @@ Important: This must be a unique interpretation for this specific card spread. M
       /* Mobile: all options stack in single column */
       /* Keep spread options in grid, custom button stays in modal-bottom-buttons */
 
-      .tarot-footer {
+      .taro-footer {
         position: absolute !important;
         bottom: calc(var(--pad) * 0.2 + var(--safe-area-inset-bottom, 0) * 0.3) !important;
         left: 50% !important;
@@ -4761,37 +4761,37 @@ Important: This must be a unique interpretation for this specific card spread. M
         max-width: calc(var(--tableW) - var(--pad) * 2) !important;
       }
 
-      .tarot-button {
+      .taro-button {
         padding: 1.5rem 3rem;
         font-size: 2rem;
       }
 
-      .tarot-reading-panel {
+      .taro-reading-panel {
         padding: 1rem;
         max-height: 85vh;
       }
 
-      .tarot-reading-overlay {
+      .taro-reading-overlay {
         transform: none !important;
         scale: 1 !important;
       }
 
-      .tarot-reading-panel {
+      .taro-reading-panel {
         transform: none !important;
         scale: 1 !important;
       }
 
-      .tarot-reading-panel * {
+      .taro-reading-panel * {
         transform: none !important;
         scale: 1 !important;
       }
 
-      .tarot-reading-panel h2 {
+      .taro-reading-panel h2 {
         font-size: 1.2rem;
         margin: 0 0 0.25rem 0;
       }
 
-      .tarot-reading-card-image {
+      .taro-reading-card-image {
         transform: none !important;
         scale: 1 !important;
         width: auto !important;
@@ -4800,12 +4800,12 @@ Important: This must be a unique interpretation for this specific card spread. M
         position: relative !important;
       }
 
-      .tarot-reading-card-image * {
+      .taro-reading-card-image * {
         transform: none !important;
         scale: 1 !important;
       }
 
-      .tarot-reading-card-image img:not(.card-image) {
+      .taro-reading-card-image img:not(.card-image) {
         width: 80px !important;
         max-width: 80px !important;
         min-width: 80px !important;
@@ -4830,18 +4830,18 @@ Important: This must be a unique interpretation for this specific card spread. M
         object-fit: contain !important;
       }
 
-      .tarot-reading-keyword {
+      .taro-reading-keyword {
         font-size: 0.8rem;
         margin: 0.25rem 0;
       }
 
-      .tarot-reading-text {
+      .taro-reading-text {
         font-size: 0.8rem;
         margin: 0.5rem 0;
         line-height: 1.4;
       }
 
-      .tarot-modal {
+      .taro-modal {
         padding: 0.5rem;
       }
 
@@ -4868,7 +4868,7 @@ Important: This must be a unique interpretation for this specific card spread. M
         min-width: 29px;
       }
 
-      .tarot-option {
+      .taro-option {
         padding: 0.75rem 1.5rem;
         font-size: 1rem;
         margin: 0.5rem auto;
@@ -5000,7 +5000,7 @@ Important: This must be a unique interpretation for this specific card spread. M
           font-size: 18px !important;
         }
 
-        .tarot-header h1 {
+        .taro-header h1 {
           font-size: 1.8rem !important;
           top: calc(10px + var(--safe-area-inset-top, 0)) !important;
           left: 0 !important;
@@ -5010,7 +5010,7 @@ Important: This must be a unique interpretation for this specific card spread. M
           text-align: center !important;
         }
 
-        .tarot-container {
+        .taro-container {
           padding-top: calc(var(--pad) + 45px + var(--safe-area-inset-top, 0)) !important;
         }
 
@@ -5020,26 +5020,26 @@ Important: This must be a unique interpretation for this specific card spread. M
         }
 
         /* Legacy support */
-        .tarot-card {
+        .taro-card {
           width: var(--card-w) !important;
           height: var(--card-h) !important;
         }
 
-        .tarot-table {
+        .taro-table {
           padding: 0.15rem !important;
           min-height: 120px !important;
         }
 
-        .tarot-main {
+        .taro-main {
           min-height: 300px !important;
           justify-content: center !important;
         }
 
-        .tarot-table-wrap {
+        .taro-table-wrap {
           transform: translateY(-6vh) !important;
         }
 
-        .tarot-table {
+        .taro-table {
           margin: calc(var(--pad) * 0.05) 0 !important;
         }
 
@@ -5061,7 +5061,7 @@ Important: This must be a unique interpretation for this specific card spread. M
           left: calc(8px + var(--safe-area-inset-left, 0)) !important;
         }
 
-        .tarot-header h1 {
+        .taro-header h1 {
           font-size: 1.6rem !important;
           top: calc(8px + var(--safe-area-inset-top, 0)) !important;
           left: 0 !important;
@@ -5071,19 +5071,19 @@ Important: This must be a unique interpretation for this specific card spread. M
           text-align: center !important;
         }
 
-        .tarot-container {
+        .taro-container {
           padding-top: calc(var(--pad) + 35px + var(--safe-area-inset-top, 0)) !important;
         }
 
-        .tarot-main {
+        .taro-main {
           justify-content: center !important;
         }
 
-        .tarot-table-wrap {
+        .taro-table-wrap {
           transform: translateY(-5vh) !important;
         }
 
-        .tarot-table {
+        .taro-table {
           min-height: 100px !important;
         }
       }
@@ -5096,25 +5096,25 @@ Important: This must be a unique interpretation for this specific card spread. M
       outline: 1px solid rgba(255, 0, 0, 0.3) !important;
     }
 
-    [data-debug="1"] .tarot-root {
+    [data-debug="1"] .taro-root {
       outline: 2px solid red !important;
     }
 
-    [data-debug="1"] .tarot-container {
+    [data-debug="1"] .taro-container {
       outline: 2px solid orange !important;
     }
 
-    [data-debug="1"] .tarot-modal,
-    [data-debug="1"] .tarot-reading-overlay {
+    [data-debug="1"] .taro-modal,
+    [data-debug="1"] .taro-reading-overlay {
       outline: 3px solid purple !important;
       background: rgba(128, 0, 128, 0.1) !important;
     }
 
-    [data-debug="1"] .tarot-table {
+    [data-debug="1"] .taro-table {
       outline: 2px solid blue !important;
     }
 
-    [data-debug="1"] .tarot-card {
+    [data-debug="1"] .taro-card {
       outline: 1px solid green !important;
     }
 
@@ -5124,7 +5124,7 @@ Important: This must be a unique interpretation for this specific card spread. M
       background: rgba(255, 255, 0, 0.1) !important;
     }
 
-    [data-debug="1"] .tarot-button {
+    [data-debug="1"] .taro-button {
       outline: 1px solid cyan !important;
     }
 
@@ -5201,7 +5201,7 @@ Important: This must be a unique interpretation for this specific card spread. M
       font-size: 18px;
       }
 
-      .tarot-footer {
+      .taro-footer {
         position: absolute !important;
         bottom: calc(var(--pad) * 0.15 + var(--safe-area-inset-bottom, 0) * 0.5) !important;
         left: 50% !important;
@@ -5211,7 +5211,7 @@ Important: This must be a unique interpretation for this specific card spread. M
         max-width: calc(var(--tableW) - var(--pad) * 2) !important;
       }
 
-      .tarot-button {
+      .taro-button {
         padding: 0.4rem 1rem;
         font-size: 1.4rem;
       }
@@ -5270,17 +5270,17 @@ Important: This must be a unique interpretation for this specific card spread. M
     }
 
     /* Mobile modals */
-    .tarot-modal {
+    .taro-modal {
       max-height: calc(100dvh - var(--pad) - var(--safe-area-inset-top, 0) - var(--safe-area-inset-bottom, 0));
       overflow-y: auto;
       overflow-x: hidden;
     }
 
-    .tarot-reading-overlay {
+    .taro-reading-overlay {
       padding: calc(var(--space) + var(--safe-area-inset-top, 0)) var(--space) calc(var(--space) + var(--safe-area-inset-bottom, 0)) !important;
     }
 
-    .tarot-reading-panel {
+    .taro-reading-panel {
       padding: clamp(4px, 1vw, 12px) !important;
       max-height: calc(100dvh - (var(--space) * 2) - var(--safe-area-inset-top, 0) - var(--safe-area-inset-bottom, 0)) !important;
       width: min(92vw, 600px) !important;
@@ -5288,7 +5288,7 @@ Important: This must be a unique interpretation for this specific card spread. M
     }
 
     .gallery-modal,
-    .tarot-custom-modal {
+    .taro-custom-modal {
       max-height: calc(100dvh - (var(--space) * 2) - var(--safe-area-inset-top, 0) - var(--safe-area-inset-bottom, 0)) !important;
       margin: 0 !important;
       overflow-y: auto !important;
@@ -5300,12 +5300,12 @@ Important: This must be a unique interpretation for this specific card spread. M
     }
 
     /* Mobile-specific background attachment fix */
-    .tarot-background {
+    .taro-background {
       background-attachment: scroll !important;
     }
 
     /* Allow vertical scroll on very small screens */
-    .tarot-main {
+    .taro-main {
       min-height: unset !important;
     }
 
@@ -5354,7 +5354,7 @@ Important: This must be a unique interpretation for this specific card spread. M
        =========================================== */
 
     /* Main choosing modal panel - compact glass design */
-    .tarot-table-content .tarot-modal.choosing-modal {
+    .taro-table-content .taro-modal.choosing-modal {
       position: absolute !important;
       left: 50% !important;
       top: 50% !important;
@@ -5493,7 +5493,7 @@ Important: This must be a unique interpretation for this specific card spread. M
 
     /* Mobile adjustments - keep 2 columns but smaller */
     @media (max-width: 768px) {
-      .tarot-table-content .tarot-modal.choosing-modal {
+      .taro-table-content .taro-modal.choosing-modal {
         position: absolute !important;
         left: 50% !important;
         top: 50% !important;
