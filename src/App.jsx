@@ -1061,7 +1061,13 @@ ${APP_LINK}`;
         // 3. Текст
         let text = getShareText(selectedSpread);
         if (card?.name) {
+          // Добавляем название карты в начало, ссылка уже в конце текста из getShareText()
           text = `🔮 Reveal Your Reading\nCard: ${card.name}\n\n${text}`;
+        }
+        // Убеждаемся, что ссылка всегда в конце (если её нет, добавляем)
+        const APP_LINK = "https://0xagcheth.github.io/cbTARO/";
+        if (!text.includes(APP_LINK)) {
+          text = text + "\n\n" + APP_LINK;
         }
 
         // 4. Compose URL — БЕЗ SDK
