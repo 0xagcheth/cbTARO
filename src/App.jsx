@@ -950,31 +950,76 @@ Got a real answer.
         return canvas.toDataURL('image/png');
       };
 
-      // Helper functions for URL handling
+      // Share helper functions
       const APP_URL = "https://0xagcheth.github.io/cbTARO/";
+      const LAST_DRAW_KEY = "cbTARO_lastDraw";
       
-      // Normalize image path: remove leading "./" and "./public/" if present
-      function normalizeImagePath(imagePath) {
+      // Normalize path: remove leading "./" or "/"
+      function normalizePath(imagePath) {
         if (!imagePath) return null;
-        // Remove leading "./" if present
-        let cleanPath = imagePath.replace(/^\.\//, '');
+        // Remove leading "./" or "/"
+        let cleanPath = imagePath.replace(/^\.\//, '').replace(/^\//, '');
         // Remove "public/" if present (GitHub Pages serves /public at root)
         cleanPath = cleanPath.replace(/^public\//, '');
         return cleanPath;
       }
       
-      // Convert clean path to absolute URL with encoding
-      function toAbsoluteUrl(cleanPath) {
+      // Convert clean path to absolute GitHub Pages URL with encoding
+      function toAbsoluteGhPagesUrl(cleanPath) {
         return `${APP_URL}${encodeURI(cleanPath)}`;
       }
       
-      // Get first card image URL or null
+      // Get first drawn card
+      function getFirstDrawnCard(cards) {
+        return (cards && cards.length > 0) ? cards[0] : null;
+      }
+      
+      // Get first card image URL
       function getFirstCardImageUrl(cards) {
-        if (cards && cards.length > 0 && cards[0]?.imagePath) {
-          const normalized = normalizeImagePath(cards[0].imagePath);
+        const firstCard = getFirstDrawnCard(cards);
+        if (firstCard?.imagePath) {
+          const normalized = normalizePath(firstCard.imagePath);
           if (normalized) {
-            return toAbsoluteUrl(normalized);
+            return toAbsoluteGhPagesUrl(normalized);
           }
+        }
+        return null;
+      }
+      
+      // Save last drawn card to localStorage
+      function saveLastDraw(cards) {
+        const firstCard = getFirstDrawnCard(cards);
+        if (firstCard) {
+          const imageUrl = getFirstCardImageUrl(cards);
+          const drawData = {
+            name: firstCard.name,
+            imagePath: firstCard.imagePath,
+            imageUrl: imageUrl,
+            timestamp: Date.now()
+          };
+          try {
+            localStorage.setItem(LAST_DRAW_KEY, JSON.stringify(drawData));
+            console.log("Saved last draw:", drawData);
+          } catch (error) {
+            console.warn("Failed to save last draw:", error);
+          }
+        }
+      }
+      
+      // Load last saved draw from localStorage
+      function loadLastDraw() {
+        try {
+          const saved = localStorage.getItem(LAST_DRAW_KEY);
+          if (saved) {
+            const drawData = JSON.parse(saved);
+            // Check if data is not too old (24 hours)
+            const age = Date.now() - drawData.timestamp;
+            if (age < 24 * 60 * 60 * 1000) {
+              return drawData;
+            }
+          }
+        } catch (error) {
+          console.warn("Failed to load last draw:", error);
         }
         return null;
       }
@@ -983,31 +1028,41 @@ Got a real answer.
         try {
           playButtonSound();
 
-          // Get card slug for text
-          let cardSlug = "";
-          if (cards && cards.length > 0) {
-            cardSlug = cards[0].name || "Unknown Card";
+          // Get card name (from current cards or last saved draw)
+          let cardName = "";
+          let cardImageUrl = null;
+          
+          // Try to get from current cards first
+          const firstCard = getFirstDrawnCard(cards);
+          if (firstCard) {
+            cardName = firstCard.name || "Unknown Card";
+            cardImageUrl = getFirstCardImageUrl(cards);
+          } else {
+            // Fallback to last saved draw from localStorage
+            const lastDraw = loadLastDraw();
+            if (lastDraw) {
+              cardName = lastDraw.name || "Unknown Card";
+              cardImageUrl = lastDraw.imageUrl;
+            }
           }
-
-          // Build share text with card name prepended
-          let shareText = getShareText(selectedSpread);
-          if (cardSlug) {
-            shareText = `🔮 Reveal Your Reading\nCard: ${cardSlug}\n\n${shareText}`;
-          }
-
-          // Get card image URL (first card or fallback to f.png)
-          let cardImageUrl = getFirstCardImageUrl(cards);
+          
+          // If still no card image, use fallback f.png
           if (!cardImageUrl) {
-            // Fallback to f.png if no card image
-            const fallbackPath = normalizeImagePath("Assets/imagine/f.png");
-            cardImageUrl = toAbsoluteUrl(fallbackPath);
+            const fallbackPath = normalizePath("Assets/imagine/f.png");
+            cardImageUrl = toAbsoluteGhPagesUrl(fallbackPath);
           }
 
-          // Build embeds array: [appUrl, cardImageUrl]
-          const embeds = [
-            APP_URL,
-            cardImageUrl
-          ].filter(Boolean);
+          // Build share text: prepend card name to existing text
+          let shareText = getShareText(selectedSpread);
+          if (cardName) {
+            shareText = `🔮 Reveal Your Reading\nCard: ${cardName}\n\n${shareText}`;
+          }
+
+          // Build embeds array: ALWAYS include app URL, then card image
+          const embeds = [APP_URL];
+          if (cardImageUrl) {
+            embeds.push(cardImageUrl);
+          }
 
           // Get Farcaster Mini App SDK
           const sdk = window.farcaster || window.farcasterSDK || window.sdk || window.FarcasterSDK;
@@ -1018,31 +1073,30 @@ Got a real answer.
           console.log("SHARE embeds =", embeds);
           console.log("SHARE text =", shareText);
           
-          if (!sdk || !sdk.actions || !sdk.actions.composeCast) {
-            // Fallback to Farcaster compose intent URL
+          if (sdk?.actions?.composeCast) {
+            // SDK branch: Use Farcaster Mini App SDK
+            console.log("using SDK composeCast");
+            await sdk.actions.composeCast({
+              text: shareText,
+              embeds: embeds
+            });
+          } else {
+            // Fallback: Use Farcaster compose intent URL
             console.log("using fallback compose url");
             
             const baseUrl = 'https://farcaster.xyz/~/compose';
             const params = new URLSearchParams();
             params.set("text", shareText);
             
-            // Use embeds[] format (repeated parameters, not embeds[0], embeds[1])
+            // Use embeds[] format (repeated parameters)
             embeds.forEach((embed) => {
               params.append("embeds[]", embed);
             });
             
             const shareUrl = `${baseUrl}?${params.toString()}`;
-            console.log("SHARE fallback URL =", shareUrl);
+            console.log("SHARE compose URL =", shareUrl);
             window.open(shareUrl, '_blank', 'noopener,noreferrer');
-            return;
           }
-
-          // SDK branch: Use Farcaster Mini App SDK to compose cast
-          console.log("using SDK composeCast");
-          await sdk.actions.composeCast({
-            text: shareText,
-            embeds: embeds
-          });
 
         } catch (error) {
           console.error('Share failed:', error);
@@ -1257,6 +1311,7 @@ Important: This must be a unique interpretation for this specific card spread. M
             const newCards = getRandomCards(count);
 
             // Add positional labels based on spread type
+            let finalCards;
             if (spread === "THREE") {
               const labeled = newCards.map((card, idx) => ({
                 ...card,
@@ -1267,7 +1322,7 @@ Important: This must be a unique interpretation for this specific card spread. M
                     ? "Support"
                     : "Challenge",
               }));
-              setCards(labeled);
+              finalCards = labeled;
             } else if (spread === "CUSTOM") {
               const labeled = newCards.map((card, idx) => ({
                 ...card,
@@ -1278,12 +1333,16 @@ Important: This must be a unique interpretation for this specific card spread. M
                     ? "Present/Situation"
                     : "Future/Guidance",
               }));
-              setCards(labeled);
+              finalCards = labeled;
 
               // Don't generate AI interpretation yet - wait for user to reveal all cards
             } else {
-              setCards(newCards);
+              finalCards = newCards;
             }
+
+            setCards(finalCards);
+            // Save drawn cards to localStorage so they persist
+            saveLastDraw(finalCards);
 
             setRevealedIds([]);
             setActiveCard(null);
