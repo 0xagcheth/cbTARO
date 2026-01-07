@@ -15,9 +15,9 @@
     "description": "Mystical tarot reading inside Farcaster.",
     "primaryCategory": "entertainment",
     "tags": ["tarot", "crypto", "base"],
-    "heroImageUrl": "https://0xagcheth.github.io/cbTARO/Assets/imagine/b.png",
+    "heroImageUrl": "https://0xagcheth.github.io/cbTARO/Assets/imagine/f_3x2.png",
     "ogTitle": "cbTARO",
-    "ogDescription": "Tarot mini app for Farcaster on Base",
-    "ogImageUrl": "https://0xagcheth.github.io/cbTARO/Assets/imagine/b.png"
+    "ogDescription": "Reveal your reading",
+    "ogImageUrl": "https://0xagcheth.github.io/cbTARO/Assets/imagine/f_3x2.png"
   }
 }
