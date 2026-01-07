@@ -6,7 +6,7 @@ if (typeof ethers === 'undefined') {
   console.error('ethers.js not loaded');
 }
 
-// Tarot card data based on tarot.com meanings
+// Taro card data based on tarot.com meanings
 // Source: https://www.tarot.com/tarot/cards
 const ALL_CARDS = [
   // Major Arcana
@@ -567,7 +567,7 @@ function getRandomCards(count) {
   return shuffled.slice(0, count);
 }
 
-function TarotApp() {
+function TaroApp() {
   // Base path for GitHub Pages deployment
   const basePath = '/cbTARO';
 
@@ -808,26 +808,26 @@ function TarotApp() {
       // Share functions
       const getShareText = (spreadType) => {
         if (spreadType === "ONE") {
-          return `🃏 Daily Tarot
+          return `🃏 Daily Taro
 
 Today's card gave me a clear signal.
 Sometimes one card is all you need.
 
 🔮 Pulled with cbTARO on Base`;
         } else if (spreadType === "THREE") {
-          return `🔮 3-Card Tarot Reading
+          return `🔮 3-Card Taro Reading
 
 Past. Present. Direction.
 The pattern actually makes sense.
 
 ✨ Pulled with cbTARO on Base`;
         } else if (spreadType === "CUSTOM") {
-          return `🧿 Custom Tarot Reading
+          return `🧿 Custom Taro Reading
 
 Asked a real question.
 Got a real answer.
 
-✨ cbTARO · Tarot on Base`;
+✨ cbTARO · Taro on Base`;
         }
         return "";
       };
@@ -899,7 +899,7 @@ Got a real answer.
         ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
         ctx.font = '16px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText('cbTARO · Tarot on Base', canvas.width / 2, canvas.height - 20);
+        ctx.fillText('cbTARO · Taro on Base', canvas.width / 2, canvas.height - 20);
 
         return canvas.toDataURL('image/png');
       };
@@ -918,7 +918,7 @@ Got a real answer.
         ctx.fillStyle = '#fff';
         ctx.font = 'bold 24px Georgia, serif';
         ctx.textAlign = 'center';
-        ctx.fillText('Custom Tarot Interpretation', canvas.width / 2, 50);
+        ctx.fillText('Custom Taro Interpretation', canvas.width / 2, 50);
 
         // AI Text with word wrapping
         ctx.fillStyle = '#fff';
@@ -950,39 +950,71 @@ Got a real answer.
         return canvas.toDataURL('image/png');
       };
 
+      // Helper function to convert card imagePath to full URL
+      const getCardImageUrl = (imagePath) => {
+        if (!imagePath) return null;
+        // Convert "./Assets/imagine/taro_cards/THE FOOL.png" 
+        // to "https://0xagcheth.github.io/cbTARO/Assets/imagine/taro_cards/THE FOOL.png"
+        const cleanPath = imagePath.replace(/^\.\//, '');
+        return `https://0xagcheth.github.io/cbTARO/${cleanPath}`;
+      };
+
       const handleShare = async () => {
         try {
           playButtonSound();
 
-          const shareText = getShareText(selectedSpread);
-          const embeds = [];
-
-          // Use static images instead of generated dataURL (better for embeds)
-          // For cards, use a generic tarot image
-          embeds.push('./Assets/imagine/b.png');
-
-          // For CUSTOM, add another image if AI interpretation exists
-          if (selectedSpread === "CUSTOM" && aiInterpretation) {
-            embeds.push('./Assets/imagine/cr.png');
+          // Get Farcaster Mini App SDK
+          const sdk = window.farcaster || window.farcasterSDK || window.sdk || window.FarcasterSDK;
+          
+          if (!sdk || !sdk.actions || !sdk.actions.composeCast) {
+            // Fallback to Warpcast URL if SDK not available
+            console.warn('Farcaster Mini App SDK not available, using fallback');
+            const shareText = getShareText(selectedSpread);
+            const embeds = [];
+            embeds.push('./Assets/imagine/b.png');
+            if (selectedSpread === "CUSTOM" && aiInterpretation) {
+              embeds.push('./Assets/imagine/cr.png');
+            }
+            embeds.push('./');
+            const baseUrl = 'https://warpcast.com/~/compose';
+            const params = new URLSearchParams({ text: shareText });
+            embeds.forEach((embed, index) => {
+              params.append(`embeds[${index}]`, embed);
+            });
+            const shareUrl = `${baseUrl}?${params.toString()}`;
+            window.open(shareUrl, '_blank', 'noopener,noreferrer');
+            return;
           }
 
-          // Add app URL
-          embeds.push('./');
+          // Get card information
+          const appUrl = "https://0xagcheth.github.io/cbTARO/";
+          let cardImageUrl = null;
+          let cardSlug = "";
 
-          // Create Warpcast intent URL
-          const baseUrl = 'https://warpcast.com/~/compose';
-          const params = new URLSearchParams({
+          // Get first card for image and name
+          if (cards && cards.length > 0) {
+            const firstCard = cards[0];
+            cardSlug = firstCard.name || "Unknown Card";
+            cardImageUrl = getCardImageUrl(firstCard.imagePath);
+          }
+
+          // Build share text with card name
+          let shareText = getShareText(selectedSpread);
+          if (cardSlug) {
+            shareText = `🔮 Reveal Your Reading\nCard: ${cardSlug}\n\n${shareText}`;
+          }
+
+          // Build embeds array
+          const embeds = [appUrl];
+          if (cardImageUrl) {
+            embeds.push(cardImageUrl);
+          }
+
+          // Use Farcaster Mini App SDK to compose cast
+          await sdk.actions.composeCast({
             text: shareText,
+            embeds: embeds
           });
-
-          embeds.forEach((embed, index) => {
-            params.append(`embeds[${index}]`, embed);
-          });
-
-          const shareUrl = `${baseUrl}?${params.toString()}`;
-
-          // Open in new window/tab
-          window.open(shareUrl, '_blank', 'noopener,noreferrer');
 
         } catch (error) {
           console.error('Share failed:', error);
@@ -1005,7 +1037,7 @@ Got a real answer.
           const cardKeywords = cards.map(c => c.keyword).join(", ");
           const cardDescriptions = cards.map(c => c.description).join("\n");
 
-          const prompt = `You are a master tarot reader who creates deeply personalized, spiritually resonant interpretations based on the unique energies of each card combination.
+          const prompt = `You are a master taro reader who creates deeply personalized, spiritually resonant interpretations based on the unique energies of each card combination.
 
 CRITICAL: Respond ONLY in English, regardless of the question's language. Always provide the reading in English.
 
@@ -1306,13 +1338,13 @@ Important: This must be a unique interpretation for this specific card spread. M
 
       // Test render - remove this after debugging
       if (testRender) {
-        console.log("TarotApp is rendering:", testRender);
+        console.log("TaroApp is rendering:", testRender);
       }
 
       return (
-        <div className="tarot-root">
+        <div className="taro-root">
           {/* Mystical background */}
-          <div className="tarot-background" />
+          <div className="taro-background" />
 
           {/* Top Bar */}
           <div className="topbar">
@@ -1348,24 +1380,24 @@ Important: This must be a unique interpretation for this specific card spread. M
             </div>
           </div>
 
-          <div className="tarot-container">
+          <div className="taro-container">
 
             {/* Small block with hash after "payment" (hidden, as payment is disabled) */}
             {txHash && (
-              <div className="tarot-hash">
+              <div className="taro-hash">
                 <span>Your reading is recorded:</span>
                 <code>{txHash}</code>
               </div>
             )}
 
             {/* Main area with table and deck/cards */}
-            <main className="tarot-main">
+            <main className="taro-main">
               {/* Table */}
-              <div className={`tarot-table ${gameStage === "animating" ? "table-animating" : ""}`}>
+              <div className={`taro-table ${gameStage === "animating" ? "table-animating" : ""}`}>
                 {/* When there's no spread — show deck */}
                 {gameStage === "idle" && (
-                  <div className="tarot-deck" onClick={handleChooseSpreadClick}>
-                    <div className="tarot-deck-inner" />
+                  <div className="taro-deck" onClick={handleChooseSpreadClick}>
+                    <div className="taro-deck-inner" />
                   </div>
                 )}
 
@@ -1384,7 +1416,7 @@ Important: This must be a unique interpretation for this specific card spread. M
                   <button
                     className="gallery-button"
                     onClick={() => { playButtonSound(); setPreviousGameStage(gameStage); setShowGallery(true); }}
-                    title="View all tarot cards"
+                    title="View all taro cards"
                   >
                     ☰
                   </button>
@@ -1411,7 +1443,7 @@ Important: This must be a unique interpretation for this specific card spread. M
 
                 {/* Spread selection modal */}
                 {gameStage === "choosing" && (
-                  <div className="tarot-modal choosing-modal">
+                  <div className="taro-modal choosing-modal">
                     <div className="spread-selection">
                       {/* Single card on the left */}
                       <div
@@ -1511,7 +1543,7 @@ Important: This must be a unique interpretation for this specific card spread. M
 
                 {/* Custom reading modal */}
                 {gameStage === "custom" && (
-                  <div className="tarot-modal custom-reading-modal">
+                  <div className="taro-modal custom-reading-modal">
                     <div className="custom-modal-content">
                     <textarea
                         className="custom-modal-input"
@@ -1546,7 +1578,7 @@ Important: This must be a unique interpretation for this specific card spread. M
 
                 {/* Payment state (not used, as payment is disabled) */}
                 {gameStage === "paying" && (
-                  <div className="tarot-modal">
+                  <div className="taro-modal">
                     <h2>Processing Transaction…</h2>
                     <p>Please confirm payment in your wallet.</p>
                   </div>
@@ -1554,13 +1586,13 @@ Important: This must be a unique interpretation for this specific card spread. M
 
                 {/* Animation before spread */}
                 {gameStage === "animating" && (
-                  <div className="tarot-animating">
+                  <div className="taro-animating">
                   </div>
                 )}
 
                 {/* Card spread (1 or 3 cards) */}
                 {(gameStage === "spread" || gameStage === "reading") && (
-                  <div className="tarot-spread">
+                  <div className="taro-spread">
                     {cards.map((card, index) => {
                       const isRevealed = revealedIds.includes(card.id);
                       const spreadType = selectedSpread;
@@ -1576,36 +1608,36 @@ Important: This must be a unique interpretation for this specific card spread. M
                       return (
                         <div
                           key={card.id}
-                          className={`tarot-card ${offsetClass} ${isRevealed ? "card-revealed" : ""}`}
+                          className={`taro-card ${offsetClass} ${isRevealed ? "card-revealed" : ""}`}
                           onClick={() => handleCardClick(card)}
                         >
-                          <div className="tarot-card-inner">
+                          <div className="taro-card-inner">
                             {/* Card back */}
-                            <div className="tarot-card-back"></div>
+                            <div className="taro-card-back"></div>
 
                             {/* Card face */}
-                            <div className="tarot-card-front">
+                            <div className="taro-card-front">
                               {card.imagePath ? (
                                 <img
                                   src={card.imagePath}
                                   alt={card.name}
-                                  className="tarot-card-image"
+                                  className="taro-card-image"
                                   onError={(e) => {
                                     console.error('Failed to load image:', card.imagePath);
                                     e.target.style.display = 'none';
                                     // Show fallback content
                                     e.target.parentElement.innerHTML = `
-                                      <div class="tarot-card-fallback">
-                                        <div class="tarot-card-name">${card.name}</div>
-                                        <div class="tarot-card-keyword">${card.keyword}</div>
+                                      <div class="taro-card-fallback">
+                                        <div class="taro-card-name">${card.name}</div>
+                                        <div class="taro-card-keyword">${card.keyword}</div>
                                       </div>
                                     `;
                                   }}
                                 />
                               ) : (
-                                <div className="tarot-card-fallback">
-                              <div className="tarot-card-name">{card.name}</div>
-                              <div className="tarot-card-keyword">{card.keyword}</div>
+                                <div className="taro-card-fallback">
+                              <div className="taro-card-name">{card.name}</div>
+                              <div className="taro-card-keyword">{card.keyword}</div>
                                 </div>
                               )}
                             </div>
@@ -1619,14 +1651,14 @@ Important: This must be a unique interpretation for this specific card spread. M
             </main>
 
             {/* Interaction panel at bottom */}
-            <footer className="tarot-footer">
+            <footer className="taro-footer">
               {isAllRevealed && gameStage !== "paying" && (
                 <>
                   {selectedSpread === "CUSTOM" && (
                     <>
                       {!aiInterpretation && !isGeneratingAI && (
                         <button
-                          className="tarot-button"
+                          className="taro-button"
                           onClick={() => {
                             playButtonSound();
                             if (!userQuestion.trim()) {
@@ -1642,13 +1674,13 @@ Important: This must be a unique interpretation for this specific card spread. M
                         </button>
                       )}
                       {isGeneratingAI && (
-                        <div className="tarot-generating" style={{ marginRight: "1rem", color: "#ffd700" }}>
+                        <div className="taro-generating" style={{ marginRight: "1rem", color: "#ffd700" }}>
                           ✨ Generating reading...
                         </div>
                       )}
                       {aiInterpretation && (
                         <button
-                          className="tarot-button"
+                          className="taro-button"
                           onClick={() => { playButtonSound(); setAiInterpretation(aiInterpretation); }}
                           style={{ marginRight: "1rem" }}
                         >
@@ -1657,10 +1689,10 @@ Important: This must be a unique interpretation for this specific card spread. M
                       )}
                     </>
                   )}
-                  <button className="tarot-button" onClick={() => { playButtonSound(); handleShare(); }}>
+                  <button className="taro-button" onClick={() => { playButtonSound(); handleShare(); }}>
                     🔁 Share reading
                   </button>
-                  <button className="tarot-button secondary" onClick={() => { playButtonSound(); handleNewSpread(); }}>
+                  <button className="taro-button secondary" onClick={() => { playButtonSound(); handleNewSpread(); }}>
                     &lt;
                   </button>
                 </>
@@ -1669,26 +1701,26 @@ Important: This must be a unique interpretation for this specific card spread. M
 
             {/* Reading panel (card description) */}
             {activeCard && gameStage === "reading" && (
-              <div className="tarot-reading-overlay" onClick={handleCloseReading}>
-                <div className="tarot-reading-panel" onClick={(e) => e.stopPropagation()}>
+              <div className="taro-reading-overlay" onClick={handleCloseReading}>
+                <div className="taro-reading-panel" onClick={(e) => e.stopPropagation()}>
                   <h2>{activeCard.name}</h2>
                   {activeCard.imagePath && (
-                    <div className="tarot-reading-card-image">
+                    <div className="taro-reading-card-image">
                       <img src={activeCard.imagePath} alt={activeCard.name} />
                     </div>
                   )}
                   {activeCard.positionLabel && (
-                    <p className="tarot-reading-position">{activeCard.positionLabel}</p>
+                    <p className="taro-reading-position">{activeCard.positionLabel}</p>
                   )}
-                  <p className="tarot-reading-keyword">Keyword: {activeCard.keyword}</p>
-                  <p className="tarot-reading-text">{activeCard.description}</p>
+                  <p className="taro-reading-keyword">Keyword: {activeCard.keyword}</p>
+                  <p className="taro-reading-text">{activeCard.description}</p>
                 </div>
               </div>
             )}
 
             {/* Gallery modal */}
             {showGallery && (
-              <div className="tarot-reading-overlay" onClick={() => setShowGallery(false)}>
+              <div className="taro-reading-overlay" onClick={() => setShowGallery(false)}>
                 <div className="gallery-modal" onClick={(e) => e.stopPropagation()}>
                   <div className="gallery-content">
                     {/* Major Arcana */}
@@ -1805,18 +1837,18 @@ Important: This must be a unique interpretation for this specific card spread. M
 
             {/* AI Interpretation panel for custom reading */}
             {selectedSpread === "CUSTOM" && isAllRevealed && aiInterpretation && (
-              <div className="tarot-reading-overlay" onClick={() => setAiInterpretation(null)}>
-                <div className="tarot-reading-panel tarot-ai-panel" onClick={(e) => e.stopPropagation()}>
+              <div className="taro-reading-overlay" onClick={() => setAiInterpretation(null)}>
+                <div className="taro-reading-panel taro-ai-panel" onClick={(e) => e.stopPropagation()}>
                   <h2>✨ Your Personalized Reading</h2>
-                  <p className="tarot-reading-question">Question: "{userQuestion}"</p>
+                  <p className="taro-reading-question">Question: "{userQuestion}"</p>
                   {isGeneratingAI ? (
-                    <div className="tarot-ai-loading">
+                    <div className="taro-ai-loading">
                       Generating reading...
                     </div>
                   ) : (
                     <div dangerouslySetInnerHTML={{ __html: aiInterpretation.replace(/\n/g, '<br/>') }} />
                   )}
-                  <button className="tarot-button" onClick={() => setAiInterpretation(null)}>
+                  <button className="taro-button" onClick={() => setAiInterpretation(null)}>
                     Close
                   </button>
                 </div>
@@ -1825,495 +1857,6 @@ Important: This must be a unique interpretation for this specific card spread. M
           </div>
         </div>
       );
-            <div className="topbar-spacer" />
-            <div className="topbar-title">cbTaro</div>
-            <div className="topbar-actions">
-              <button
-                className="icon-btn"
-                onClick={() => { playButtonSound(); setSoundEnabled(v => !v); }}
-                aria-label="Sound"
-                title={soundEnabled ? "Sound: ON" : "Sound: OFF"}
-              >
-                {soundEnabled ? "🔊" : "🔇"}
-              </button>
+    }
 
-              <button
-                className="icon-btn avatar-btn"
-                onClick={handleConnect}
-                aria-label="Connect wallet"
-                title={isWalletConnected ? `Connected: ${shortAddress(walletAddress)}` : "Connect Wallet"}
-              >
-                {pfpUrl ? <img className="avatar-img" src={pfpUrl} alt="pfp" /> : <span className="avatar-fallback">🌐</span>}
-              </button>
-
-              <button
-                className="icon-btn"
-                onClick={() => { playButtonSound(); setPreviousGameStage(gameStage); setShowGallery(true); }}
-                aria-label="Menu"
-                title="Menu"
-              >
-                ☰
-              </button>
-            </div>
-          </div>
-
-          <div className="tarot-container">
-
-            {/* Small block with hash after "payment" (hidden, as payment is disabled) */}
-            {txHash && (
-              <div className="tarot-hash">
-                <span>Your reading is recorded:</span>
-                <code>{txHash}</code>
-              </div>
-            )}
-
-            {/* Main area with table and deck/cards */}
-            <main className="tarot-main">
-              {/* Table */}
-              <div className={`tarot-table ${gameStage === "animating" ? "table-animating" : ""}`}>
-                {/* When there's no spread — show deck */}
-                {gameStage === "idle" && (
-                  <div className="tarot-deck" onClick={handleChooseSpreadClick}>
-                    <div className="tarot-deck-inner" />
-                  </div>
-                )}
-
-
-          {/* Export CSV button - only visible for admin wallet */}
-          {walletAddress === '0x35895ba5c7646A0599419F0339b9C4355b5FF736' && (
-            <button
-              className="export-csv-btn"
-              onClick={() => {
-                playButtonSound();
-                try {
-                  usageLogger.exportCsv();
-                } catch (error) {
-                  console.error('Export failed:', error);
-                  alert('Failed to export CSV');
-                }
-              }}
-              title="Export usage statistics"
-            >
-              📊
-            </button>
-          )}
-
-                {/* Spread selection modal */}
-                {gameStage === "choosing" && (
-                  <div className="tarot-modal choosing-modal">
-                    <div className="spread-selection">
-                      {/* Single card on the left */}
-                      <div
-                        className="spread-option single-card-option"
-                        onClick={() => !isLoading && (playButtonSound(), handleSelectSpread("ONE"))}
-                        style={{ opacity: isLoading ? 0.5 : 1, cursor: isLoading ? 'not-allowed' : 'pointer' }}
-                      >
-                        <div className="spread-preview">
-                          <div className="preview-card single-preview-card">
-                            <div className="preview-card-inner">
-                              <div className="preview-card-back"></div>
-                              <div className="preview-card-front">
-                                <img
-                                  src="./Assets/imagine/taro_cards/the_fool.png"
-                                  alt="Single Card"
-                                  className="preview-card-image"
-                                  onError={(e) => {
-                                    e.target.src = "tarot_cards/the_magician.png";
-                                  }}
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Three cards on the right */}
-                      <div
-                        className="spread-option three-cards-option"
-                        onClick={() => !isLoading && (playButtonSound(), handleSelectSpread("THREE"))}
-                        style={{ opacity: isLoading ? 0.5 : 1, cursor: isLoading ? 'not-allowed' : 'pointer' }}
-                      >
-                        <div className="spread-preview">
-                          <div className="preview-card three-preview-card left-card">
-                            <div className="preview-card-inner">
-                              <div className="preview-card-back"></div>
-                              <div className="preview-card-front">
-                                <img
-                                  src="./Assets/imagine/taro_cards/the_fool.png"
-                                  alt="Three Cards"
-                                  className="preview-card-image"
-                                />
-                              </div>
-                            </div>
-                          </div>
-                          <div className="preview-card three-preview-card center-card">
-                            <div className="preview-card-inner">
-                              <div className="preview-card-back"></div>
-                              <div className="preview-card-front">
-                                <img
-                                  src="./Assets/imagine/taro_cards/the_magician.png"
-                                  alt="Three Cards"
-                                  className="preview-card-image"
-                                />
-                              </div>
-                            </div>
-                          </div>
-                          <div className="preview-card three-preview-card right-card">
-                            <div className="preview-card-inner">
-                              <div className="preview-card-back"></div>
-                              <div className="preview-card-front">
-                                <img
-                                  src="./Assets/imagine/taro_cards/the_high_priestess.png"
-                                  alt="Three Cards"
-                                  className="preview-card-image"
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Bottom buttons container */}
-                    <div className="modal-bottom-buttons">
-                    <button
-                        className="modal-back-btn"
-                        onClick={() => { playButtonSound(); setGameStage("idle"); }}
-                        title="Back to main screen"
-                      >
-                        &lt;
-                    </button>
-                    <button
-                      className="custom-reading-overlay-button"
-                      disabled={isLoading}
-                      onClick={() => { playButtonSound(); setGameStage("custom"); }}
-                    >
-                      <img
-                        src="./Assets/imagine/cr.png"
-                        alt="Custom Reading"
-                        className="custom-reading-underlay-image"
-                      />
-                    </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Custom reading modal */}
-                {gameStage === "custom" && (
-                  <div className="tarot-modal custom-reading-modal">
-                    <div className="custom-modal-content">
-                    <textarea
-                        className="custom-modal-input"
-                      placeholder="What would you like to know? Ask in any language! (e.g., 'Will I find love this year?', 'What should I focus on in my career?', '¿Encontraré el amor este año?')"
-                      value={userQuestion}
-                      onChange={(e) => setUserQuestion(e.target.value)}
-                      rows={4}
-                      disabled={isLoading}
-                    />
-                      <div className="custom-modal-actions">
-                      <button
-                          className="custom-modal-btn secondary"
-                        onClick={() => {
-                          setGameStage("choosing");
-                          setUserQuestion("");
-                        }}
-                        disabled={isLoading}
-                      >
-                          &lt;
-                      </button>
-                      <button
-                          className="custom-modal-btn primary"
-                        onClick={() => handleSelectSpread("CUSTOM")}
-                        disabled={isLoading || !userQuestion.trim()}
-                      >
-                        {isLoading ? "Reading..." : "Get Reading"}
-                      </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Payment state (not used, as payment is disabled) */}
-                {gameStage === "paying" && (
-                  <div className="tarot-modal">
-                    <h2>Processing Transaction…</h2>
-                    <p>Please confirm payment in your wallet.</p>
-                  </div>
-                )}
-
-                {/* Animation before spread */}
-                {gameStage === "animating" && (
-                  <div className="tarot-animating">
-                  </div>
-                )}
-
-                {/* Card spread (1 or 3 cards) */}
-                {(gameStage === "spread" || gameStage === "reading") && (
-                  <div className="tarot-spread">
-                    {cards.map((card, index) => {
-                      const isRevealed = revealedIds.includes(card.id);
-                      const spreadType = selectedSpread;
-                      const offsetClass =
-                        spreadType === "THREE"
-                          ? index === 0
-                            ? "card-left"
-                            : index === 1
-                            ? "card-center"
-                            : "card-right"
-                          : "card-single";
-
-                      return (
-                        <div
-                          key={card.id}
-                          className={`tarot-card ${offsetClass} ${isRevealed ? "card-revealed" : ""}`}
-                          onClick={() => handleCardClick(card)}
-                        >
-                          <div className="tarot-card-inner">
-                            {/* Card back */}
-                            <div className="tarot-card-back"></div>
-
-                            {/* Card face */}
-                            <div className="tarot-card-front">
-                              {card.imagePath ? (
-                                <img
-                                  src={card.imagePath}
-                                  alt={card.name}
-                                  className="tarot-card-image"
-                                  onError={(e) => {
-                                    console.error('Failed to load image:', card.imagePath);
-                                    e.target.style.display = 'none';
-                                    // Show fallback content
-                                    e.target.parentElement.innerHTML = `
-                                      <div class="tarot-card-fallback">
-                                        <div class="tarot-card-name">${card.name}</div>
-                                        <div class="tarot-card-keyword">${card.keyword}</div>
-                                      </div>
-                                    `;
-                                  }}
-                                />
-                              ) : (
-                                <div className="tarot-card-fallback">
-                              <div className="tarot-card-name">{card.name}</div>
-                              <div className="tarot-card-keyword">{card.keyword}</div>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </main>
-
-            {/* Interaction panel at bottom */}
-            <footer className="tarot-footer">
-              {isAllRevealed && gameStage !== "paying" && (
-                <>
-                  {selectedSpread === "CUSTOM" && (
-                    <>
-                      {!aiInterpretation && !isGeneratingAI && (
-                        <button
-                          className="tarot-button"
-                          onClick={() => {
-                            playButtonSound();
-                            if (!userQuestion.trim()) {
-                              alert('Please enter your question before getting a reading.');
-                              return;
-                            }
-                            generateCustomInterpretation();
-                          }}
-                          style={{ marginRight: "1rem" }}
-                          disabled={isGeneratingAI}
-                        >
-                          {isGeneratingAI ? "Generating..." : "Get Reading"}
-                        </button>
-                      )}
-                      {isGeneratingAI && (
-                        <div className="tarot-generating" style={{ marginRight: "1rem", color: "#ffd700" }}>
-                          ✨ Generating reading...
-                        </div>
-                      )}
-                      {aiInterpretation && (
-                        <button
-                          className="tarot-button"
-                          onClick={() => { playButtonSound(); setAiInterpretation(aiInterpretation); }}
-                          style={{ marginRight: "1rem" }}
-                        >
-                          View AI Reading
-                        </button>
-                      )}
-                    </>
-                  )}
-                  <button className="tarot-button" onClick={() => { playButtonSound(); handleShare(); }}>
-                    🔁 Share reading
-                  </button>
-                  <button className="tarot-button secondary" onClick={() => { playButtonSound(); handleNewSpread(); }}>
-                    &lt;
-                  </button>
-                </>
-              )}
-            </footer>
-
-            {/* Reading panel (card description) */}
-            {activeCard && gameStage === "reading" && (
-              <div className="tarot-reading-overlay" onClick={handleCloseReading}>
-                <div className="tarot-reading-panel" onClick={(e) => e.stopPropagation()}>
-                  <h2>{activeCard.name}</h2>
-                  {activeCard.imagePath && (
-                    <div className="tarot-reading-card-image">
-                      <img src={activeCard.imagePath} alt={activeCard.name} />
-                    </div>
-                  )}
-                  {activeCard.positionLabel && (
-                    <p className="tarot-reading-position">{activeCard.positionLabel}</p>
-                  )}
-                  <p className="tarot-reading-keyword">Keyword: {activeCard.keyword}</p>
-                  <p className="tarot-reading-text">{activeCard.description}</p>
-                </div>
-              </div>
-            )}
-
-            {/* Gallery modal */}
-            {showGallery && (
-              <div className="tarot-reading-overlay" onClick={() => setShowGallery(false)}>
-                <div className="gallery-modal" onClick={(e) => e.stopPropagation()}>
-                  <h2>All Tarot Cards</h2>
-                  <div className="gallery-content">
-                    {/* Major Arcana */}
-                    <div className="gallery-section">
-                      <h3>Major Arcana</h3>
-                      <div className="gallery-grid">
-                        {ALL_CARDS.slice(0, 22).map((card) => (
-                          <div key={card.id} className="gallery-card" onClick={() => {
-                            playButtonSound();
-                            setActiveCard(card);
-                            setGameStage("reading");
-                            setShowGallery(false);
-                          }}>
-                            <img src={card.imagePath} alt={card.name} />
-                            <div className="gallery-card-info">
-                              <div className="gallery-card-name">{card.name}</div>
-                              <div className="gallery-card-keyword">{card.keyword}</div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Wands */}
-                    <div className="gallery-section">
-                      <h3>Wands</h3>
-                      <div className="gallery-grid">
-                        {ALL_CARDS.slice(22, 36).map((card) => (
-                          <div key={card.id} className="gallery-card" onClick={() => {
-                            playButtonSound();
-                            setActiveCard(card);
-                            setGameStage("reading");
-                            setShowGallery(false);
-                          }}>
-                            <img src={card.imagePath} alt={card.name} />
-                            <div className="gallery-card-info">
-                              <div className="gallery-card-name">{card.name}</div>
-                              <div className="gallery-card-keyword">{card.keyword}</div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Cups */}
-                    <div className="gallery-section">
-                      <h3>Cups</h3>
-                      <div className="gallery-grid">
-                        {ALL_CARDS.slice(36, 50).map((card) => (
-                          <div key={card.id} className="gallery-card" onClick={() => {
-                            playButtonSound();
-                            setActiveCard(card);
-                            setGameStage("reading");
-                            setShowGallery(false);
-                          }}>
-                            <img src={card.imagePath} alt={card.name} />
-                            <div className="gallery-card-info">
-                              <div className="gallery-card-name">{card.name}</div>
-                              <div className="gallery-card-keyword">{card.keyword}</div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Swords */}
-                    <div className="gallery-section">
-                      <h3>Swords</h3>
-                      <div className="gallery-grid">
-                        {ALL_CARDS.slice(50, 64).map((card) => (
-                          <div key={card.id} className="gallery-card" onClick={() => {
-                            playButtonSound();
-                            setActiveCard(card);
-                            setGameStage("reading");
-                            setShowGallery(false);
-                          }}>
-                            <img src={card.imagePath} alt={card.name} />
-                            <div className="gallery-card-info">
-                              <div className="gallery-card-name">{card.name}</div>
-                              <div className="gallery-card-keyword">{card.keyword}</div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Pentacles */}
-                    <div className="gallery-section">
-                      <h3>Pentacles</h3>
-                      <div className="gallery-grid">
-                        {ALL_CARDS.slice(64, 78).map((card) => (
-                          <div key={card.id} className="gallery-card" onClick={() => {
-                            playButtonSound();
-                            setActiveCard(card);
-                            setGameStage("reading");
-                            setShowGallery(false);
-                          }}>
-                            <img src={card.imagePath} alt={card.name} />
-                            <div className="gallery-card-info">
-                              <div className="gallery-card-name">{card.name}</div>
-                              <div className="gallery-card-keyword">{card.keyword}</div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                  <button className="gallery-close-btn" onClick={() => { playButtonSound(); setShowGallery(false); setGameStage(previousGameStage); }}>
-                    Close Gallery
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* AI Interpretation panel for custom reading */}
-            {selectedSpread === "CUSTOM" && isAllRevealed && aiInterpretation && (
-              <div className="tarot-reading-overlay" onClick={() => setAiInterpretation(null)}>
-                <div className="tarot-reading-panel tarot-ai-panel" onClick={(e) => e.stopPropagation()}>
-                  <h2>✨ Your Personalized Reading</h2>
-                  <p className="tarot-reading-question">Question: "{userQuestion}"</p>
-                  {isGeneratingAI ? (
-                    <div className="tarot-ai-loading">
-                      Generating reading...
-                    </div>
-                  ) : (
-                    <div dangerouslySetInnerHTML={{ __html: aiInterpretation.replace(/\n/g, '<br/>') }} />
-                  )}
-                  <button className="tarot-button" onClick={() => setAiInterpretation(null)}>
-                    Close
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        );
-      }
-
-      export default TarotApp;
+    export default TaroApp;
