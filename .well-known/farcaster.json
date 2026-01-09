@@ -1,8 +1,8 @@
 {
   "version": "1",
   "name": "cbTARO",
-  "iconUrl": "https://0xagcheth.github.io/cbTARO/public/Assets/imagine/i.png",
+  "iconUrl": "https://0xagcheth.github.io/cbTARO/i.png",
   "homeUrl": "https://0xagcheth.github.io/cbTARO/",
-  "splashImageUrl": "https://0xagcheth.github.io/cbTARO/public/Assets/imagine/cr.png",
+  "splashImageUrl": "https://0xagcheth.github.io/cbTARO/s.png",
   "splashBackgroundColor": "#0b1020"
 }
