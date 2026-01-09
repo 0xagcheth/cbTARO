@@ -689,6 +689,49 @@ function TaroApp() {
     })();
   }, []);
 
+  // Farcaster Mini App SDK bootstrap - call ready() after first render
+  useEffect(() => {
+    let cancelled = false;
+    
+    (async () => {
+      try {
+        // Dynamic import of Farcaster Mini App SDK
+        const mod = await import("@farcaster/miniapp-sdk");
+        const sdk = mod.default || mod.sdk || mod;
+        
+        // Check if we're inside Mini App environment
+        const inMiniApp = typeof sdk?.isInMiniApp === "function" ? sdk.isInMiniApp() : false;
+        
+        if (!inMiniApp) {
+          if (import.meta.env.DEV) {
+            console.debug("[miniapp] Not in Mini App environment, skipping ready()");
+          }
+          return;
+        }
+
+        // Call ready() to hide splash screen
+        if (typeof sdk?.actions?.ready === "function") {
+          await sdk.actions.ready();
+          if (!cancelled && import.meta.env.DEV) {
+            console.debug("[miniapp] sdk.actions.ready() called successfully");
+          }
+        } else {
+          if (import.meta.env.DEV) {
+            console.debug("[miniapp] sdk.actions.ready is not a function");
+          }
+        }
+      } catch (e) {
+        if (!cancelled && import.meta.env.DEV) {
+          console.debug("[miniapp] ready call failed", e);
+        }
+      }
+    })();
+    
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // Farcaster Mini App SDK initialization (backup check)
   useEffect(() => {
     console.log('🎯 React component mounted, checking Farcaster SDK...');
@@ -1554,6 +1597,10 @@ Important: This must be a unique interpretation for this specific card spread. M
 
       return (
         <div className="taro-root">
+          {/* BUILD MARKER: 2026-01-09-1 - Vite Production Build */}
+          <div style={{ position: 'fixed', top: 0, left: 0, zIndex: 99999, background: 'red', color: 'white', padding: '4px 8px', fontSize: '10px' }}>
+            BUILD: 2026-01-09-1
+          </div>
           {/* Mystical background */}
           <div className="taro-background" />
 
@@ -1625,31 +1672,31 @@ Important: This must be a unique interpretation for this specific card spread. M
 
                   {/* Gallery button with streak badge */}
                   <div className="all-taro-wrap">
-                    <button
-                      className="gallery-button"
-                      onClick={() => { playButtonSound(); setPreviousGameStage(gameStage); setShowGallery(true); }}
+                  <button
+                    className="gallery-button"
+                    onClick={() => { playButtonSound(); setPreviousGameStage(gameStage); setShowGallery(true); }}
                       title="View all taro cards"
-                    >
-                      ☰
-                    </button>
+                  >
+                    ☰
+                  </button>
                     <div className="all-taro-right">
                       {/* Daily streak badge - ALWAYS VISIBLE */}
                       <div className="streak-badge">
                         🔥 {streak}
-                      </div>
+                </div>
                       {/* Admin buttons - only visible for admin wallet */}
                       {isAdminWallet(walletAddress) && (
                         <>
-                          <button
+            <button
                             className="admin-button"
                             onClick={async () => {
-                              playButtonSound();
+                playButtonSound();
                               setShowAdminStats(true);
                               setIsLoadingAdminStats(true);
-                              try {
+                try {
                                 const stats = await getAdminStats(walletAddress);
                                 setAdminStats(stats || []);
-                              } catch (error) {
+                } catch (error) {
                                 console.error('Failed to load admin stats:', error);
                                 alert('Failed to load admin stats. Make sure you are connected with the admin wallet.');
                                 setShowAdminStats(false);
@@ -1658,13 +1705,13 @@ Important: This must be a unique interpretation for this specific card spread. M
                               }
                             }}
                             title="Admin Statistics"
-                          >
-                            📊
-                          </button>
-                          <button
+            >
+              📊
+            </button>
+                    <button
                             className="admin-download-button"
-                            onClick={() => {
-                              playButtonSound();
+                          onClick={() => {
+                            playButtonSound();
                               try {
                                 downloadStatsCsv();
                               } catch (error) {
@@ -1675,9 +1722,9 @@ Important: This must be a unique interpretation for this specific card spread. M
                             title="Download stats CSV"
                           >
                             📥
-                          </button>
-                        </>
-                      )}
+                        </button>
+                    </>
+                  )}
                       {/* Reading stats (dev mode or if stats available) */}
                       {(import.meta.env.DEV || userStats) && userStats && userStats.total_readings > 0 && (
                         <div className="stats-badge">
@@ -1687,12 +1734,12 @@ Important: This must be a unique interpretation for this specific card spread. M
                               (1:{userStats.one_card_count} 3:{userStats.three_card_count} C:{userStats.custom_count})
                             </span>
                           )}
-                        </div>
-                      )}
                     </div>
-                  </div>
-                  </div>
+                  )}
                 </div>
+              </div>
+                      </div>
+                    </div>
 
           {/* Export CSV button - only visible for admin wallet */}
           {isAdminWallet(walletAddress) && (
@@ -2211,8 +2258,8 @@ Important: This must be a unique interpretation for this specific card spread. M
               </div>
             )}
           </div>
-        </div>
-      );
-    }
+          </div>
+        );
+      }
 
     export default TaroApp;
