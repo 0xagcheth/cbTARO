@@ -19,8 +19,8 @@ The manifest file contains:
 - **Version**: 1
 - **Name**: cbTARO
 - **Home URL**: `https://0xagcheth.github.io/cbTARO/`
-- **Icon URL**: `https://0xagcheth.github.io/cbTARO/public/Assets/imagine/i.png`
-- **Splash Image URL**: `https://0xagcheth.github.io/cbTARO/public/Assets/imagine/cr.png`
+- **Icon URL**: `https://0xagcheth.github.io/cbTARO/i.png`
+- **Splash Image URL**: `https://0xagcheth.github.io/cbTARO/s.png`
 - **Splash Background Color**: `#0b1020`
 
 ### Verifying Manifest Accessibility
@@ -39,9 +39,9 @@ To verify that the manifest is accessible:
    {
      "version": "1",
      "name": "cbTARO",
-     "iconUrl": "https://0xagcheth.github.io/cbTARO/public/Assets/imagine/i.png",
+     "iconUrl": "https://0xagcheth.github.io/cbTARO/i.png",
      "homeUrl": "https://0xagcheth.github.io/cbTARO/",
-     "splashImageUrl": "https://0xagcheth.github.io/cbTARO/public/Assets/imagine/cr.png",
+     "splashImageUrl": "https://0xagcheth.github.io/cbTARO/s.png",
      "splashBackgroundColor": "#0b1020"
    }
    ```
@@ -64,10 +64,10 @@ When setting up the Mini App in Farcaster Developers → Hosted Manifests:
    - Should match the `name` field in the manifest
 
 5. **Icon**: The icon will be automatically read from `iconUrl` in the manifest
-   - Current: `https://0xagcheth.github.io/cbTARO/public/Assets/imagine/i.png`
+   - Current: `https://0xagcheth.github.io/cbTARO/i.png`
 
 6. **Splash Image**: The splash image will be automatically read from `splashImageUrl` in the manifest
-   - Current: `https://0xagcheth.github.io/cbTARO/public/Assets/imagine/cr.png`
+   - Current: `https://0xagcheth.github.io/cbTARO/s.png`
 
 ### Deployment Notes
 

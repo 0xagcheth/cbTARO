@@ -1151,7 +1151,7 @@ Got a real answer.
             cardImageUrl = APP_URL + encodeURI(cleanPath);
           } else {
             // Fallback на f.png если карты нет
-            cardImageUrl = APP_URL + encodeURI("public/Assets/imagine/f.png");
+            cardImageUrl = APP_URL + encodeURI("f.png");
           }
 
           // 3. Формируем текст с гарантированной ссылкой в конце
