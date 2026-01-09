@@ -1,11 +1,9 @@
 {
-  "frame": {
-    "name": "cbTARO",
+  "miniapp": {
     "version": "1",
-    "iconUrl": "https://0xagcheth.github.io/cbTARO/i.png",
+    "name": "cbTARO",
     "homeUrl": "https://0xagcheth.github.io/cbTARO/",
-    "imageUrl": "https://0xagcheth.github.io/cbTARO/f.png",
-    "buttonTitle": "Open Taro",
+    "iconUrl": "https://0xagcheth.github.io/cbTARO/i.png",
     "splashImageUrl": "https://0xagcheth.github.io/cbTARO/s.png",
     "splashBackgroundColor": "#0b1020",
     "subtitle": "Onchain TARO",
@@ -17,9 +15,13 @@
       "onchain",
       "mystic"
     ],
+    "heroImageUrl": "https://0xagcheth.github.io/cbTARO/f.png",
     "tagline": "Draw your fate onchain",
-    "ogTitle": "cbTARO — Onchain Taro Reading",
-    "castShareUrl": "https://warpcast.com/~/compose?text=%F0%9F%83%8F%20Daily%20Taro%0A%0AToday%27s%20card%20gave%20me%20a%20clear%20signal.%0ASometimes%20one%20card%20is%20all%20you%20need.%0A%0A%F0%9F%94%AE%20Pulled%20with%20cbTARO%20on%20Base%0Ahttps%3A%2F%2F0xagcheth.github.io%2FcbTARO%2F"
+    "ogTitle": "cbTARO - Onchain Taro",
+    "ogDescription": "A mystical onchain taro experience. Draw cards and explore meanings.",
+    "ogImageUrl": "https://0xagcheth.github.io/cbTARO/f.png",
+    "imageUrl": "https://0xagcheth.github.io/cbTARO/f.png",
+    "buttonTitle": "Open Taro"
   },
   "accountAssociation": {
     "header": "eyJmaWQiOjIxMDUxLCJ0eXBlIjoiYXV0aCIsImtleSI6IjB4RTM2NmQ2QTNiRTliNkM5NDI4MjBENzUzNjcwY0ZjMDA5NjMwODdEMCJ9",
