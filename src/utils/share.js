@@ -113,14 +113,3 @@ export async function shareCast({ text, embeds = [] }) {
   }
 }
 
-/**
- * Alias for shareCast (for compatibility)
- * @param {Object} options - Share options
- * @param {string} options.text - Text to share
- * @param {Array<string>} [options.embeds] - Optional embeds
- * @returns {Promise<boolean>} - Success status
- */
-export async function shareToFarcasterOrFallback({ text, embeds = [] }) {
-  return shareCast({ text, embeds });
-}
-

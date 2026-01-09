@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import { buildShareText, shareCast } from './utils/share';
-import { updateStreakOnVisit, getCurrentStreak } from './utils/streak';
+import { updateStreakOnVisit } from './utils/streak';
 import { 
   trackEvent, 
   getUserStats, 
@@ -732,33 +732,6 @@ function TaroApp() {
     };
   }, []);
 
-  // Farcaster Mini App SDK initialization (backup check)
-  useEffect(() => {
-    console.log('🎯 React component mounted, checking Farcaster SDK...');
-
-    // Small delay to ensure global script has run
-        const timer = setTimeout(() => {
-          if (!window.checkFarcasterReady || !window.checkFarcasterReady()) {
-            // Fallback if global script failed
-            console.log('🔄 Fallback SDK check from React component');
-
-            const sdk = window.farcaster || window.farcasterSDK || window.sdk || window.FarcasterSDK;
-            if (sdk && sdk.actions && typeof sdk.actions.ready === 'function') {
-              try {
-                sdk.actions.ready();
-                console.log('✅ Fallback: farcaster.actions.ready() called');
-              } catch (error) {
-                console.error('❌ Fallback SDK error:', error);
-              }
-            } else if (window.parent !== window) {
-              console.log('📱 Fallback: iframe detected, sending ready message');
-              window.parent.postMessage({ type: 'ready' }, '*');
-            }
-          }
-        }, 2000);
-
-        return () => clearTimeout(timer);
-      }, []);
 
       // Function to play button sound
       const playButtonSound = () => {
