@@ -24,7 +24,50 @@ window.addEventListener('orientationchange', function() {
   setTimeout(setVH, 100);
 });
 
-// Farcaster SDK ready check script
+/**
+ * Bootstrap Mini App SDK
+ * Checks if app is running in Farcaster/Base Mini App and calls ready()
+ */
+async function bootstrapMiniApp() {
+  try {
+    // Try to get SDK from window (loaded via CDN in index.html)
+    const sdk = window.farcaster || window.farcasterSDK || window.sdk || window.FarcasterSDK;
+    
+    if (!sdk) {
+      if (import.meta.env.DEV) {
+        console.debug('Mini App SDK not found, running in regular browser');
+      }
+      return { isInMiniApp: false, sdk: null };
+    }
+    
+    // Check if we're in Mini App environment
+    const isInMiniApp = sdk.isInMiniApp && typeof sdk.isInMiniApp === 'function' 
+      ? sdk.isInMiniApp() 
+      : true; // Assume true if method doesn't exist (legacy SDK)
+    
+    if (isInMiniApp && sdk.actions && typeof sdk.actions.ready === 'function') {
+      try {
+        await sdk.actions.ready();
+        if (import.meta.env.DEV) {
+          console.log('✅ Mini App SDK ready() called successfully');
+        }
+      } catch (error) {
+        console.warn('Failed to call SDK ready():', error);
+      }
+    }
+    
+    // Store SDK globally for use in app
+    window.miniAppSDK = sdk;
+    window.isInMiniApp = isInMiniApp;
+    
+    return { isInMiniApp, sdk };
+  } catch (error) {
+    console.warn('Error bootstrapping Mini App:', error);
+    return { isInMiniApp: false, sdk: null };
+  }
+}
+
+// Farcaster SDK ready check script (legacy support)
 window.checkFarcasterReady = function() {
   console.log('🔍 Checking Farcaster SDK readiness...');
 
@@ -47,7 +90,19 @@ window.checkFarcasterReady = function() {
   }
 };
 
-// Try to initialize immediately
+// Bootstrap Mini App on load
+if (document.readyState === 'complete') {
+  bootstrapMiniApp();
+} else {
+  document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(bootstrapMiniApp, 100);
+  });
+  window.addEventListener('load', function() {
+    setTimeout(bootstrapMiniApp, 50);
+  });
+}
+
+// Try to initialize immediately (legacy support)
 if (document.readyState === 'complete') {
   window.checkFarcasterReady();
 } else {

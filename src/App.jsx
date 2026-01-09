@@ -1,8 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
-import { buildShareText } from './utils/share';
+import { buildShareText, shareCast } from './utils/share';
 import { updateStreakOnVisit, getCurrentStreak } from './utils/streak';
-import { trackEvent, getUserStats, isAdminWallet, getAdminStats, exportAdminCSV, ADMIN_WALLET } from './utils/analytics';
+import { 
+  trackEvent, 
+  getUserStats, 
+  isAdminWallet, 
+  getAdminStats, 
+  exportAdminCSV, 
+  ADMIN_WALLET,
+  getUserIdentity,
+  trackVisit,
+  trackReading,
+  downloadStatsCsv,
+  loadStats,
+  getStatsKey
+} from './utils/analytics';
 
 // Safety check for ethers
 if (typeof ethers === 'undefined') {
@@ -594,6 +607,7 @@ function TaroApp() {
   const [previousGameStage, setPreviousGameStage] = useState("idle");
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [dailyStreak, setDailyStreak] = useState(0);
+  const [streak, setStreak] = useState(0); // Simple streak state for UI
   const [userStats, setUserStats] = useState(null);
   const [showAdminStats, setShowAdminStats] = useState(false);
   const [adminStats, setAdminStats] = useState([]);
@@ -610,17 +624,55 @@ function TaroApp() {
 
   // Update daily streak on mount and track visit
   useEffect(() => {
-    // Local streak (fallback)
-    const streak = updateStreakOnVisit();
-    setDailyStreak(streak);
+    // Local streak (fallback) - update immediately for UI
+    const streakValue = updateStreakOnVisit();
+    const numericStreak = Number(streakValue) || 0;
+    setStreak(numericStreak);
+    setDailyStreak(numericStreak);
     
-    // Track visit and get server stats
+    if (import.meta.env.DEV) {
+      console.debug('Streak initialized:', numericStreak);
+    }
+    
+    // Also load streak from localStorage stats if available
+    try {
+      const stats = loadStats();
+      const identity = { fid: null, wallet: walletAddress || null };
+      const key = getStatsKey(identity.fid, identity.wallet);
+      const row = stats.rows[key];
+      if (row && row.streak) {
+        setDailyStreak(row.streak);
+      }
+    } catch (error) {
+      // Ignore
+    }
+    
+    // Track visit locally and on server
     (async () => {
       try {
-        const stats = await trackEvent('visit', null, walletAddress);
-        if (stats) {
-          setDailyStreak(stats.streak || streak); // Use server streak if available
-          setUserStats(stats);
+        // Get user identity (fid, wallet)
+        const identity = await getUserIdentity();
+        const fid = identity.fid;
+        const wallet = walletAddress || identity.wallet;
+        
+        // Track visit locally
+        trackVisit({ fid, wallet });
+        
+        // Update streak from local stats after tracking
+        const stats = loadStats();
+        const key = getStatsKey(fid, wallet);
+        const row = stats.rows[key];
+        if (row && row.streak) {
+          const updatedStreak = Number(row.streak) || 0;
+          setStreak(updatedStreak);
+          setDailyStreak(updatedStreak);
+        }
+        
+        // Track visit on server (if API configured)
+        const serverStats = await trackEvent('visit', null, wallet);
+        if (serverStats) {
+          setDailyStreak(serverStats.streak || streak); // Use server streak if available
+          setUserStats(serverStats);
         } else {
           // Fallback: try to get stats without tracking
           const existingStats = await getUserStats();
@@ -1109,20 +1161,11 @@ Got a real answer.
             embeds.push(cardImageUrl);
           }
 
-          // 5. Try SDK first, then fallback to compose URL
-          const sdk = window.farcaster || window.farcasterSDK || window.sdk || window.FarcasterSDK;
+          // 5. Use shareCast helper (handles SDK, navigator.share, clipboard)
+          const shared = await shareCast({ text: baseText, embeds: [cardImageUrl].filter(Boolean) });
           
-          if (sdk?.actions?.composeCast) {
-            // Use Farcaster Mini App SDK
-            if (isDev) {
-              console.debug('SHARE using SDK composeCast');
-            }
-            await sdk.actions.composeCast({
-              text: text,
-              embeds: embeds
-            });
-          } else {
-            // Fallback: Use Farcaster compose intent URL
+          if (!shared) {
+            // Fallback: Use Farcaster compose intent URL if shareCast failed
             if (isDev) {
               console.debug('SHARE using fallback compose URL');
             }
@@ -1388,13 +1431,29 @@ Important: This must be a unique interpretation for this specific card spread. M
             // Save drawn cards to localStorage so they persist
             saveLastDraw(finalCards);
 
-            // Track reading event
+            // Track reading event (locally and on server)
             const readingTypeMap = {
               "ONE": "one",
               "THREE": "three",
               "CUSTOM": "custom"
             };
             const readingType = readingTypeMap[spread] || null;
+            
+            // Track locally
+            (async () => {
+              try {
+                const identity = await getUserIdentity();
+                const fid = identity.fid;
+                const wallet = walletAddress || identity.wallet;
+                trackReading({ fid, wallet, type: readingType });
+              } catch (error) {
+                if (import.meta.env.DEV) {
+                  console.debug('Failed to track reading locally:', error);
+                }
+              }
+            })();
+            
+            // Track on server (if API configured)
             trackEvent('reading', readingType, walletAddress).then((stats) => {
               if (stats) {
                 setUserStats(stats);
@@ -1564,8 +1623,8 @@ Important: This must be a unique interpretation for this specific card spread. M
                     {soundEnabled ? "🔊" : "🔇"}
                   </button>
 
-                  {/* Gallery button */}
-                  <div className="gallery-button-container">
+                  {/* Gallery button with streak badge */}
+                  <div className="all-taro-wrap">
                     <button
                       className="gallery-button"
                       onClick={() => { playButtonSound(); setPreviousGameStage(gameStage); setShowGallery(true); }}
@@ -1573,47 +1632,65 @@ Important: This must be a unique interpretation for this specific card spread. M
                     >
                       ☰
                     </button>
-                    {/* Admin button - only visible for admin wallet */}
-                    {isAdminWallet(walletAddress) && (
-                      <button
-                        className="admin-button"
-                        onClick={async () => {
-                          playButtonSound();
-                          setShowAdminStats(true);
-                          setIsLoadingAdminStats(true);
-                          try {
-                            const stats = await getAdminStats(walletAddress);
-                            setAdminStats(stats || []);
-                          } catch (error) {
-                            console.error('Failed to load admin stats:', error);
-                            alert('Failed to load admin stats. Make sure you are connected with the admin wallet.');
-                            setShowAdminStats(false);
-                          } finally {
-                            setIsLoadingAdminStats(false);
-                          }
-                        }}
-                        title="Admin Statistics"
-                      >
-                        📊
-                      </button>
-                    )}
-                    {/* Daily streak badge */}
-                    {dailyStreak > 0 && (
+                    <div className="all-taro-right">
+                      {/* Daily streak badge - ALWAYS VISIBLE */}
                       <div className="streak-badge">
-                        Streak: {dailyStreak} 🔥
+                        🔥 {streak}
                       </div>
-                    )}
-                    {/* Reading stats (dev mode or if stats available) */}
-                    {(import.meta.env.DEV || userStats) && userStats && userStats.total_readings > 0 && (
-                      <div className="stats-badge">
-                        Reads: {userStats.total_readings}
-                        {import.meta.env.DEV && (
-                          <span className="stats-breakdown">
-                            (1:{userStats.one_card_count} 3:{userStats.three_card_count} C:{userStats.custom_count})
-                          </span>
-                        )}
-                      </div>
-                    )}
+                      {/* Admin buttons - only visible for admin wallet */}
+                      {isAdminWallet(walletAddress) && (
+                        <>
+                          <button
+                            className="admin-button"
+                            onClick={async () => {
+                              playButtonSound();
+                              setShowAdminStats(true);
+                              setIsLoadingAdminStats(true);
+                              try {
+                                const stats = await getAdminStats(walletAddress);
+                                setAdminStats(stats || []);
+                              } catch (error) {
+                                console.error('Failed to load admin stats:', error);
+                                alert('Failed to load admin stats. Make sure you are connected with the admin wallet.');
+                                setShowAdminStats(false);
+                              } finally {
+                                setIsLoadingAdminStats(false);
+                              }
+                            }}
+                            title="Admin Statistics"
+                          >
+                            📊
+                          </button>
+                          <button
+                            className="admin-download-button"
+                            onClick={() => {
+                              playButtonSound();
+                              try {
+                                downloadStatsCsv();
+                              } catch (error) {
+                                console.error('Failed to download stats:', error);
+                                alert('Failed to download stats CSV');
+                              }
+                            }}
+                            title="Download stats CSV"
+                          >
+                            📥
+                          </button>
+                        </>
+                      )}
+                      {/* Reading stats (dev mode or if stats available) */}
+                      {(import.meta.env.DEV || userStats) && userStats && userStats.total_readings > 0 && (
+                        <div className="stats-badge">
+                          Reads: {userStats.total_readings}
+                          {import.meta.env.DEV && (
+                            <span className="stats-breakdown">
+                              (1:{userStats.one_card_count} 3:{userStats.three_card_count} C:{userStats.custom_count})
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                   </div>
                 </div>
 

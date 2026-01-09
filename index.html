@@ -3095,10 +3095,34 @@ Important: This must be a unique interpretation for this specific card spread. M
     }
 
     .gallery-button-container {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-      gap: 4px;
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: flex-end !important;
+      gap: 4px !important;
+      position: relative !important;
+      z-index: 10002 !important;
+      overflow: visible !important;
+      min-width: 80px;
+    }
+
+    /* All Taro Cards wrapper with streak badge */
+    .all-taro-wrap {
+      display: flex !important;
+      align-items: flex-start !important;
+      justify-content: space-between !important;
+      position: relative !important;
+      z-index: 5 !important;
+      overflow: visible !important;
+      gap: 12px;
+    }
+
+    .all-taro-right {
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: flex-end !important;
+      gap: 8px !important;
+      position: relative !important;
+      z-index: 6 !important;
     }
 
     .gallery-button {
@@ -3122,18 +3146,21 @@ Important: This must be a unique interpretation for this specific card spread. M
     }
 
     .admin-button {
-      background: rgba(255, 165, 0, 0.8);
+      background: rgba(255, 165, 0, 0.9);
       color: #fff;
-      border: none;
+      border: 1px solid rgba(255, 215, 0, 0.6);
       border-radius: 12px;
-      padding: 12px 16px;
-      font-size: 28px;
+      padding: 10px 14px;
+      font-size: 24px;
       cursor: pointer;
       transition: all 0.2s ease;
-      box-shadow: 0 2px 8px rgba(255, 165, 0, 0.3);
-      min-width: 64px;
-      min-height: 64px;
+      box-shadow: 0 2px 8px rgba(255, 165, 0, 0.4);
+      min-width: 56px;
+      min-height: 56px;
       margin-top: 4px;
+      z-index: 10;
+      position: relative;
+      display: inline-block;
     }
 
     .admin-button:hover {
@@ -3142,14 +3169,47 @@ Important: This must be a unique interpretation for this specific card spread. M
       box-shadow: 0 6px 16px rgba(255, 165, 0, 0.4);
     }
 
+    .admin-download-button {
+      background: rgba(34, 197, 94, 0.9);
+      color: #fff;
+      border: 1px solid rgba(34, 197, 94, 0.8);
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-size: 24px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 8px rgba(34, 197, 94, 0.4);
+      min-width: 56px;
+      min-height: 56px;
+      margin-top: 4px;
+      z-index: 10;
+      position: relative;
+      display: inline-block;
+    }
+
+    .admin-download-button:hover {
+      background: rgba(34, 197, 94, 1);
+      transform: scale(1.05);
+      box-shadow: 0 6px 16px rgba(34, 197, 94, 0.4);
+    }
+
     .streak-badge {
-      font-size: 12px;
-      color: rgba(255, 255, 255, 0.75);
-      opacity: 0.85;
-      text-align: right;
-      white-space: nowrap;
-      padding: 2px 4px;
-      font-weight: 500;
+      font-size: 13px !important;
+      color: #f5e6a8 !important;
+      text-align: right !important;
+      white-space: nowrap !important;
+      padding: 6px 10px !important;
+      font-weight: 600 !important;
+      border: 1px solid rgba(255, 215, 0, 0.6) !important;
+      background: rgba(0, 0, 0, 0.35) !important;
+      border-radius: 12px !important;
+      box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3) !important;
+      z-index: 6 !important;
+      position: relative !important;
+      display: inline-block !important;
+      min-width: 60px !important;
+      visibility: visible !important;
+      opacity: 1 !important;
     }
 
     .stats-badge {

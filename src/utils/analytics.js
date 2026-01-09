@@ -2,8 +2,13 @@
  * Analytics utility for tracking user statistics
  */
 
+import { updateStreakOnVisit, getDayKeyWithCutoff } from './streak.js';
+
 const API_BASE = import.meta.env.VITE_ANALYTICS_API_BASE || '';
 export const ADMIN_WALLET = '0x35895ba5c7646A0599419F0339b9C4355b5FF736';
+
+// Local storage key for stats
+const STATS_STORAGE_KEY = 'cbTARO_stats_v1';
 
 /**
  * Get user identity from Farcaster Mini App context
@@ -226,6 +231,255 @@ export async function exportAdminCSV(wallet) {
     if (import.meta.env.DEV) {
       console.error('Failed to export admin CSV:', error);
     }
+    throw error;
+  }
+}
+
+// ============================================================================
+// Local Storage Statistics (for offline tracking and CSV export)
+// ============================================================================
+
+/**
+ * Get stats key for a user
+ * @param {number|null} fid - Farcaster ID
+ * @param {string|null} wallet - Wallet address
+ * @returns {string} - Storage key
+ */
+export function getStatsKey(fid, wallet) {
+  if (fid) {
+    return `fid:${fid}`;
+  }
+  if (wallet) {
+    return `wallet:${wallet.toLowerCase()}`;
+  }
+  return 'anon:default';
+}
+
+/**
+ * Load stats from localStorage
+ * @returns {Object} - Stats object with version and rows
+ */
+export function loadStats() {
+  try {
+    const stored = localStorage.getItem(STATS_STORAGE_KEY);
+    if (!stored) {
+      return { version: 1, rows: {} };
+    }
+    const parsed = JSON.parse(stored);
+    return {
+      version: parsed.version || 1,
+      rows: parsed.rows || {}
+    };
+  } catch (error) {
+    console.warn('Failed to load stats from localStorage:', error);
+    return { version: 1, rows: {} };
+  }
+}
+
+/**
+ * Save stats to localStorage
+ * @param {Object} stats - Stats object with version and rows
+ */
+export function saveStats(stats) {
+  try {
+    localStorage.setItem(STATS_STORAGE_KEY, JSON.stringify(stats));
+  } catch (error) {
+    console.warn('Failed to save stats to localStorage:', error);
+  }
+}
+
+/**
+ * Track visit event (local storage)
+ * @param {Object} options - Visit options
+ * @param {number|null} options.fid - Farcaster ID
+ * @param {string|null} options.wallet - Wallet address
+ */
+export function trackVisit({ fid = null, wallet = null }) {
+  try {
+    const stats = loadStats();
+    const key = getStatsKey(fid, wallet);
+    const now = Date.now();
+    const dayKey = getDayKeyWithCutoff();
+    
+    // Update streak
+    const streak = updateStreakOnVisit();
+    
+    // Get or create user row
+    const existing = stats.rows[key] || {
+      fid: null,
+      wallet: null,
+      readings_total: 0,
+      readings_one: 0,
+      readings_three: 0,
+      readings_custom: 0,
+      streak: 0,
+      last_visit_day_key: null,
+      last_seen_ts: null
+    };
+    
+    // Update visit data
+    stats.rows[key] = {
+      ...existing,
+      fid: fid || existing.fid,
+      wallet: (wallet || existing.wallet)?.toLowerCase() || null,
+      streak: streak,
+      last_visit_day_key: dayKey,
+      last_seen_ts: now
+    };
+    
+    saveStats(stats);
+    
+    if (import.meta.env.DEV) {
+      console.debug('Tracked visit:', { key, streak, dayKey });
+    }
+  } catch (error) {
+    console.warn('Failed to track visit:', error);
+  }
+}
+
+/**
+ * Track reading event (local storage)
+ * @param {Object} options - Reading options
+ * @param {number|null} options.fid - Farcaster ID
+ * @param {string|null} options.wallet - Wallet address
+ * @param {string} options.type - Reading type: 'one' | 'three' | 'custom'
+ */
+export function trackReading({ fid = null, wallet = null, type }) {
+  if (!['one', 'three', 'custom'].includes(type)) {
+    console.warn('Invalid reading type:', type);
+    return;
+  }
+  
+  try {
+    const stats = loadStats();
+    const key = getStatsKey(fid, wallet);
+    const now = Date.now();
+    
+    // Get or create user row
+    const existing = stats.rows[key] || {
+      fid: null,
+      wallet: null,
+      readings_total: 0,
+      readings_one: 0,
+      readings_three: 0,
+      readings_custom: 0,
+      streak: 0,
+      last_visit_day_key: null,
+      last_seen_ts: null
+    };
+    
+    // Update reading counts
+    stats.rows[key] = {
+      ...existing,
+      fid: fid || existing.fid,
+      wallet: (wallet || existing.wallet)?.toLowerCase() || null,
+      readings_total: (existing.readings_total || 0) + 1,
+      readings_one: type === 'one' ? (existing.readings_one || 0) + 1 : (existing.readings_one || 0),
+      readings_three: type === 'three' ? (existing.readings_three || 0) + 1 : (existing.readings_three || 0),
+      readings_custom: type === 'custom' ? (existing.readings_custom || 0) + 1 : (existing.readings_custom || 0),
+      last_seen_ts: now
+    };
+    
+    saveStats(stats);
+    
+    if (import.meta.env.DEV) {
+      console.debug('Tracked reading:', { key, type });
+    }
+  } catch (error) {
+    console.warn('Failed to track reading:', error);
+  }
+}
+
+/**
+ * Get all stats rows
+ * @returns {Array} - Array of stat rows
+ */
+export function getStatsRows() {
+  const stats = loadStats();
+  return Object.entries(stats.rows).map(([key, row]) => ({
+    key,
+    ...row
+  }));
+}
+
+/**
+ * Build CSV from stats rows
+ * @param {Array} rows - Stats rows
+ * @returns {string} - CSV string
+ */
+export function buildCsv(rows) {
+  const headers = [
+    'key',
+    'fid',
+    'wallet',
+    'readings_total',
+    'readings_one',
+    'readings_three',
+    'readings_custom',
+    'streak',
+    'last_visit_day_key',
+    'last_seen_ts'
+  ];
+  
+  const csvRows = [headers.join(',')];
+  
+  // Sort by last_seen_ts desc
+  const sorted = [...rows].sort((a, b) => {
+    const tsA = a.last_seen_ts || 0;
+    const tsB = b.last_seen_ts || 0;
+    return tsB - tsA;
+  });
+  
+  for (const row of sorted) {
+    const values = [
+      `"${row.key || ''}"`,
+      row.fid || '',
+      `"${row.wallet || ''}"`,
+      row.readings_total || 0,
+      row.readings_one || 0,
+      row.readings_three || 0,
+      row.readings_custom || 0,
+      row.streak || 0,
+      `"${row.last_visit_day_key || ''}"`,
+      row.last_seen_ts || ''
+    ];
+    csvRows.push(values.join(','));
+  }
+  
+  return csvRows.join('\n');
+}
+
+/**
+ * Download stats CSV
+ * @param {Object} options - Download options
+ * @param {boolean} [options.onlyAdminRow] - Only include admin row (not used, for compatibility)
+ */
+export function downloadStatsCsv({ onlyAdminRow = false } = {}) {
+  try {
+    const rows = getStatsRows();
+    const csv = buildCsv(rows);
+    
+    // Generate filename with date
+    const today = new Date();
+    const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    const filename = `cbTARO_stats_${dateStr}.csv`;
+    
+    // Create blob and download
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    if (import.meta.env.DEV) {
+      console.debug('Downloaded stats CSV:', filename, rows.length, 'rows');
+    }
+  } catch (error) {
+    console.error('Failed to download stats CSV:', error);
     throw error;
   }
 }

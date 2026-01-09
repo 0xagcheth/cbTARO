@@ -40,3 +40,87 @@ export function buildShareText(baseText) {
   return text;
 }
 
+/**
+ * Share cast using Farcaster Mini App SDK or fallback methods
+ * @param {Object} options - Share options
+ * @param {string} options.text - Text to share (will be processed by buildShareText)
+ * @param {Array<string>} [options.embeds] - Optional embeds (URLs)
+ * @returns {Promise<boolean>} - Success status
+ */
+export async function shareCast({ text, embeds = [] }) {
+  const finalText = buildShareText(text);
+  const finalEmbeds = [APP_URL, ...embeds].filter(Boolean);
+  
+  try {
+    // Try Farcaster Mini App SDK first
+    const sdk = window.miniAppSDK || window.farcaster || window.farcasterSDK || window.sdk || window.FarcasterSDK;
+    const isInMiniApp = window.isInMiniApp || (sdk && sdk.isInMiniApp && sdk.isInMiniApp());
+    
+    if (isInMiniApp && sdk?.actions?.composeCast) {
+      try {
+        await sdk.actions.composeCast({
+          text: finalText,
+          embeds: finalEmbeds
+        });
+        if (import.meta.env.DEV) {
+          console.debug('Shared via Farcaster Mini App SDK');
+        }
+        return true;
+      } catch (error) {
+        console.warn('Failed to share via SDK, trying fallback:', error);
+      }
+    }
+    
+    // Fallback: navigator.share
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          text: finalText,
+          url: APP_URL
+        });
+        if (import.meta.env.DEV) {
+          console.debug('Shared via navigator.share');
+        }
+        return true;
+      } catch (error) {
+        if (error.name !== 'AbortError') {
+          console.warn('navigator.share failed, trying clipboard:', error);
+        } else {
+          // User cancelled, don't try clipboard
+          return false;
+        }
+      }
+    }
+    
+    // Final fallback: clipboard
+    try {
+      await navigator.clipboard.writeText(`${finalText}\n${APP_URL}`);
+      if (import.meta.env.DEV) {
+        console.debug('Copied to clipboard');
+      }
+      // Show user feedback
+      if (typeof window !== 'undefined' && window.alert) {
+        alert('Copied to clipboard!');
+      }
+      return true;
+    } catch (error) {
+      console.error('All share methods failed:', error);
+      return false;
+    }
+  } catch (error) {
+    console.error('Share error:', error);
+    return false;
+  }
+}
+
+/**
+ * Alias for shareCast (for compatibility)
+ * @param {Object} options - Share options
+ * @param {string} options.text - Text to share
+ * @param {Array<string>} [options.embeds] - Optional embeds
+ * @returns {Promise<boolean>} - Success status
+ */
+export async function shareToFarcasterOrFallback({ text, embeds = [] }) {
+  return shareCast({ text, embeds });
+}
+
