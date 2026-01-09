@@ -3,6 +3,7 @@
  */
 
 const API_BASE = import.meta.env.VITE_ANALYTICS_API_BASE || '';
+export const ADMIN_WALLET = '0x35895ba5c7646A0599419F0339b9C4355b5FF736';
 
 /**
  * Get user identity from Farcaster Mini App context
@@ -150,6 +151,82 @@ export async function getUserStats() {
       console.debug('Failed to get user stats:', error);
     }
     return null;
+  }
+}
+
+/**
+ * Check if wallet is admin
+ * @param {string|null} wallet - Wallet address
+ * @returns {boolean}
+ */
+export function isAdminWallet(wallet) {
+  if (!wallet) return false;
+  return wallet.toLowerCase() === ADMIN_WALLET.toLowerCase();
+}
+
+/**
+ * Get all admin stats (requires admin wallet)
+ * @param {string} wallet - Admin wallet address
+ * @returns {Promise<Array|null>}
+ */
+export async function getAdminStats(wallet) {
+  if (!API_BASE) {
+    return null;
+  }
+  
+  if (!isAdminWallet(wallet)) {
+    throw new Error('Unauthorized: Admin wallet required');
+  }
+  
+  try {
+    const response = await fetch(`${API_BASE}/api/admin/stats?wallet=${encodeURIComponent(wallet)}`);
+    
+    if (!response.ok) {
+      if (response.status === 403) {
+        throw new Error('Unauthorized: Admin wallet required');
+      }
+      throw new Error(`Admin stats API error: ${response.status}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      console.error('Failed to get admin stats:', error);
+    }
+    throw error;
+  }
+}
+
+/**
+ * Export admin stats as CSV (requires admin wallet)
+ * @param {string} wallet - Admin wallet address
+ * @returns {Promise<Blob|null>}
+ */
+export async function exportAdminCSV(wallet) {
+  if (!API_BASE) {
+    return null;
+  }
+  
+  if (!isAdminWallet(wallet)) {
+    throw new Error('Unauthorized: Admin wallet required');
+  }
+  
+  try {
+    const response = await fetch(`${API_BASE}/api/admin/export.csv?wallet=${encodeURIComponent(wallet)}`);
+    
+    if (!response.ok) {
+      if (response.status === 403) {
+        throw new Error('Unauthorized: Admin wallet required');
+      }
+      throw new Error(`Export CSV API error: ${response.status}`);
+    }
+    
+    return await response.blob();
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      console.error('Failed to export admin CSV:', error);
+    }
+    throw error;
   }
 }
 

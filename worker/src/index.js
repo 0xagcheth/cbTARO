@@ -5,6 +5,7 @@
 
 const ALLOWED_ORIGIN = 'https://0xagcheth.github.io';
 const CUTOFF_HOUR_UTC = 1;
+const ADMIN_WALLET = '0x35895ba5c7646A0599419F0339b9C4355b5FF736';
 
 /**
  * Get dayKey with UTC cutoff (day boundary at 01:00 UTC)
@@ -56,6 +57,9 @@ function handleCORS(request) {
     headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     headers.set('Access-Control-Allow-Headers', 'Content-Type');
   }
+  
+  // Also allow CORS for admin endpoints
+  headers.set('Access-Control-Allow-Credentials', 'true');
   
   return headers;
 }
@@ -280,6 +284,123 @@ async function handleGetStats(request, env) {
 }
 
 /**
+ * Check if wallet is admin
+ */
+function isAdminWallet(wallet) {
+  if (!wallet) return false;
+  return wallet.toLowerCase() === ADMIN_WALLET.toLowerCase();
+}
+
+/**
+ * Get all admin stats
+ */
+async function handleAdminStats(request, env) {
+  try {
+    const url = new URL(request.url);
+    const wallet = url.searchParams.get('wallet');
+    
+    // Check admin authorization
+    if (!wallet || !isAdminWallet(wallet)) {
+      return new Response(JSON.stringify({ error: 'Unauthorized: Admin wallet required' }), {
+        status: 403,
+        headers: { 'Content-Type': 'application/json', ...handleCORS(request) }
+      });
+    }
+    
+    // Get all records
+    const records = await env.DB.prepare(
+      'SELECT * FROM user_stats ORDER BY last_seen_ts DESC'
+    ).all();
+    
+    const stats = records.results.map(record => ({
+      fid: record.fid,
+      wallet: record.wallet,
+      total_readings: record.total_readings,
+      one_card_count: record.one_card_count,
+      three_card_count: record.three_card_count,
+      custom_count: record.custom_count,
+      streak: record.streak,
+      last_visit_day_key: record.last_visit_day_key,
+      first_seen_ts: record.first_seen_ts,
+      last_seen_ts: record.last_seen_ts
+    }));
+    
+    return new Response(JSON.stringify(stats), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json', ...handleCORS(request) }
+    });
+    
+  } catch (error) {
+    console.error('Admin stats error:', error);
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json', ...handleCORS(request) }
+    });
+  }
+}
+
+/**
+ * Export admin stats as CSV
+ */
+async function handleAdminExportCSV(request, env) {
+  try {
+    const url = new URL(request.url);
+    const wallet = url.searchParams.get('wallet');
+    
+    // Check admin authorization
+    if (!wallet || !isAdminWallet(wallet)) {
+      return new Response('Unauthorized: Admin wallet required', {
+        status: 403,
+        headers: { 'Content-Type': 'text/plain', ...handleCORS(request) }
+      });
+    }
+    
+    // Get all records
+    const records = await env.DB.prepare(
+      'SELECT * FROM user_stats ORDER BY last_seen_ts DESC'
+    ).all();
+    
+    // Build CSV
+    const headers = ['fid', 'wallet', 'total_readings', 'one_card_count', 'three_card_count', 'custom_count', 'streak', 'last_visit_day_key', 'first_seen_ts', 'last_seen_ts'];
+    const csvRows = [headers.join(',')];
+    
+    for (const record of records.results) {
+      const row = [
+        record.fid,
+        `"${record.wallet || ''}"`,
+        record.total_readings,
+        record.one_card_count,
+        record.three_card_count,
+        record.custom_count,
+        record.streak,
+        `"${record.last_visit_day_key || ''}"`,
+        record.first_seen_ts || '',
+        record.last_seen_ts || ''
+      ];
+      csvRows.push(row.join(','));
+    }
+    
+    const csv = csvRows.join('\n');
+    
+    return new Response(csv, {
+      status: 200,
+      headers: {
+        'Content-Type': 'text/csv',
+        'Content-Disposition': `attachment; filename="cbtaro_stats_${Date.now()}.csv"`,
+        ...handleCORS(request)
+      }
+    });
+    
+  } catch (error) {
+    console.error('Admin export CSV error:', error);
+    return new Response('Internal server error', {
+      status: 500,
+      headers: { 'Content-Type': 'text/plain', ...handleCORS(request) }
+    });
+  }
+}
+
+/**
  * Main handler
  */
 export default {
@@ -298,6 +419,14 @@ export default {
     
     if (url.pathname === '/api/stats' && request.method === 'GET') {
       return handleGetStats(request, env);
+    }
+    
+    if (url.pathname === '/api/admin/stats' && request.method === 'GET') {
+      return handleAdminStats(request, env);
+    }
+    
+    if (url.pathname === '/api/admin/export.csv' && request.method === 'GET') {
+      return handleAdminExportCSV(request, env);
     }
     
     return new Response('Not Found', { status: 404 });

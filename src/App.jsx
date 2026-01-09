@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import { buildShareText } from './utils/share';
 import { updateStreakOnVisit, getCurrentStreak } from './utils/streak';
-import { trackEvent, getUserStats } from './utils/analytics';
+import { trackEvent, getUserStats, isAdminWallet, getAdminStats, exportAdminCSV, ADMIN_WALLET } from './utils/analytics';
 
 // Safety check for ethers
 if (typeof ethers === 'undefined') {
@@ -595,6 +595,9 @@ function TaroApp() {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [dailyStreak, setDailyStreak] = useState(0);
   const [userStats, setUserStats] = useState(null);
+  const [showAdminStats, setShowAdminStats] = useState(false);
+  const [adminStats, setAdminStats] = useState([]);
+  const [isLoadingAdminStats, setIsLoadingAdminStats] = useState(false);
 
   // Wallet and payment states
   const [isWalletConnected, setIsWalletConnected] = useState(false);
@@ -1570,6 +1573,30 @@ Important: This must be a unique interpretation for this specific card spread. M
                     >
                       ☰
                     </button>
+                    {/* Admin button - only visible for admin wallet */}
+                    {isAdminWallet(walletAddress) && (
+                      <button
+                        className="admin-button"
+                        onClick={async () => {
+                          playButtonSound();
+                          setShowAdminStats(true);
+                          setIsLoadingAdminStats(true);
+                          try {
+                            const stats = await getAdminStats(walletAddress);
+                            setAdminStats(stats || []);
+                          } catch (error) {
+                            console.error('Failed to load admin stats:', error);
+                            alert('Failed to load admin stats. Make sure you are connected with the admin wallet.');
+                            setShowAdminStats(false);
+                          } finally {
+                            setIsLoadingAdminStats(false);
+                          }
+                        }}
+                        title="Admin Statistics"
+                      >
+                        📊
+                      </button>
+                    )}
                     {/* Daily streak badge */}
                     {dailyStreak > 0 && (
                       <div className="streak-badge">
@@ -1591,7 +1618,7 @@ Important: This must be a unique interpretation for this specific card spread. M
                 </div>
 
           {/* Export CSV button - only visible for admin wallet */}
-          {walletAddress === '0x35895ba5c7646A0599419F0339b9C4355b5FF736' && (
+          {isAdminWallet(walletAddress) && (
             <button
               className="export-csv-btn"
               onClick={() => {
@@ -1999,6 +2026,90 @@ Important: This must be a unique interpretation for this specific card spread. M
                   <button className="gallery-close-btn" onClick={() => { playButtonSound(); setShowGallery(false); setGameStage(previousGameStage); }}>
                     Close Gallery
                   </button>
+                </div>
+              </div>
+            )}
+
+            {/* Admin Stats modal */}
+            {showAdminStats && (
+              <div className="taro-reading-overlay" onClick={() => setShowAdminStats(false)}>
+                <div className="admin-stats-modal" onClick={(e) => e.stopPropagation()}>
+                  <div className="admin-stats-content">
+                    <h2>📊 Admin Statistics</h2>
+                    {isLoadingAdminStats ? (
+                      <div className="admin-stats-loading">Loading statistics...</div>
+                    ) : (
+                      <>
+                        <div className="admin-stats-actions">
+                          <button
+                            className="admin-export-btn"
+                            onClick={async () => {
+                              try {
+                                playButtonSound();
+                                const blob = await exportAdminCSV(walletAddress);
+                                const url = window.URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.href = url;
+                                a.download = `cbtaro_stats_${Date.now()}.csv`;
+                                document.body.appendChild(a);
+                                a.click();
+                                document.body.removeChild(a);
+                                window.URL.revokeObjectURL(url);
+                              } catch (error) {
+                                console.error('Failed to export CSV:', error);
+                                alert('Failed to export CSV. Make sure you are connected with the admin wallet.');
+                              }
+                            }}
+                          >
+                            Download CSV
+                          </button>
+                        </div>
+                        <div className="admin-stats-table-container">
+                          <table className="admin-stats-table">
+                            <thead>
+                              <tr>
+                                <th>FID</th>
+                                <th>Wallet</th>
+                                <th>Total Readings</th>
+                                <th>One Card</th>
+                                <th>Three Card</th>
+                                <th>Custom</th>
+                                <th>Streak</th>
+                                <th>Last Visit</th>
+                                <th>Last Seen</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {adminStats.length === 0 ? (
+                                <tr>
+                                  <td colSpan="9" style={{ textAlign: 'center', padding: '20px' }}>
+                                    No statistics available yet.
+                                  </td>
+                                </tr>
+                              ) : (
+                                adminStats.map((stat) => (
+                                  <tr key={stat.fid}>
+                                    <td>{stat.fid}</td>
+                                    <td className="wallet-cell">{stat.wallet ? shortAddress(stat.wallet) : '-'}</td>
+                                    <td>{stat.total_readings}</td>
+                                    <td>{stat.one_card_count}</td>
+                                    <td>{stat.three_card_count}</td>
+                                    <td>{stat.custom_count}</td>
+                                    <td>{stat.streak}</td>
+                                    <td>{stat.last_visit_day_key || '-'}</td>
+                                    <td>{stat.last_seen_ts ? new Date(stat.last_seen_ts).toLocaleString() : '-'}</td>
+                                  </tr>
+                                ))
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      </>
+                    )}
+                    <button className="admin-close-btn" onClick={() => { playButtonSound(); setShowAdminStats(false); }}>
+                      Close
+                    </button>
+                  </div>
                 </div>
               </div>
             )}

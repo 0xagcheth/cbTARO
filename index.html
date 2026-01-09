@@ -3121,6 +3121,27 @@ Important: This must be a unique interpretation for this specific card spread. M
       box-shadow: 0 6px 16px rgba(0, 123, 255, 0.4);
     }
 
+    .admin-button {
+      background: rgba(255, 165, 0, 0.8);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 12px 16px;
+      font-size: 28px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 8px rgba(255, 165, 0, 0.3);
+      min-width: 64px;
+      min-height: 64px;
+      margin-top: 4px;
+    }
+
+    .admin-button:hover {
+      background: rgba(255, 165, 0, 1);
+      transform: scale(1.05);
+      box-shadow: 0 6px 16px rgba(255, 165, 0, 0.4);
+    }
+
     .streak-badge {
       font-size: 12px;
       color: rgba(255, 255, 255, 0.75);
@@ -3738,6 +3759,160 @@ Important: This must be a unique interpretation for this specific card spread. M
       font-size: 12px;
       font-style: italic;
       line-height: 1.2;
+    }
+
+    /* Admin Stats Modal */
+    .admin-stats-modal {
+      background: rgba(0, 0, 0, 0.9);
+      backdrop-filter: blur(15px);
+      border-radius: 20px;
+      padding: 1.5rem;
+      width: 95vw;
+      max-width: 1400px;
+      max-height: 90vh;
+      overflow: hidden;
+      border: 2px solid rgba(255, 165, 0, 0.5);
+      box-shadow: 0 0 50px rgba(255, 165, 0, 0.4);
+      display: flex;
+      flex-direction: column;
+      z-index: 1500;
+    }
+
+    .admin-stats-content {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    .admin-stats-content h2 {
+      color: #fff;
+      text-align: center;
+      margin-bottom: 1rem;
+      font-size: 2rem;
+      text-shadow: 0 0 20px rgba(255, 165, 0, 0.5);
+      flex-shrink: 0;
+    }
+
+    .admin-stats-actions {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 1rem;
+      flex-shrink: 0;
+    }
+
+    .admin-export-btn {
+      background: linear-gradient(135deg, rgba(255, 165, 0, 0.8), rgba(255, 140, 0, 0.8));
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 12px 24px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 8px rgba(255, 165, 0, 0.3);
+    }
+
+    .admin-export-btn:hover {
+      background: linear-gradient(135deg, rgba(255, 165, 0, 1), rgba(255, 140, 0, 1));
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(255, 165, 0, 0.4);
+    }
+
+    .admin-stats-loading {
+      color: #fff;
+      text-align: center;
+      padding: 2rem;
+      font-size: 1.2rem;
+    }
+
+    .admin-stats-table-container {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: auto;
+      margin-bottom: 1rem;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 165, 0, 0.3);
+    }
+
+    .admin-stats-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: rgba(255, 255, 255, 0.05);
+      font-size: 14px;
+    }
+
+    .admin-stats-table thead {
+      background: rgba(255, 165, 0, 0.2);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .admin-stats-table th {
+      color: #fff;
+      padding: 12px 8px;
+      text-align: left;
+      font-weight: 600;
+      border-bottom: 2px solid rgba(255, 165, 0, 0.5);
+      white-space: nowrap;
+    }
+
+    .admin-stats-table td {
+      color: rgba(255, 255, 255, 0.9);
+      padding: 10px 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .admin-stats-table tbody tr:hover {
+      background: rgba(255, 165, 0, 0.1);
+    }
+
+    .admin-stats-table .wallet-cell {
+      font-family: monospace;
+      font-size: 12px;
+    }
+
+    .admin-close-btn {
+      display: block;
+      margin: 1rem auto 0;
+      background: linear-gradient(135deg,
+        rgba(255, 165, 0, 0.2),
+        rgba(255, 140, 0, 0.2),
+        rgba(255, 165, 0, 0.1)
+      );
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      padding: 12px 24px;
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow:
+        0 8px 32px rgba(255, 165, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+      flex-shrink: 0;
+    }
+
+    .admin-close-btn:hover {
+      background: linear-gradient(135deg,
+        rgba(255, 165, 0, 0.3),
+        rgba(255, 140, 0, 0.3),
+        rgba(255, 165, 0, 0.2)
+      );
+      backdrop-filter: blur(25px);
+      -webkit-backdrop-filter: blur(25px);
+      transform: translateY(-2px);
+      box-shadow:
+        0 12px 40px rgba(255, 165, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.05);
+      border-color: rgba(255, 255, 255, 0.3);
     }
 
     .gallery-close-btn {
