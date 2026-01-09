@@ -5,6 +5,89 @@ Mystical tarot readings powered by AI on the Base network, designed as a Farcast
 ## 🚀 Live Demo
 [https://0xagcheth.github.io/cbTARO/](https://0xagcheth.github.io/cbTARO/)
 
+## 📱 Farcaster Hosted Manifest Setup
+
+### Manifest File Location
+
+The Farcaster manifest file is located at:
+- **Repository**: `.well-known/farcaster.json`
+- **Deployed URL**: `https://0xagcheth.github.io/.well-known/farcaster.json`
+
+### Current Manifest Configuration
+
+The manifest file contains:
+- **Version**: 1
+- **Name**: cbTARO
+- **Home URL**: `https://0xagcheth.github.io/cbTARO/`
+- **Icon URL**: `https://0xagcheth.github.io/cbTARO/public/Assets/imagine/i.png`
+- **Splash Image URL**: `https://0xagcheth.github.io/cbTARO/public/Assets/imagine/cr.png`
+- **Splash Background Color**: `#0b1020`
+
+### Verifying Manifest Accessibility
+
+To verify that the manifest is accessible:
+
+1. **Open in browser**:
+   ```
+   https://0xagcheth.github.io/.well-known/farcaster.json
+   ```
+
+2. **Expected result**: You should see valid JSON (not 404 or HTML error page)
+
+3. **Check JSON validity**: The response should be a valid JSON object with the structure:
+   ```json
+   {
+     "version": "1",
+     "name": "cbTARO",
+     "iconUrl": "https://0xagcheth.github.io/cbTARO/public/Assets/imagine/i.png",
+     "homeUrl": "https://0xagcheth.github.io/cbTARO/",
+     "splashImageUrl": "https://0xagcheth.github.io/cbTARO/public/Assets/imagine/cr.png",
+     "splashBackgroundColor": "#0b1020"
+   }
+   ```
+
+### Farcaster Developers Portal Configuration
+
+When setting up the Mini App in Farcaster Developers → Hosted Manifests:
+
+1. **Domain**: `0xagcheth.github.io`
+   - This is the domain where the manifest file is hosted
+   - Farcaster will look for the manifest at `https://0xagcheth.github.io/.well-known/farcaster.json`
+
+2. **Home URL**: `https://0xagcheth.github.io/cbTARO/`
+   - This is the URL where your Mini App is hosted
+   - Should match the `homeUrl` in the manifest file
+
+3. **Webhook URL**: Leave empty (not required for basic setup)
+
+4. **App Name**: `cbTARO`
+   - Should match the `name` field in the manifest
+
+5. **Icon**: The icon will be automatically read from `iconUrl` in the manifest
+   - Current: `https://0xagcheth.github.io/cbTARO/public/Assets/imagine/i.png`
+
+6. **Splash Image**: The splash image will be automatically read from `splashImageUrl` in the manifest
+   - Current: `https://0xagcheth.github.io/cbTARO/public/Assets/imagine/cr.png`
+
+### Deployment Notes
+
+The manifest file is automatically deployed via GitHub Actions:
+- The main deployment workflow (`.github/workflows/deploy.yml`) handles both the app and `.well-known` deployment
+- The workflow creates a deployment structure with:
+  - `cbTARO/` - Your Mini App (from Vite build output)
+  - `.well-known/` - Farcaster manifest file (in root of GitHub Pages)
+- When you push changes to `main` branch, both the app and manifest are deployed together
+
+### Troubleshooting
+
+If you see "Invalid farcaster.json" error in Farcaster:
+
+1. **Check file accessibility**: Open `https://0xagcheth.github.io/.well-known/farcaster.json` in a browser
+2. **Verify JSON validity**: Use a JSON validator to ensure the file is valid JSON
+3. **Check URLs**: Ensure all URLs in the manifest are absolute and accessible
+4. **Check file encoding**: The file should be UTF-8 encoded
+5. **Verify deployment**: Check GitHub Actions logs to ensure the file was deployed successfully
+
 ## 📋 Farcaster Mini App Checklist
 
 ### ✅ Completed Setup

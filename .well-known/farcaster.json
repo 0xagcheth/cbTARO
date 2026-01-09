@@ -1,23 +1,8 @@
 {
-  "accountAssociation": {
-    "header": "<BASE64_JFS_HEADER_HERE>",
-    "payload": "<BASE64_PAYLOAD_HERE>",
-    "signature": "<BASE64_SIGNATURE_HERE>"
-  },
-  "miniapp": {
-    "version": "1",
-    "name": "cbTARO",
-    "homeUrl": "https://0xagcheth.github.io/cbTARO/",
-    "iconUrl": "https://0xagcheth.github.io/cbTARO/Assets/imagine/cr.png",
-    "splashImageUrl": "https://0xagcheth.github.io/cbTARO/Assets/imagine/cr.png",
-    "splashBackgroundColor": "#0b1020",
-    "subtitle": "Taro on Base",
-    "description": "Mystical taro reading inside Farcaster.",
-    "primaryCategory": "entertainment",
-    "tags": ["taro", "crypto", "base"],
-    "heroImageUrl": "https://0xagcheth.github.io/cbTARO/public/Assets/imagine/f.png",
-    "ogTitle": "cbTARO",
-    "ogDescription": "Reveal your reading",
-    "ogImageUrl": "https://0xagcheth.github.io/cbTARO/public/Assets/imagine/f.png"
-  }
+  "version": "1",
+  "name": "cbTARO",
+  "iconUrl": "https://0xagcheth.github.io/cbTARO/public/Assets/imagine/i.png",
+  "homeUrl": "https://0xagcheth.github.io/cbTARO/",
+  "splashImageUrl": "https://0xagcheth.github.io/cbTARO/public/Assets/imagine/cr.png",
+  "splashBackgroundColor": "#0b1020"
 }

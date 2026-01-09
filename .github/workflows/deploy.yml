@@ -26,9 +26,20 @@ jobs:
       - name: Build
         run: npm run build
       
+      - name: Prepare deployment structure
+        run: |
+          # Create deployment directory structure
+          mkdir -p deploy/cbTARO
+          mkdir -p deploy/.well-known
+          # Copy built app to cbTARO subdirectory
+          cp -r dist/* deploy/cbTARO/
+          # Copy .well-known to root
+          cp -r .well-known/* deploy/.well-known/
+      
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist
+          publish_dir: ./deploy
           cname: false
+          keep_files: false

@@ -74,9 +74,10 @@ export async function shareCast({ text, embeds = [] }) {
     // Fallback: navigator.share
     if (navigator.share) {
       try {
+        // finalText already contains APP_URL at the end (from buildShareText)
+        // navigator.share will use text field, url is optional and may duplicate
         await navigator.share({
-          text: finalText,
-          url: APP_URL
+          text: finalText
         });
         if (import.meta.env.DEV) {
           console.debug('Shared via navigator.share');
@@ -94,7 +95,8 @@ export async function shareCast({ text, embeds = [] }) {
     
     // Final fallback: clipboard
     try {
-      await navigator.clipboard.writeText(`${finalText}\n${APP_URL}`);
+      // finalText already contains APP_URL at the end (from buildShareText)
+      await navigator.clipboard.writeText(finalText);
       if (import.meta.env.DEV) {
         console.debug('Copied to clipboard');
       }
