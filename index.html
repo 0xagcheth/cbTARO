@@ -3094,6 +3094,13 @@ Important: This must be a unique interpretation for this specific card spread. M
       }
     }
 
+    .gallery-button-container {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
+    }
+
     .gallery-button {
       background: rgba(0, 123, 255, 0.8);
       color: #fff;
@@ -3112,6 +3119,33 @@ Important: This must be a unique interpretation for this specific card spread. M
       background: rgba(0, 123, 255, 1);
       transform: scale(1.05);
       box-shadow: 0 6px 16px rgba(0, 123, 255, 0.4);
+    }
+
+    .streak-badge {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.75);
+      opacity: 0.85;
+      text-align: right;
+      white-space: nowrap;
+      padding: 2px 4px;
+      font-weight: 500;
+    }
+
+    .stats-badge {
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.65);
+      opacity: 0.8;
+      text-align: right;
+      white-space: nowrap;
+      padding: 2px 4px;
+      font-weight: 400;
+      margin-top: 2px;
+    }
+
+    .stats-breakdown {
+      font-size: 10px;
+      opacity: 0.7;
+      margin-left: 4px;
     }
 
     .control-buttons {
@@ -4966,6 +5000,20 @@ Important: This must be a unique interpretation for this specific card spread. M
           font-size: 24px !important;
           min-width: 56px !important;
           min-height: 56px !important;
+        }
+
+        .streak-badge {
+          font-size: 11px !important;
+          opacity: 0.8 !important;
+        }
+
+        .stats-badge {
+          font-size: 10px !important;
+          opacity: 0.75 !important;
+        }
+
+        .stats-breakdown {
+          display: none !important;
         }
 
         .wallet-connect-btn {

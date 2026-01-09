@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
+import { buildShareText } from './utils/share';
+import { updateStreakOnVisit, getCurrentStreak } from './utils/streak';
+import { trackEvent, getUserStats } from './utils/analytics';
 
 // Safety check for ethers
 if (typeof ethers === 'undefined') {
@@ -590,6 +593,8 @@ function TaroApp() {
   const [showGallery, setShowGallery] = useState(false);
   const [previousGameStage, setPreviousGameStage] = useState("idle");
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [dailyStreak, setDailyStreak] = useState(0);
+  const [userStats, setUserStats] = useState(null);
 
   // Wallet and payment states
   const [isWalletConnected, setIsWalletConnected] = useState(false);
@@ -599,6 +604,35 @@ function TaroApp() {
   // Farcaster states
   const [fid, setFid] = useState(null);
   const [pfpUrl, setPfpUrl] = useState(null);
+
+  // Update daily streak on mount and track visit
+  useEffect(() => {
+    // Local streak (fallback)
+    const streak = updateStreakOnVisit();
+    setDailyStreak(streak);
+    
+    // Track visit and get server stats
+    (async () => {
+      try {
+        const stats = await trackEvent('visit', null, walletAddress);
+        if (stats) {
+          setDailyStreak(stats.streak || streak); // Use server streak if available
+          setUserStats(stats);
+        } else {
+          // Fallback: try to get stats without tracking
+          const existingStats = await getUserStats();
+          if (existingStats) {
+            setDailyStreak(existingStats.streak || streak);
+            setUserStats(existingStats);
+          }
+        }
+      } catch (error) {
+        if (import.meta.env.DEV) {
+          console.debug('Analytics error:', error);
+        }
+      }
+    })();
+  }, []);
 
   // Farcaster Mini App SDK initialization (backup check)
   useEffect(() => {
@@ -807,34 +841,28 @@ function TaroApp() {
 
       // Share functions
       const getShareText = (spreadType) => {
-        const APP_LINK = "https://0xagcheth.github.io/cbTARO/";
+        // Base text without app link (buildShareText will add it)
         if (spreadType === "ONE") {
           return `🃏 Daily Taro
 
 Today's card gave me a clear signal.
 Sometimes one card is all you need.
 
-🔮 Pulled with cbTARO on Base
-
-${APP_LINK}`;
+🔮 Pulled with cbTARO on Base`;
         } else if (spreadType === "THREE") {
           return `🔮 3-Card Taro Reading
 
 Past. Present. Direction.
 The pattern actually makes sense.
 
-✨ Pulled with cbTARO on Base
-
-${APP_LINK}`;
+✨ Pulled with cbTARO on Base`;
         } else if (spreadType === "CUSTOM") {
           return `🧿 Custom Taro Reading
 
 Asked a real question.
 Got a real answer.
 
-✨ cbTARO · Taro on Base
-
-${APP_LINK}`;
+✨ cbTARO · Taro on Base`;
         }
         return "";
       };
@@ -1031,59 +1059,90 @@ ${APP_LINK}`;
         return null;
       }
 
-      const handleShare = () => {
-        alert("SHARE CLICKED");
-        
-        const APP_URL = "https://0xagcheth.github.io/cbTARO/";
+      const handleShare = async () => {
+        try {
+          playButtonSound();
 
-        // 1. Берём ПЕРВУЮ карту
-        const card = cards && cards.length > 0 ? cards[0] : null;
+          const APP_URL = "https://0xagcheth.github.io/cbTARO/";
 
-        // 2. Абсолютный URL картинки
-        let cardImageUrl = "";
-        if (card?.imagePath) {
-          // Убираем "./" если есть
-          let cleanPath = card.imagePath.replace(/^\.\//, "");
-          // Добавляем "public/" если его нет (на GitHub Pages файлы доступны С /public/ в пути)
-          if (!cleanPath.startsWith("public/")) {
-            cleanPath = "public/" + cleanPath;
+          // 1. Берём ПЕРВУЮ карту
+          const card = cards && cards.length > 0 ? cards[0] : null;
+
+          // 2. Абсолютный URL картинки
+          let cardImageUrl = "";
+          if (card?.imagePath) {
+            // Убираем "./" если есть
+            let cleanPath = card.imagePath.replace(/^\.\//, "");
+            // Добавляем "public/" если его нет (на GitHub Pages файлы доступны С /public/ в пути)
+            if (!cleanPath.startsWith("public/")) {
+              cleanPath = "public/" + cleanPath;
+            }
+            cardImageUrl = APP_URL + encodeURI(cleanPath);
+          } else {
+            // Fallback на f.png если карты нет
+            cardImageUrl = APP_URL + encodeURI("public/Assets/imagine/f.png");
           }
-          cardImageUrl = APP_URL + encodeURI(cleanPath);
-          console.log("CARD imagePath =", card.imagePath);
-          console.log("CARD cleanPath =", cleanPath);
-          console.log("CARD imageUrl =", cardImageUrl);
-        } else {
-          // Fallback на f.png если карты нет
-          cardImageUrl = APP_URL + encodeURI("public/Assets/imagine/f.png");
-          console.log("NO CARD - using fallback f.png");
+
+          // 3. Формируем текст с гарантированной ссылкой в конце
+          let baseText = getShareText(selectedSpread);
+          if (card?.name) {
+            // Добавляем название карты в начало
+            baseText = `🔮 Reveal Your Reading\nCard: ${card.name}\n\n${baseText}`;
+          }
+          // Используем buildShareText для гарантированного добавления ссылки в конце
+          const text = buildShareText(baseText);
+          
+          // Debug logging
+          const isDev = process.env.NODE_ENV === 'development' || window.location.search.includes('debug=1');
+          if (isDev) {
+            console.debug('SHARE text:', text);
+            console.debug('SHARE card:', card);
+            console.debug('SHARE cardImageUrl:', cardImageUrl);
+          }
+
+          // 4. Build embeds array
+          const embeds = [APP_URL];
+          if (cardImageUrl) {
+            embeds.push(cardImageUrl);
+          }
+
+          // 5. Try SDK first, then fallback to compose URL
+          const sdk = window.farcaster || window.farcasterSDK || window.sdk || window.FarcasterSDK;
+          
+          if (sdk?.actions?.composeCast) {
+            // Use Farcaster Mini App SDK
+            if (isDev) {
+              console.debug('SHARE using SDK composeCast');
+            }
+            await sdk.actions.composeCast({
+              text: text,
+              embeds: embeds
+            });
+          } else {
+            // Fallback: Use Farcaster compose intent URL
+            if (isDev) {
+              console.debug('SHARE using fallback compose URL');
+            }
+            
+            const baseUrl = 'https://farcaster.xyz/~/compose';
+            const params = new URLSearchParams();
+            params.set("text", text);
+            
+            // Use embeds[] format (repeated parameters)
+            embeds.forEach((embed) => {
+              params.append("embeds[]", embed);
+            });
+            
+            const url = `${baseUrl}?${params.toString()}`;
+            if (isDev) {
+              console.debug('SHARE URL:', url);
+            }
+            window.open(url, '_blank', 'noopener,noreferrer');
+          }
+        } catch (error) {
+          console.error('Share failed:', error);
+          alert('Failed to share reading. Please try again.');
         }
-
-        // 3. Текст
-        let text = getShareText(selectedSpread);
-        if (card?.name) {
-          // Добавляем название карты в начало, ссылка уже в конце текста из getShareText()
-          text = `🔮 Reveal Your Reading\nCard: ${card.name}\n\n${text}`;
-        }
-        // Убеждаемся, что ссылка всегда в конце (если её нет, добавляем)
-        const APP_LINK = "https://0xagcheth.github.io/cbTARO/";
-        if (!text.includes(APP_LINK)) {
-          text = text + "\n\n" + APP_LINK;
-        }
-
-        // 4. Compose URL — БЕЗ SDK
-        const params = new URLSearchParams();
-        params.set("text", text);
-        params.append("embeds[]", APP_URL);
-        params.append("embeds[]", cardImageUrl); // ВСЕГДА добавляем картинку
-        
-        console.log("SHARE - cards =", cards);
-        console.log("SHARE - card =", card);
-        console.log("SHARE - cardImageUrl =", cardImageUrl);
-
-        const url = `https://farcaster.xyz/~/compose?${params.toString()}`;
-
-        console.log("SHARE URL:", url);
-        window.open(url, "_blank");
       };
 
       // 1. Click "Choose Your Spread"
@@ -1326,6 +1385,27 @@ Important: This must be a unique interpretation for this specific card spread. M
             // Save drawn cards to localStorage so they persist
             saveLastDraw(finalCards);
 
+            // Track reading event
+            const readingTypeMap = {
+              "ONE": "one",
+              "THREE": "three",
+              "CUSTOM": "custom"
+            };
+            const readingType = readingTypeMap[spread] || null;
+            trackEvent('reading', readingType, walletAddress).then((stats) => {
+              if (stats) {
+                setUserStats(stats);
+                // Update streak from server if available
+                if (stats.streak) {
+                  setDailyStreak(stats.streak);
+                }
+              }
+            }).catch((error) => {
+              if (import.meta.env.DEV) {
+                console.debug('Failed to track reading:', error);
+              }
+            });
+
             setRevealedIds([]);
             setActiveCard(null);
             setGameStage("spread");
@@ -1482,13 +1562,32 @@ Important: This must be a unique interpretation for this specific card spread. M
                   </button>
 
                   {/* Gallery button */}
-                  <button
-                    className="gallery-button"
-                    onClick={() => { playButtonSound(); setPreviousGameStage(gameStage); setShowGallery(true); }}
-                    title="View all taro cards"
-                  >
-                    ☰
-                  </button>
+                  <div className="gallery-button-container">
+                    <button
+                      className="gallery-button"
+                      onClick={() => { playButtonSound(); setPreviousGameStage(gameStage); setShowGallery(true); }}
+                      title="View all taro cards"
+                    >
+                      ☰
+                    </button>
+                    {/* Daily streak badge */}
+                    {dailyStreak > 0 && (
+                      <div className="streak-badge">
+                        Streak: {dailyStreak} 🔥
+                      </div>
+                    )}
+                    {/* Reading stats (dev mode or if stats available) */}
+                    {(import.meta.env.DEV || userStats) && userStats && userStats.total_readings > 0 && (
+                      <div className="stats-badge">
+                        Reads: {userStats.total_readings}
+                        {import.meta.env.DEV && (
+                          <span className="stats-breakdown">
+                            (1:{userStats.one_card_count} 3:{userStats.three_card_count} C:{userStats.custom_count})
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
           {/* Export CSV button - only visible for admin wallet */}

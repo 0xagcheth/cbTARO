@@ -95,6 +95,7 @@ Replace placeholders in `.well-known/farcaster.json`:
 - **Payments**: USDC ERC-20
 - **Hosting**: GitHub Pages
 - **Mini App**: Farcaster Frame SDK
+- **Analytics**: Cloudflare Worker + D1 Database
 
 ### 🚀 Deployment
 
@@ -103,6 +104,66 @@ Replace placeholders in `.well-known/farcaster.json`:
 3. Deploy to GitHub Pages
 4. Test manifest accessibility: `https://0xagcheth.github.io/.well-known/farcaster.json`
 5. Share link in Farcaster to test embed
+
+### 📊 Analytics Setup (Cloudflare Worker + D1)
+
+The app tracks user statistics by FID using Cloudflare Worker and D1 database.
+
+#### Backend Setup
+
+1. **Install Wrangler CLI**:
+   ```bash
+   npm install -g wrangler
+   ```
+
+2. **Login to Cloudflare**:
+   ```bash
+   wrangler login
+   ```
+
+3. **Create D1 Database**:
+   ```bash
+   cd worker
+   wrangler d1 create cbtaro-stats
+   ```
+   Copy the `database_id` from the output.
+
+4. **Update `wrangler.toml`**:
+   - Replace `YOUR_DATABASE_ID_HERE` with the actual database ID from step 3.
+
+5. **Apply Migrations**:
+   ```bash
+   wrangler d1 migrations apply cbtaro-stats
+   ```
+
+6. **Deploy Worker**:
+   ```bash
+   wrangler deploy
+   ```
+   Copy the worker URL (e.g., `https://cbtaro-analytics.your-subdomain.workers.dev`).
+
+#### Frontend Configuration
+
+1. **Set Environment Variable**:
+   Create `.env` file or set in build environment:
+   ```
+   VITE_ANALYTICS_API_BASE=https://cbtaro-analytics.your-subdomain.workers.dev
+   ```
+
+2. **Rebuild Frontend**:
+   ```bash
+   npm run build
+   ```
+
+#### Analytics Features
+
+- **User Statistics**: Tracks readings by FID (not device)
+- **Daily Streak**: Calculated with 01:00 UTC cutoff
+- **Reading Counts**: Total and per-type (one/three/custom)
+- **Timestamps**: First seen, last seen
+- **Wallet Tracking**: Optional wallet address association
+
+See `worker/README.md` for detailed API documentation.
 
 ### 🔧 Debug Mode
 
