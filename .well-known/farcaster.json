@@ -4,11 +4,8 @@
     "name": "cbTARO",
     "iconUrl": "https://0xagcheth.github.io/cbTARO/i.png",
     "homeUrl": "https://0xagcheth.github.io/cbTARO/",
-    "splashImageUrl": "https://0xagcheth.github.io/cbTARO/s.png",
     "splashBackgroundColor": "#0b1020",
-    "requiredChains": [
-      "eip155:8453"
-    ]
+    "requiredChains": ["eip155:8453"]
   },
   "accountAssociation": {
     "header": "eyJmaWQiOjIxMDUxLCJ0eXBlIjoiYXV0aCIsImtleSI6IjB4RTM2NmQ2QTNiRTliNkM5NDI4MjBENzUzNjcwY0ZjMDA5NjMwODdEMCJ9",
