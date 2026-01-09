@@ -15,13 +15,22 @@ The Farcaster manifest file is located at:
 
 ### Current Manifest Configuration
 
-The manifest file contains:
-- **Version**: 1
+The manifest file uses the `frame` structure with the following configuration:
 - **Name**: cbTARO
+- **Version**: 1
 - **Home URL**: `https://0xagcheth.github.io/cbTARO/`
 - **Icon URL**: `https://0xagcheth.github.io/cbTARO/i.png`
+- **Image URL**: `https://0xagcheth.github.io/cbTARO/f.png`
+- **Button Title**: "Open Taro"
 - **Splash Image URL**: `https://0xagcheth.github.io/cbTARO/s.png`
 - **Splash Background Color**: `#0b1020`
+- **Subtitle**: "Onchain TARO"
+- **Description**: "A mystical onchain taro experience. Draw cards, share results, and explore meanings directly inside Farcaster."
+- **Primary Category**: entertainment
+- **Tags**: taro, crypto, onchain, mystic
+- **Tagline**: "Draw your fate onchain"
+- **OG Title**: "cbTARO — Onchain Taro Reading"
+- **Account Association**: Configured with FID 21051
 
 ### Verifying Manifest Accessibility
 
@@ -34,15 +43,24 @@ To verify that the manifest is accessible:
 
 2. **Expected result**: You should see valid JSON (not 404 or HTML error page)
 
-3. **Check JSON validity**: The response should be a valid JSON object with the structure:
+3. **Check JSON validity**: The response should be a valid JSON object with the `frame` structure:
    ```json
    {
-     "version": "1",
-     "name": "cbTARO",
-     "iconUrl": "https://0xagcheth.github.io/cbTARO/i.png",
-     "homeUrl": "https://0xagcheth.github.io/cbTARO/",
-     "splashImageUrl": "https://0xagcheth.github.io/cbTARO/s.png",
-     "splashBackgroundColor": "#0b1020"
+     "frame": {
+       "name": "cbTARO",
+       "version": "1",
+       "iconUrl": "https://0xagcheth.github.io/cbTARO/i.png",
+       "homeUrl": "https://0xagcheth.github.io/cbTARO/",
+       "imageUrl": "https://0xagcheth.github.io/cbTARO/f.png",
+       "buttonTitle": "Open Taro",
+       "splashImageUrl": "https://0xagcheth.github.io/cbTARO/s.png",
+       "splashBackgroundColor": "#0b1020"
+     },
+     "accountAssociation": {
+       "header": "...",
+       "payload": "...",
+       "signature": "..."
+     }
    }
    ```
 
