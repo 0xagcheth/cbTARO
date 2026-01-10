@@ -1,11 +1,18 @@
 import { http, createConfig } from 'wagmi'
 import { base } from 'wagmi/chains'
+import { injected } from 'wagmi/connectors'
 import { farcasterMiniApp as miniAppConnector } from '@farcaster/miniapp-wagmi-connector'
 
 /**
  * Wagmi configuration for cbTARO
- * Uses Farcaster Mini App connector for wallet connection in Farcaster/Base apps
- * According to: https://miniapps.farcaster.xyz/docs/guides/wallets
+ * Multi-environment support:
+ * - Farcaster app: miniAppConnector() (primary)
+ * - Base app: miniAppConnector() (primary)
+ * - Browser: injected() (MetaMask/Coinbase fallback)
+ * 
+ * According to:
+ * - https://miniapps.farcaster.xyz/docs/guides/wallets
+ * - https://www.base.org/build/mini-apps
  */
 export const wagmiConfig = createConfig({
   chains: [base],
@@ -13,6 +20,7 @@ export const wagmiConfig = createConfig({
     [base.id]: http(),
   },
   connectors: [
-    miniAppConnector()
+    miniAppConnector(), // Primary: Farcaster & Base apps
+    injected() // Fallback: Browser (MetaMask, Coinbase Wallet, etc.)
   ],
 })

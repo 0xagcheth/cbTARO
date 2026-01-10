@@ -40,154 +40,154 @@ const ALL_CARDS = [
     name: "The Fool",
     keyword: "New Beginnings",
     description: "The Fool represents new beginnings, having faith in the future, being inexperienced, not knowing what to expect, having beginner's luck, improvisation and believing in the universe. This card encourages you to take a leap of faith and embrace the unknown with an open heart.",
-    imagePath: "./Assets/imagine/taro_cards/THE FOOL.png",
+    imagePath: "/Assets/imagine/taro_cards/THE FOOL.png",
   },
   {
     id: 1,
     name: "The Magician",
     keyword: "Manifestation",
     description: "The Magician represents manifestation, resourcefulness, power, inspired action, using one's talents and abilities to achieve goals, and the ability to make things happen. This card encourages you to use your skills and resources to create the life you want.",
-    imagePath: "./Assets/imagine/taro_cards/THE MAGICIAN.png",
+    imagePath: "/Assets/imagine/taro_cards/THE MAGICIAN.png",
   },
   {
     id: 2,
     name: "The High Priestess",
     keyword: "Intuition",
     description: "The High Priestess represents intuition, spiritual insight, divine feminine, the subconscious mind, and inner wisdom. This card encourages you to trust your intuition and listen to your inner voice for guidance.",
-    imagePath: "./Assets/imagine/taro_cards/THE HIGH PRIESTESS.png",
+    imagePath: "/Assets/imagine/taro_cards/THE HIGH PRIESTESS.png",
   },
   {
     id: 3,
     name: "The Empress",
     keyword: "Abundance",
     description: "The Empress represents abundance, nurturing, fertility, beauty, and the divine feminine. This card encourages you to embrace your feminine energy, be nurturing to yourself and others, and enjoy the abundance in your life.",
-    imagePath: "./Assets/imagine/taro_cards/THE EMPRESS.png",
+    imagePath: "/Assets/imagine/taro_cards/THE EMPRESS.png",
   },
   {
     id: 4,
     name: "The Emperor",
     keyword: "Authority",
     description: "The Emperor represents authority, structure, control, fatherhood, and stability. This card encourages you to take charge of your life, establish structure, and be a leader in your own life.",
-    imagePath: "./Assets/imagine/taro_cards/THE EMPEROR.png",
+    imagePath: "/Assets/imagine/taro_cards/THE EMPEROR.png",
   },
   {
     id: 5,
     name: "The Hierophant",
     keyword: "Spiritual Guidance",
     description: "The Hierophant represents spiritual guidance, religious beliefs, conformity, tradition, and spiritual wisdom. This card encourages you to seek spiritual guidance and follow your spiritual path.",
-    imagePath: "./Assets/imagine/taro_cards/THE HIEROPHANT.png",
+    imagePath: "/Assets/imagine/taro_cards/THE HIEROPHANT.png",
   },
   {
     id: 6,
     name: "The Lovers",
     keyword: "Love",
     description: "The Lovers represents love, harmony, relationships, values alignment, and choices. This card encourages you to make choices that align with your values and to embrace love in all its forms.",
-    imagePath: "./Assets/imagine/taro_cards/THE LOVERS.png",
+    imagePath: "/Assets/imagine/taro_cards/THE LOVERS.png",
   },
   {
     id: 7,
     name: "The Chariot",
     keyword: "Determination",
     description: "The Chariot represents determination, control, willpower, success, and direction. This card encourages you to take control of your life, stay focused on your goals, and move forward with determination.",
-    imagePath: "./Assets/imagine/taro_cards/THE CHARIOT.png",
+    imagePath: "/Assets/imagine/taro_cards/THE CHARIOT.png",
   },
   {
     id: 8,
     name: "Strength",
     keyword: "Inner Strength",
     description: "Strength represents inner strength, courage, compassion, and taming one's instincts. This card encourages you to tap into your inner strength and face challenges with courage and compassion.",
-    imagePath: "./Assets/imagine/taro_cards/STRENGTH.png",
+    imagePath: "/Assets/imagine/taro_cards/STRENGTH.png",
   },
   {
     id: 9,
     name: "The Hermit",
     keyword: "Soul Searching",
     description: "The Hermit represents soul searching, introspection, inner guidance, and solitude. This card encourages you to take time for introspection and listen to your inner guidance.",
-    imagePath: "./Assets/imagine/taro_cards/THE HERMIT.png",
+    imagePath: "/Assets/imagine/taro_cards/THE HERMIT.png",
   },
   {
     id: 10,
     name: "Wheel of Fortune",
     keyword: "Change",
     description: "Wheel of Fortune represents change, cycles, destiny, turning points, and life lessons. This card encourages you to embrace change and trust that everything happens for a reason.",
-    imagePath: "./Assets/imagine/taro_cards/WHEEL OF FORTUNE.png",
+    imagePath: "/Assets/imagine/taro_cards/WHEEL OF FORTUNE.png",
   },
   {
     id: 11,
     name: "Justice",
     keyword: "Justice",
     description: "Justice represents justice, fairness, truth, cause and effect, and law. This card encourages you to seek justice and fairness in all situations and to take responsibility for your actions.",
-    imagePath: "./Assets/imagine/taro_cards/JUSTICE.png",
+    imagePath: "/Assets/imagine/taro_cards/JUSTICE.png",
   },
   {
     id: 12,
     name: "The Hanged Man",
     keyword: "Suspension",
     description: "The Hanged Man represents suspension, restriction, letting go, and sacrifice. This card encourages you to let go of control and surrender to the flow of life.",
-    imagePath: "./Assets/imagine/taro_cards/THE HANGED MAN.png",
+    imagePath: "/Assets/imagine/taro_cards/THE HANGED MAN.png",
   },
   {
     id: 13,
     name: "Death",
     keyword: "Endings",
     description: "Death represents endings, beginnings, change, transformation, and transition. This card encourages you to embrace change and transformation as necessary parts of life.",
-    imagePath: "./Assets/imagine/taro_cards/DEATH.png",
+    imagePath: "/Assets/imagine/taro_cards/DEATH.png",
   },
   {
     id: 14,
     name: "Temperance",
     keyword: "Balance",
     description: "Temperance represents balance, moderation, patience, purpose, and meaning. This card encourages you to find balance in your life and to have patience in achieving your goals.",
-    imagePath: "./Assets/imagine/taro_cards/TEMPERANCE.png",
+    imagePath: "/Assets/imagine/taro_cards/TEMPERANCE.png",
   },
   {
     id: 15,
     name: "The Devil",
     keyword: "Bondage",
     description: "The Devil represents bondage, addiction, sexuality, materialism, and playfulness. This card encourages you to examine what is holding you back and to break free from unhealthy attachments.",
-    imagePath: "./Assets/imagine/taro_cards/THE DEVIL.png",
+    imagePath: "/Assets/imagine/taro_cards/THE DEVIL.png",
   },
   {
     id: 16,
     name: "The Tower",
     keyword: "Sudden Change",
     description: "The Tower represents sudden change, upheaval, chaos, revelation, and awakening. This card encourages you to embrace change even when it's difficult and to see it as an opportunity for growth.",
-    imagePath: "./Assets/imagine/taro_cards/THE TOWER.png",
+    imagePath: "/Assets/imagine/taro_cards/THE TOWER.png",
   },
   {
     id: 17,
     name: "The Star",
     keyword: "Hope",
     description: "The Star represents hope, faith, purpose, renewal, and spirituality. This card encourages you to have faith in the universe and to follow your dreams with hope and optimism.",
-    imagePath: "./Assets/imagine/taro_cards/THE STAR.png",
+    imagePath: "/Assets/imagine/taro_cards/THE STAR.png",
   },
   {
     id: 18,
     name: "The Moon",
     keyword: "Illusion",
     description: "The Moon represents illusion, fear, anxiety, subconscious, and intuition. This card encourages you to trust your intuition and to face your fears rather than letting them control you.",
-    imagePath: "./Assets/imagine/taro_cards/THE MOON.png",
+    imagePath: "/Assets/imagine/taro_cards/THE MOON.png",
   },
   {
     id: 19,
     name: "The Sun",
     keyword: "Positivity",
     description: "The Sun represents positivity, fun, warmth, success, and vitality. This card encourages you to embrace positivity and to celebrate your successes and the good things in your life.",
-    imagePath: "./Assets/imagine/taro_cards/THE SUN.png",
+    imagePath: "/Assets/imagine/taro_cards/THE SUN.png",
   },
   {
     id: 20,
     name: "Judgement",
     keyword: "Judgement",
     description: "Judgement represents judgement, rebirth, inner calling, and absolution. This card encourages you to listen to your inner calling and to forgive yourself and others.",
-    imagePath: "./Assets/imagine/taro_cards/JUDGEMENT.png",
+    imagePath: "/Assets/imagine/taro_cards/JUDGEMENT.png",
   },
   {
     id: 21,
     name: "The World",
     keyword: "Completion",
     description: "The World represents completion, accomplishment, travel, and fulfillment. This card encourages you to celebrate your accomplishments and to embrace the fulfillment that comes from completing your goals.",
-    imagePath: "./Assets/imagine/taro_cards/THE WORLD.png",
+    imagePath: "/Assets/imagine/taro_cards/THE WORLD.png",
   },
   // Wands (Fire)
   {
@@ -195,98 +195,98 @@ const ALL_CARDS = [
     name: "Ace of Wands",
     keyword: "Inspiration",
     description: "The Ace of Wands represents inspiration, new opportunities, growth, and potential. This card encourages you to embrace new opportunities and to have faith in your ability to grow and succeed.",
-    imagePath: "./Assets/imagine/taro_cards/ACE OF WANDS.png",
+    imagePath: "/Assets/imagine/taro_cards/ACE OF WANDS.png",
   },
   {
     id: 23,
     name: "Two of Wands",
     keyword: "Planning",
     description: "The Two of Wands represents planning, progress, discovery, and making decisions. This card encourages you to plan for the future and to make decisions that will help you progress toward your goals.",
-    imagePath: "./Assets/imagine/taro_cards/TWO OF WANDS.png",
+    imagePath: "/Assets/imagine/taro_cards/TWO OF WANDS.png",
   },
   {
     id: 24,
     name: "Three of Wands",
     keyword: "Expansion",
     description: "The Three of Wands represents expansion, foresight, overseas opportunities, and the first stage of fulfillment. This card encourages you to expand your horizons and to look for opportunities beyond your current situation.",
-    imagePath: "./Assets/imagine/taro_cards/THREE OF WANDS.png",
+    imagePath: "/Assets/imagine/taro_cards/THREE OF WANDS.png",
   },
   {
     id: 25,
     name: "Four of Wands",
     keyword: "Celebration",
     description: "The Four of Wands represents celebration, harmony, home, and community. This card encourages you to celebrate your achievements and to enjoy the harmony and community in your life.",
-    imagePath: "./Assets/imagine/taro_cards/FOUR OF WANDS.png",
+    imagePath: "/Assets/imagine/taro_cards/FOUR OF WANDS.png",
   },
   {
     id: 26,
     name: "Five of Wands",
     keyword: "Conflict",
     description: "The Five of Wands represents conflict, disagreements, competition, and tension. This card encourages you to face conflicts head-on and to use them as opportunities for growth and learning.",
-    imagePath: "./Assets/imagine/taro_cards/FIVE OF WANDS.png",
+    imagePath: "/Assets/imagine/taro_cards/FIVE OF WANDS.png",
   },
   {
     id: 27,
     name: "Six of Wands",
     keyword: "Success",
     description: "The Six of Wands represents success, public recognition, progress, and self-confidence. This card encourages you to celebrate your successes and to have confidence in your abilities.",
-    imagePath: "./Assets/imagine/taro_cards/SIX OF WANDS.png",
+    imagePath: "/Assets/imagine/taro_cards/SIX OF WANDS.png",
   },
   {
     id: 28,
     name: "Seven of Wands",
     keyword: "Challenge",
     description: "The Seven of Wands represents challenge, competition, perseverance, and defense. This card encourages you to stand your ground and to persevere through challenges and competition.",
-    imagePath: "./Assets/imagine/taro_cards/SEVEN OF WANDS.png",
+    imagePath: "/Assets/imagine/taro_cards/SEVEN OF WANDS.png",
   },
   {
     id: 29,
     name: "Eight of Wands",
     keyword: "Speed",
     description: "The Eight of Wands represents speed, action, alignment, and air travel. This card encourages you to take action quickly and to align yourself with the flow of the universe.",
-    imagePath: "./Assets/imagine/taro_cards/EIGHT OF WANDS.png",
+    imagePath: "/Assets/imagine/taro_cards/EIGHT OF WANDS.png",
   },
   {
     id: 30,
     name: "Nine of Wands",
     keyword: "Resilience",
     description: "The Nine of Wands represents resilience, courage, persistence, and test of faith. This card encourages you to be resilient and to have faith in your ability to overcome obstacles.",
-    imagePath: "./Assets/imagine/taro_cards/NINE OF WANDS.png",
+    imagePath: "/Assets/imagine/taro_cards/NINE OF WANDS.png",
   },
   {
     id: 31,
     name: "Ten of Wands",
     keyword: "Burden",
     description: "The Ten of Wands represents burden, responsibility, hard work, and accomplishment. This card encourages you to take responsibility for your burdens and to work hard to achieve your goals.",
-    imagePath: "./Assets/imagine/taro_cards/TEN OF WANDS.png",
+    imagePath: "/Assets/imagine/taro_cards/TEN OF WANDS.png",
   },
   {
     id: 32,
     name: "Page of Wands",
     keyword: "Inspiration",
     description: "The Page of Wands represents inspiration, ideas, discovery, and limitless potential. This card encourages you to embrace new ideas and to explore your limitless potential.",
-    imagePath: "./Assets/imagine/taro_cards/PAGE OF WANDS.png",
+    imagePath: "/Assets/imagine/taro_cards/PAGE OF WANDS.png",
   },
   {
     id: 33,
     name: "Knight of Wands",
     keyword: "Energy",
     description: "The Knight of Wands represents energy, passion, inspired action, and adventure. This card encourages you to take inspired action and to embrace adventure and passion in your life.",
-    imagePath: "./Assets/imagine/taro_cards/KNIGHT OF WANDS.png",
+    imagePath: "/Assets/imagine/taro_cards/KNIGHT OF WANDS.png",
   },
   {
     id: 34,
     name: "Queen of Wands",
     keyword: "Courage",
     description: "The Queen of Wands represents courage, confidence, independence, and social butterfly. This card encourages you to be confident and independent, and to embrace your social nature.",
-    imagePath: "./Assets/imagine/taro_cards/QUEEN OF WANDS.png",
+    imagePath: "/Assets/imagine/taro_cards/QUEEN OF WANDS.png",
   },
   {
     id: 35,
     name: "King of Wands",
     keyword: "Leadership",
     description: "The King of Wands represents leadership, vision, entrepreneur, and honoring commitments. This card encourages you to be a leader and to honor your commitments and vision.",
-    imagePath: "./Assets/imagine/taro_cards/KING OF WANDS.png",
+    imagePath: "/Assets/imagine/taro_cards/KING OF WANDS.png",
   },
   // Cups (Water)
   {
@@ -294,98 +294,98 @@ const ALL_CARDS = [
     name: "Ace of Cups",
     keyword: "Love",
     description: "The Ace of Cups represents love, new relationships, compassion, and creativity. This card encourages you to open your heart to love and to embrace compassion and creativity in your life.",
-    imagePath: "./Assets/imagine/taro_cards/ACE OF CUPS.png",
+    imagePath: "/Assets/imagine/taro_cards/ACE OF CUPS.png",
   },
   {
     id: 37,
     name: "Two of Cups",
     keyword: "Unity",
     description: "The Two of Cups represents unity, partnership, mutual attraction, and love. This card encourages you to seek unity and partnership in your relationships and to embrace mutual attraction and love.",
-    imagePath: "./Assets/imagine/taro_cards/TWO OF CUPS.png",
+    imagePath: "/Assets/imagine/taro_cards/TWO OF CUPS.png",
   },
   {
     id: 38,
     name: "Three of Cups",
     keyword: "Celebration",
     description: "The Three of Cups represents celebration, friendship, creativity, and community. This card encourages you to celebrate with friends and to embrace creativity and community in your life.",
-    imagePath: "./Assets/imagine/taro_cards/THREE OF CUPS.png",
+    imagePath: "/Assets/imagine/taro_cards/THREE OF CUPS.png",
   },
   {
     id: 39,
     name: "Four of Cups",
     keyword: "Meditation",
     description: "The Four of Cups represents meditation, contemplation, apathy, and reevaluation. This card encourages you to take time for meditation and contemplation, and to reevaluate your situation.",
-    imagePath: "./Assets/imagine/taro_cards/FOUR OF CUPS.png",
+    imagePath: "/Assets/imagine/taro_cards/FOUR OF CUPS.png",
   },
   {
     id: 40,
     name: "Five of Cups",
     keyword: "Regret",
     description: "The Five of Cups represents regret, failure, disappointment, and pessimism. This card encourages you to learn from your disappointments and to focus on what you still have rather than what you've lost.",
-    imagePath: "./Assets/imagine/taro_cards/FIVE OF CUPS.png",
+    imagePath: "/Assets/imagine/taro_cards/FIVE OF CUPS.png",
   },
   {
     id: 41,
     name: "Six of Cups",
     keyword: "Revisiting",
     description: "The Six of Cups represents revisiting the past, childhood memories, innocence, and joy. This card encourages you to revisit happy memories from your past and to embrace innocence and joy in your life.",
-    imagePath: "./Assets/imagine/taro_cards/SIX OF CUPS.png",
+    imagePath: "/Assets/imagine/taro_cards/SIX OF CUPS.png",
   },
   {
     id: 42,
     name: "Seven of Cups",
     keyword: "Opportunity",
     description: "The Seven of Cups represents opportunity, choices, wishful thinking, and illusion. This card encourages you to make wise choices and to distinguish between real opportunities and illusions.",
-    imagePath: "./Assets/imagine/taro_cards/SEVEN OF CUPS.png",
+    imagePath: "/Assets/imagine/taro_cards/SEVEN OF CUPS.png",
   },
   {
     id: 43,
     name: "Eight of Cups",
     keyword: "Disappointment",
     description: "The Eight of Cups represents disappointment, abandonment, withdrawal, and escapism. This card encourages you to move on from disappointing situations and to seek fulfillment elsewhere.",
-    imagePath: "./Assets/imagine/taro_cards/EIGHT OF CUPS.png",
+    imagePath: "/Assets/imagine/taro_cards/EIGHT OF CUPS.png",
   },
   {
     id: 44,
     name: "Nine of Cups",
     keyword: "Contentment",
     description: "The Nine of Cups represents contentment, satisfaction, gratitude, and wish come true. This card encourages you to be grateful for what you have and to enjoy the satisfaction of having your wishes fulfilled.",
-    imagePath: "./Assets/imagine/taro_cards/NINE OF CUPS.png",
+    imagePath: "/Assets/imagine/taro_cards/NINE OF CUPS.png",
   },
   {
     id: 45,
     name: "Ten of Cups",
     keyword: "Divine Love",
     description: "The Ten of Cups represents divine love, blissful relationships, harmony, and alignment. This card encourages you to seek divine love and harmony in your relationships and life.",
-    imagePath: "./Assets/imagine/taro_cards/TEN OF CUPS.png",
+    imagePath: "/Assets/imagine/taro_cards/TEN OF CUPS.png",
   },
   {
     id: 46,
     name: "Page of Cups",
     keyword: "Creative Opportunities",
     description: "The Page of Cups represents creative opportunities, intuitive messages, and curiosity. This card encourages you to be open to creative opportunities and to listen to your intuition.",
-    imagePath: "./Assets/imagine/taro_cards/PAGE OF CUPS.png",
+    imagePath: "/Assets/imagine/taro_cards/PAGE OF CUPS.png",
   },
   {
     id: 47,
     name: "Knight of Cups",
     keyword: "Creativity",
     description: "The Knight of Cups represents creativity, romance, bringing or receiving a message, and taking action. This card encourages you to be creative and to take action on your romantic and creative impulses.",
-    imagePath: "./Assets/imagine/taro_cards/KNIGHT OF CUPS.png",
+    imagePath: "/Assets/imagine/taro_cards/KNIGHT OF CUPS.png",
   },
   {
     id: 48,
     name: "Queen of Cups",
     keyword: "Compassionate",
     description: "The Queen of Cups represents compassionate, caring, emotionally stable, intuitive, and in flow. This card encourages you to be compassionate and caring, and to trust your intuition.",
-    imagePath: "./Assets/imagine/taro_cards/QUEEN OF CUPS.png",
+    imagePath: "/Assets/imagine/taro_cards/QUEEN OF CUPS.png",
   },
   {
     id: 49,
     name: "King of Cups",
     keyword: "Emotionally Balanced",
     description: "The King of Cups represents emotionally balanced, compassionate, diplomatic, and wise. This card encourages you to be emotionally balanced and to use your wisdom and compassion in your dealings with others.",
-    imagePath: "./Assets/imagine/taro_cards/KING OF CUPS.png",
+    imagePath: "/Assets/imagine/taro_cards/KING OF CUPS.png",
   },
   // Swords (Air)
   {
@@ -393,98 +393,98 @@ const ALL_CARDS = [
     name: "Ace of Swords",
     keyword: "Breakthroughs",
     description: "The Ace of Swords represents breakthroughs, new ideas, mental clarity, and success. This card encourages you to embrace new ideas and to seek mental clarity and success.",
-    imagePath: "./Assets/imagine/taro_cards/ACE OF SWORDS.png",
+    imagePath: "/Assets/imagine/taro_cards/ACE OF SWORDS.png",
   },
   {
     id: 51,
     name: "Two of Swords",
     keyword: "Difficult Decisions",
     description: "The Two of Swords represents difficult decisions, weighing options, inner conflict, and stalemate. This card encourages you to make difficult decisions and to resolve inner conflicts.",
-    imagePath: "./Assets/imagine/taro_cards/TWO OF SWORDS.png",
+    imagePath: "/Assets/imagine/taro_cards/TWO OF SWORDS.png",
   },
   {
     id: 52,
     name: "Three of Swords",
     keyword: "Heartbreak",
     description: "The Three of Swords represents heartbreak, emotional pain, sorrow, grief, and hurt. This card encourages you to acknowledge your pain and to work through your grief to heal.",
-    imagePath: "./Assets/imagine/taro_cards/THREE OF SWARDS.png",
+    imagePath: "/Assets/imagine/taro_cards/THREE OF SWARDS.png",
   },
   {
     id: 53,
     name: "Four of Swords",
     keyword: "Rest",
     description: "The Four of Swords represents rest, relaxation, meditation, and contemplation. This card encourages you to take time for rest and relaxation to recharge your energy.",
-    imagePath: "./Assets/imagine/taro_cards/FOUR OF SWORDS.png",
+    imagePath: "/Assets/imagine/taro_cards/FOUR OF SWORDS.png",
   },
   {
     id: 54,
     name: "Five of Swords",
     keyword: "Conflict",
     description: "The Five of Swords represents conflict, disagreements, competition, defeat, and winning at all costs. This card encourages you to consider the cost of winning and to seek peaceful resolutions to conflicts.",
-    imagePath: "./Assets/imagine/taro_cards/FIVE OF SWARDS.png",
+    imagePath: "/Assets/imagine/taro_cards/FIVE OF SWARDS.png",
   },
   {
     id: 55,
     name: "Six of Swords",
     keyword: "Transition",
     description: "The Six of Swords represents transition, change, rite of passage, and releasing baggage. This card encourages you to embrace change and to release baggage that is holding you back.",
-    imagePath: "./Assets/imagine/taro_cards/SIX OF SWORDS.png",
+    imagePath: "/Assets/imagine/taro_cards/SIX OF SWORDS.png",
   },
   {
     id: 56,
     name: "Seven of Swords",
     keyword: "Betrayal",
     description: "The Seven of Swords represents betrayal, deception, getting away with something, and acting strategically. This card encourages you to be aware of deception and to act strategically in your dealings.",
-    imagePath: "./Assets/imagine/taro_cards/SEVEN OF SWORDS.png",
+    imagePath: "/Assets/imagine/taro_cards/SEVEN OF SWORDS.png",
   },
   {
     id: 57,
     name: "Eight of Swords",
     keyword: "Negative Thoughts",
     description: "The Eight of Swords represents negative thoughts, self-imposed restriction, inner critic, and releasing negative thoughts. This card encourages you to release negative thoughts and to free yourself from self-imposed restrictions.",
-    imagePath: "./Assets/imagine/taro_cards/EIGHT OF SWORDS.png",
+    imagePath: "/Assets/imagine/taro_cards/EIGHT OF SWORDS.png",
   },
   {
     id: 58,
     name: "Nine of Swords",
     keyword: "Anxiety",
     description: "The Nine of Swords represents anxiety, worry, fear, depression, and nightmares. This card encourages you to face your fears and to seek help if you're struggling with anxiety or depression.",
-    imagePath: "./Assets/imagine/taro_cards/NINE OF SWORDS.png",
+    imagePath: "/Assets/imagine/taro_cards/NINE OF SWORDS.png",
   },
   {
     id: 59,
     name: "Ten of Swords",
     keyword: "Painful Endings",
     description: "The Ten of Swords represents painful endings, deep wounds, betrayal, and loss. This card encourages you to accept painful endings and to use them as opportunities for new beginnings.",
-    imagePath: "./Assets/imagine/taro_cards/TEN OF SWORDS.png",
+    imagePath: "/Assets/imagine/taro_cards/TEN OF SWORDS.png",
   },
   {
     id: 60,
     name: "Page of Swords",
     keyword: "New Ideas",
     description: "The Page of Swords represents new ideas, curiosity, thirst for knowledge, and new ways of communicating. This card encourages you to embrace new ideas and to communicate in new ways.",
-    imagePath: "./Assets/imagine/taro_cards/PAGE OF SWORDS.png",
+    imagePath: "/Assets/imagine/taro_cards/PAGE OF SWORDS.png",
   },
   {
     id: 61,
     name: "Knight of Swords",
     keyword: "Ambitious",
     description: "The Knight of Swords represents ambitious, action-oriented, driven to succeed, and fast-thinking. This card encourages you to be ambitious and action-oriented in pursuing your goals.",
-    imagePath: "./Assets/imagine/taro_cards/KNIGHT OF SWORDS.png",
+    imagePath: "/Assets/imagine/taro_cards/KNIGHT OF SWORDS.png",
   },
   {
     id: 62,
     name: "Queen of Swords",
     keyword: "Independent",
     description: "The Queen of Swords represents independent, unbiased judgement, clear boundaries, and direct communication. This card encourages you to be independent and to communicate clearly and directly.",
-    imagePath: "./Assets/imagine/taro_cards/QUEEN OF SWORDS.png",
+    imagePath: "/Assets/imagine/taro_cards/QUEEN OF SWORDS.png",
   },
   {
     id: 63,
     name: "King of Swords",
     keyword: "Mental Clarity",
     description: "The King of Swords represents mental clarity, intellectual power, authority, and truth. This card encourages you to seek mental clarity and to use your intellectual power wisely.",
-    imagePath: "./Assets/imagine/taro_cards/KING OF SWORDS.png",
+    imagePath: "/Assets/imagine/taro_cards/KING OF SWORDS.png",
   },
   // Pentacles (Earth)
   {
@@ -492,98 +492,98 @@ const ALL_CARDS = [
     name: "Ace of Pentacles",
     keyword: "A New Financial or Career Opportunity",
     description: "The Ace of Pentacles represents a new financial or career opportunity, manifestation, abundance, and prosperity. This card encourages you to embrace new opportunities for financial and career growth.",
-    imagePath: "./Assets/imagine/taro_cards/ACE OF PENTACLES.png",
+    imagePath: "/Assets/imagine/taro_cards/ACE OF PENTACLES.png",
   },
   {
     id: 65,
     name: "Two of Pentacles",
     keyword: "Multiple Priorities",
     description: "The Two of Pentacles represents multiple priorities, time management, prioritisation, and organisation. This card encourages you to manage your time and priorities effectively.",
-    imagePath: "./Assets/imagine/taro_cards/TWO OF PENTACLES.png",
+    imagePath: "/Assets/imagine/taro_cards/TWO OF PENTACLES.png",
   },
   {
     id: 66,
     name: "Three of Pentacles",
     keyword: "Collaboration",
     description: "The Three of Pentacles represents collaboration, learning, implementation, and teamwork. This card encourages you to collaborate with others and to learn from teamwork.",
-    imagePath: "./Assets/imagine/taro_cards/THREE OF PENTACLES.png",
+    imagePath: "/Assets/imagine/taro_cards/THREE OF PENTACLES.png",
   },
   {
     id: 67,
     name: "Four of Pentacles",
     keyword: "Saving Money",
     description: "The Four of Pentacles represents saving money, security, conservatism, and scarcity. This card encourages you to save money and to build financial security.",
-    imagePath: "./Assets/imagine/taro_cards/FOUR OF PENTACLES.png",
+    imagePath: "/Assets/imagine/taro_cards/FOUR OF PENTACLES.png",
   },
   {
     id: 68,
     name: "Five of Pentacles",
     keyword: "Financial Loss",
     description: "The Five of Pentacles represents financial loss, poverty, lack mindset, isolation, and loneliness. This card encourages you to change your mindset from lack to abundance and to seek support when needed.",
-    imagePath: "./Assets/imagine/taro_cards/FIVE OF PENTACLES.png",
+    imagePath: "/Assets/imagine/taro_cards/FIVE OF PENTACLES.png",
   },
   {
     id: 69,
     name: "Six of Pentacles",
     keyword: "Giving",
     description: "The Six of Pentacles represents giving, receiving, sharing wealth, generosity, and charity. This card encourages you to give generously and to share your wealth with others.",
-    imagePath: "./Assets/imagine/taro_cards/SIX OF PENTACLES.png",
+    imagePath: "/Assets/imagine/taro_cards/SIX OF PENTACLES.png",
   },
   {
     id: 70,
     name: "Seven of Pentacles",
     keyword: "Long-Term View",
     description: "The Seven of Pentacles represents long-term view, sustainable results, perseverance, and investment. This card encourages you to take a long-term view and to persevere in your investments and efforts.",
-    imagePath: "./Assets/imagine/taro_cards/SEVEN OF PENTACLES.png",
+    imagePath: "/Assets/imagine/taro_cards/SEVEN OF PENTACLES.png",
   },
   {
     id: 71,
     name: "Eight of Pentacles",
     keyword: "Apprenticeship",
     description: "The Eight of Pentacles represents apprenticeship, repetitive tasks, mastery, skill development, and dedication. This card encourages you to dedicate yourself to mastering your skills.",
-    imagePath: "./Assets/imagine/taro_cards/EIGHT OF PENTACLES.png",
+    imagePath: "/Assets/imagine/taro_cards/EIGHT OF PENTACLES.png",
   },
   {
     id: 72,
     name: "Nine of Pentacles",
     keyword: "Abundance",
     description: "The Nine of Pentacles represents abundance, luxury, self-sufficiency, and financial independence. This card encourages you to enjoy abundance and to build financial independence.",
-    imagePath: "./Assets/imagine/taro_cards/NINE OF PENTACLES.png",
+    imagePath: "/Assets/imagine/taro_cards/NINE OF PENTACLES.png",
   },
   {
     id: 73,
     name: "Ten of Pentacles",
     keyword: "Wealth",
     description: "The Ten of Pentacles represents wealth, financial security, family, long-term success, and contribution. This card encourages you to build wealth and to contribute to your family's long-term success.",
-    imagePath: "./Assets/imagine/taro_cards/TEN OF PENTACLES.png",
+    imagePath: "/Assets/imagine/taro_cards/TEN OF PENTACLES.png",
   },
   {
     id: 74,
     name: "Page of Pentacles",
     keyword: "Learning",
     description: "The Page of Pentacles represents learning, studying, apprenticeship, and new ideas. This card encourages you to embrace learning and to study new ideas and concepts.",
-    imagePath: "./Assets/imagine/taro_cards/PAGE OF PENTACLES.png",
+    imagePath: "/Assets/imagine/taro_cards/PAGE OF PENTACLES.png",
   },
   {
     id: 75,
     name: "Knight of Pentacles",
     keyword: "Hard Work",
     description: "The Knight of Pentacles represents hard work, productivity, routine, and conservatism. This card encourages you to work hard and to be productive in your routine tasks.",
-    imagePath: "./Assets/imagine/taro_cards/KNIGHT OF PENTACLES.png",
+    imagePath: "/Assets/imagine/taro_cards/KNIGHT OF PENTACLES.png",
   },
   {
     id: 76,
     name: "Queen of Pentacles",
     keyword: "Nurturing",
     description: "The Queen of Pentacles represents nurturing, practical, providing financially and emotionally, and being down-to-earth. This card encourages you to nurture yourself and others, both financially and emotionally.",
-    imagePath: "./Assets/imagine/taro_cards/QUEEN OF PENTACLES.png",
+    imagePath: "/Assets/imagine/taro_cards/QUEEN OF PENTACLES.png",
   },
   {
     id: 77,
     name: "King of Pentacles",
     keyword: "Financial Success",
     description: "The King of Pentacles represents financial success, business acumen, security, and discipline. This card encourages you to build financial success through business acumen and discipline.",
-    imagePath: "./Assets/imagine/taro_cards/KING OF PENTACLES.png",
+    imagePath: "/Assets/imagine/taro_cards/KING OF PENTACLES.png",
   },
 ];
 
@@ -733,13 +733,17 @@ function TaroApp() {
   // Initialize Mini App and get user context
   useEffect(() => {
     async function initializeApp() {
+      const isFarcasterApp = /farcaster/i.test(navigator.userAgent);
+      const isBaseApp = /base/i.test(navigator.userAgent) || window.location.hostname.includes('base.org');
+      
       console.log('🔍 [DIAGNOSTIC] App initialized:', {
         location: window.location.href,
         userAgent: navigator.userAgent,
+        environment: isFarcasterApp ? 'Farcaster' : isBaseApp ? 'Base' : 'Browser',
         isConnected,
         address: address || 'not connected',
         chainId: currentChainId || 'unknown',
-        connectors: connectors.length,
+        connectors: connectors.map(c => c.name),
         inMiniApp: isInMiniApp
       });
 
@@ -921,7 +925,7 @@ function TaroApp() {
         
         // Audio feedback
         if (!soundEnabled) return;
-        const audio = new Audio('./Assets/audio/tab.mp3');
+        const audio = new Audio('/Assets/audio/tab.mp3');
         audio.volume = 0.3; // Set volume to 30%
         audio.play().catch(e => console.log('Audio play failed:', e));
       };
@@ -929,7 +933,7 @@ function TaroApp() {
       // Function to play spread animation sound
       const playSpreadSound = () => {
         if (!soundEnabled) return;
-        const audio = new Audio('./Assets/audio/spread.mp3');
+        const audio = new Audio('/Assets/audio/spread.mp3');
         audio.volume = 0.4; // Set volume to 40%
         audio.play().catch(e => console.log('Audio play failed:', e));
       };
@@ -1072,21 +1076,28 @@ function TaroApp() {
         playButtonSound();
         setWalletError(null);
 
-        // Wagmi connector automatically connects to Farcaster/Base wallet
-        // No wallet selection dialog needed - Farcaster handles it
-        if (connectors.length > 0) {
-          try {
-            connect({ connector: connectors[0] });
-            // After connection, resolve Farcaster identity
-            if (address) {
-              await resolveFarcasterIdentity(address);
-            }
-          } catch (error) {
-            console.error('[wallet] Connect failed:', error);
-            setWalletError('connection_failed');
-          }
-        } else {
+        if (connectors.length === 0) {
           setWalletError('no_provider');
+          return;
+        }
+
+        try {
+          // Auto-select connector based on environment:
+          // - In Farcaster/Base app: miniAppConnector (connectors[0])
+          // - In browser: injected (connectors[1] or first available)
+          const inMiniApp = await checkIsInMiniApp();
+          const connector = inMiniApp ? connectors[0] : (connectors[1] || connectors[0]);
+          
+          console.log('[wallet] Connecting with:', connector.name, '(Mini App:', inMiniApp, ')');
+          connect({ connector });
+          
+          // After connection, resolve Farcaster identity
+          if (address) {
+            await resolveFarcasterIdentity(address);
+          }
+        } catch (error) {
+          console.error('[wallet] Connect failed:', error);
+          setWalletError('connection_failed');
         }
       };
 

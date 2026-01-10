@@ -83,7 +83,7 @@ root.render(
 
 // Bootstrap Mini App after DOM is ready and React has rendered
 // Wait for DOMContentLoaded, then give React time to render
-function initMiniApp() {
+function startMiniAppInit() {
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function() {
       // Small delay to ensure React has rendered
@@ -96,4 +96,4 @@ function initMiniApp() {
 }
 
 // Start initialization
-initMiniApp();
+startMiniAppInit();
