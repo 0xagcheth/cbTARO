@@ -1705,14 +1705,17 @@ Got a real answer.
               // Fallback to Warpcast URL if SDK not available
               console.warn('Farcaster Mini App SDK not available, using fallback');
             const shareText = getShareText(selectedSpread);
+            // IMPORTANT: appUrl must be in text
+            const appUrl = "https://0xagcheth.github.io/cbTARO/";
+            const finalText = `${shareText}\n${appUrl}`;
             const embeds = [];
             embeds.push('https://0xagcheth.github.io/cbTARO/Assets/imagine/b.png');
             if (selectedSpread === "CUSTOM" && aiInterpretation) {
               embeds.push('https://0xagcheth.github.io/cbTARO/Assets/imagine/cr.png');
             }
-            embeds.push('https://0xagcheth.github.io/cbTARO/');
+            embeds.push(appUrl);
             const baseUrl = 'https://warpcast.com/~/compose';
-              const params = new URLSearchParams({ text: shareText });
+              const params = new URLSearchParams({ text: finalText });
             embeds.forEach((embed, index) => {
               params.append(`embeds[${index}]`, embed);
             });
@@ -1739,6 +1742,9 @@ Got a real answer.
               shareText = `🔮 Reveal Your Reading\nCard: ${cardSlug}\n\n${shareText}`;
             }
 
+            // IMPORTANT: appUrl must be appended to text so it appears as a visible line
+            const finalText = `${shareText}\n${appUrl}`;
+
             // Build embeds array
             const embeds = [appUrl];
             if (cardImageUrl) {
@@ -1747,8 +1753,8 @@ Got a real answer.
 
             // Use Farcaster Mini App SDK to compose cast
             await sdk.actions.composeCast({
-              text: shareText,
-              embeds: embeds
+              text: finalText,  // URL is in text
+              embeds: embeds    // Keep embeds for preview, but link must already be in text
             });
 
           } catch (error) {

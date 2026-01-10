@@ -1229,15 +1229,19 @@ Got a real answer.
        * Strategy:
        * 1. Farcaster Mini App SDK composeCast if available
        * 2. Fallback to Warpcast compose URL
+       * IMPORTANT: appUrl must be in text (not only in embeds)
        */
       async function shareDailyTaro() {
         const appUrl = "https://0xagcheth.github.io/cbTARO/";
-        const text = `🃏 Daily Taro
+        const baseText = `🃏 Daily Taro
 
 Today's card gave me a clear signal.
 Sometimes one card is all you need.
 
 🔮 Pulled with cbTARO on Base`;
+        
+        // IMPORTANT: appUrl must be appended to text so it appears as a visible line
+        const finalText = `${baseText}\n${appUrl}`;
 
         try {
           // 1. Try Farcaster Mini App SDK first
@@ -1247,8 +1251,8 @@ Sometimes one card is all you need.
           if (isInMiniApp && sdk?.actions?.composeCast) {
             try {
               await sdk.actions.composeCast({
-                text: text,
-                embeds: [appUrl]
+                text: finalText,  // URL is in text
+                embeds: [appUrl]  // Keep embed preview, but link must already be in text
               });
               if (import.meta.env.DEV) {
                 console.debug('[cbTARO] Shared via Farcaster Mini App SDK');
@@ -1262,7 +1266,7 @@ Sometimes one card is all you need.
 
           // 2. Fallback: Warpcast compose URL
           try {
-            const composeUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(text + '\n\n' + appUrl)}`;
+            const composeUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(finalText)}`;
             window.open(composeUrl, '_blank', 'noopener,noreferrer');
             return true;
           } catch (error) {
@@ -1273,7 +1277,7 @@ Sometimes one card is all you need.
           console.error('[cbTARO] shareDailyTaro failed:', error);
           // Last resort: try Warpcast URL
           try {
-            const composeUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(text + '\n\n' + appUrl)}`;
+            const composeUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(finalText)}`;
             window.open(composeUrl, '_blank', 'noopener,noreferrer');
             return true;
           } catch (e) {

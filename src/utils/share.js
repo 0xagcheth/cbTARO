@@ -48,8 +48,15 @@ export function buildShareText(baseText) {
  * @returns {Promise<boolean>} - Success status
  */
 export async function shareCast({ text, embeds = [] }) {
+  // buildShareText ensures APP_URL is at the end of text
   const finalText = buildShareText(text);
-  const finalEmbeds = [APP_URL, ...embeds].filter(Boolean);
+  // Remove APP_URL from embeds if it's already in text to avoid duplication
+  // But keep other embeds (like card images)
+  const finalEmbeds = embeds.filter(embed => embed !== APP_URL);
+  // Add APP_URL as embed for preview, but it's already in text
+  if (finalEmbeds.length < 2) {
+    finalEmbeds.push(APP_URL);
+  }
   
   try {
     // Try Farcaster Mini App SDK first
@@ -59,8 +66,8 @@ export async function shareCast({ text, embeds = [] }) {
     if (isInMiniApp && sdk?.actions?.composeCast) {
       try {
         await sdk.actions.composeCast({
-          text: finalText,
-          embeds: finalEmbeds
+          text: finalText,  // URL is already in text (from buildShareText)
+          embeds: finalEmbeds  // Keep embeds for preview, but link must already be in text
         });
         if (import.meta.env.DEV) {
           console.debug('Shared via Farcaster Mini App SDK');
