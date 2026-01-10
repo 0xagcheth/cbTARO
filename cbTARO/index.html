@@ -848,8 +848,10 @@
                     setProfile(normalized);
                     saveProfileCache(normalized); // Update cache
                     setIsMiniApp(true);
-                    setAuthState('miniapp_authed');
-                    return; // Mini App context found, skip wallet/Neynar
+                    // DON'T set authState to 'miniapp_authed' yet - we still need to connect wallet!
+                    // Wallet connection will happen in the useEffect below
+                    setAuthState('wallet_disconnected'); // Allow wallet check to proceed
+                    return;
                   }
                 }
               }
@@ -887,8 +889,10 @@
         // According to: https://miniapps.farcaster.xyz/docs/guides/wallets
         // "If a user already has a connected wallet the connector will automatically connect to it"
         useEffect(() => {
-          // Skip if already authenticated via Mini App SDK context
-          if (authState === 'miniapp_authed') return;
+          // IMPORTANT: In Farcaster Mini App, context (FID) and wallet (address) are separate!
+          // We need to check wallet even if we have Mini App context
+          // Skip only if wallet is already connected
+          if (authState === 'wallet_connected_profile_ready') return;
 
           const checkWallet = async () => {
             const provider = await getEthereumProvider();
