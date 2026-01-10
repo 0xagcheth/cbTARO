@@ -1,30 +1,25 @@
 {
+  "accountAssociation": {
+    "header": "eyJmaWQiOjIxMDUxLCJ0eXBlIjoiYXV0aCIsImtleSI6IjB4RTM2NmQ2QTNiRTliNkM5NDI4MjBENzUzNjcwY0ZjMDA5NjMwODdEMCJ9",
+    "payload": "eyJkb21haW4iOiIweGFnY2hldGguZ2l0aHViLmlvIn0",
+    "signature": "aXwD4QtCu7BgjxmwDT/ZXDB8ebe6rUCElNgM0wjGvlV7Yj4HQTbofutI299kPpfQvoB6Shpj117ePpFxyfDRSxs="
+  },
   "miniapp": {
     "version": "1",
     "name": "cbTARO",
     "homeUrl": "https://0xagcheth.github.io/cbTARO/",
     "iconUrl": "https://0xagcheth.github.io/cbTARO/i.png",
-    "splashImageUrl": "/s.png",
+    "splashImageUrl": "https://0xagcheth.github.io/cbTARO/s.png",
     "splashBackgroundColor": "#0b1020",
     "subtitle": "Mystical tarot reading on Base",
     "description": "Draw tarot cards, explore interpretations, and share your reading on Farcaster.",
     "primaryCategory": "games",
-    "requiredChains": ["eip155:8453"]
-  },
-  "engagement": {
-    "searchTags": ["tarot", "cards", "mystic", "base", "farcaster"],
-    "buttonTitle": "Open cbTARO",
-    "marketingTagline": "Reveal your onchain tarot reading"
-  },
-  "social": {
+    "tags": ["tarot", "cards", "mystic", "base", "farcaster"],
+    "tagline": "Reveal your onchain tarot reading",
     "ogTitle": "cbTARO — Onchain Tarot Reading",
     "ogDescription": "Draw a tarot card and share your mystical reading on Farcaster.",
     "ogImageUrl": "https://0xagcheth.github.io/cbTARO/og.png",
-    "castShareUrl": "https://warpcast.com/~/compose?text=🔮%20I%20just%20did%20a%20tarot%20reading%20on%20cbTARO"
-  },
-  "accountAssociation": {
-    "header": "eyJmaWQiOjIxMDUxLCJ0eXBlIjoiYXV0aCIsImtleSI6IjB4RTM2NmQ2QTNiRTliNkM5NDI4MjBENzUzNjcwY0ZjMDA5NjMwODdEMCJ9",
-    "payload": "eyJkb21haW4iOiIweGFnY2hldGguZ2l0aHViLmlvIn0",
-    "signature": "aXwD4QtCu7BgjxmwDT/ZXDB8ebe6rUCElNgM0wjGvlV7Yj4HQTbofutI299kPpfQvoB6Shpj117ePpFxyfDRSxs="
+    "buttonTitle": "Open cbTARO",
+    "imageUrl": "https://0xagcheth.github.io/cbTARO/og.png"
   }
 }
