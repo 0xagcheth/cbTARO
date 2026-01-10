@@ -75,38 +75,8 @@
       const { useState, useEffect } = React;
 
       // =====================================================
-      // STEP 1: DIAGNOSTICS - Check Mini App context (NON-BLOCKING)
+      // DIAGNOSTICS - Moved to AFTER app renders to not block
       // =====================================================
-      // According to: https://miniapps.farcaster.xyz/docs/guides/wallets
-      // Run diagnostics AFTER app loads to not block rendering
-      setTimeout(() => {
-        console.log('[miniapp] 🔍 DIAGNOSTICS START');
-        console.log('[miniapp] location:', location.href);
-        console.log('[miniapp] has fc sdk:', typeof window.farcasterSDK !== 'undefined');
-        console.log('[miniapp] has window.farcaster:', typeof window.farcaster !== 'undefined');
-        console.log('[miniapp] has ethereum:', typeof window.ethereum !== 'undefined');
-        console.log('[miniapp] userAgent:', navigator.userAgent);
-        
-        // Try to detect Mini App SDK (non-blocking, doesn't prevent app from loading)
-        (async () => {
-          try {
-            const { sdk } = await import('https://esm.sh/@farcaster/miniapp-sdk@latest');
-            console.log('[miniapp] ✅ SDK imported successfully');
-            console.log('[miniapp] SDK has wallet:', typeof sdk.wallet !== 'undefined');
-            console.log('[miniapp] SDK has actions:', typeof sdk.actions !== 'undefined');
-            
-            // Check if we can get provider
-            try {
-              const provider = await sdk.wallet.getEthereumProvider();
-              console.log('[miniapp] ✅ SDK wallet provider available:', !!provider);
-            } catch (e) {
-              console.log('[miniapp] ⚠️ SDK wallet provider not available:', e.message);
-            }
-          } catch (error) {
-            console.log('[miniapp] ❌ SDK import failed:', error.message);
-          }
-        })();
-      }, 100);
 
       // Read shared cast parameters from URL or localStorage
       (function() {
