@@ -625,6 +625,9 @@ function TaroApp() {
   // Last reading state - "single source of truth" for share functionality
   const [lastReading, setLastReading] = useState(null);
 
+  // Shared cast params state
+  const [sharedFromCast, setSharedFromCast] = useState(false);
+
   // Share helper constants and functions (defined early for use in useEffect)
   const APP_URL = "https://0xagcheth.github.io/cbTARO/";
   const LAST_READING_KEY = "cbtaro:lastReading";
@@ -698,6 +701,26 @@ function TaroApp() {
       if (import.meta.env.DEV) {
         console.debug('Restored lastReading from localStorage:', savedReading);
       }
+    }
+    
+    // Check if opened from shared cast
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const sharedCastHash = urlParams.get('sharedCastHash') || localStorage.getItem('cbTARO_sharedCastHash');
+      const sharedCastFid = urlParams.get('sharedCastFid') || localStorage.getItem('cbTARO_sharedCastFid');
+      const viewerFid = urlParams.get('viewerFid') || localStorage.getItem('cbTARO_viewerFid');
+
+      if (sharedCastHash || sharedCastFid || viewerFid) {
+        setSharedFromCast(true);
+        console.log('[cbTARO] Opened from shared cast:', { sharedCastHash, sharedCastFid, viewerFid });
+        
+        // Auto-hide notice after 5 seconds
+        setTimeout(() => {
+          setSharedFromCast(false);
+        }, 5000);
+      }
+    } catch (error) {
+      console.warn('[cbTARO] Failed to check shared params:', error);
     }
     
     // Local streak (fallback) - update immediately for UI
@@ -1202,63 +1225,59 @@ Got a real answer.
       }
 
       /**
-       * Share app link - always shares the app URL
+       * Share Daily Taro - Farcaster Mini App sharing
        * Strategy:
-       * 1. navigator.share if available
-       * 2. clipboard copy with feedback
-       * 3. window.prompt as final fallback
+       * 1. Farcaster Mini App SDK composeCast if available
+       * 2. Fallback to Warpcast compose URL
        */
-      async function shareAppLink() {
-        const url = "https://0xagcheth.github.io/cbTARO/";
-        const text = "🔮 cbTARO — tarot mini app\n" + url;
+      async function shareDailyTaro() {
+        const appUrl = "https://0xagcheth.github.io/cbTARO/";
+        const text = `🃏 Daily Taro
+
+Today's card gave me a clear signal.
+Sometimes one card is all you need.
+
+🔮 Pulled with cbTARO on Base`;
 
         try {
-          // 1. Try navigator.share first
-          if (navigator.share) {
+          // 1. Try Farcaster Mini App SDK first
+          const sdk = window.miniAppSDK || window.farcaster?.sdk || window.farcaster || window.farcasterSDK || window.sdk || window.FarcasterSDK;
+          const isInMiniApp = window.isInMiniApp || (sdk && typeof sdk.isInMiniApp === 'function' && sdk.isInMiniApp());
+          
+          if (isInMiniApp && sdk?.actions?.composeCast) {
             try {
-              await navigator.share({
-                title: "cbTARO",
+              await sdk.actions.composeCast({
                 text: text,
-                url: url
+                embeds: [appUrl]
               });
-              return true;
-            } catch (error) {
-              // User cancelled or share failed, continue to fallback
-              if (error.name === 'AbortError') {
-                return false; // User cancelled, don't try other methods
+              if (import.meta.env.DEV) {
+                console.debug('[cbTARO] Shared via Farcaster Mini App SDK');
               }
-              // Continue to clipboard fallback
-            }
-          }
-
-          // 2. Try clipboard copy
-          if (navigator.clipboard && navigator.clipboard.writeText) {
-            try {
-              await navigator.clipboard.writeText(text);
-              alert("Link copied ✅");
               return true;
             } catch (error) {
-              // Clipboard failed, continue to prompt fallback
-              console.warn('Clipboard copy failed:', error);
+              console.warn('[cbTARO] SDK composeCast failed, using fallback:', error);
+              // Continue to fallback
             }
           }
 
-          // 3. Final fallback: window.prompt
-          const promptText = `Copy this link:\n\n${text}`;
-          const copied = window.prompt(promptText, text);
-          if (copied) {
-            alert("Link copied ✅");
-            return true;
-          }
-          return false;
-        } catch (error) {
-          console.error('shareAppLink failed:', error);
-          // Last resort: try prompt
+          // 2. Fallback: Warpcast compose URL
           try {
-            window.prompt("Copy this link:", text);
+            const composeUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(text + '\n\n' + appUrl)}`;
+            window.open(composeUrl, '_blank', 'noopener,noreferrer');
+            return true;
+          } catch (error) {
+            console.error('[cbTARO] Failed to open Warpcast compose:', error);
+            return false;
+          }
+        } catch (error) {
+          console.error('[cbTARO] shareDailyTaro failed:', error);
+          // Last resort: try Warpcast URL
+          try {
+            const composeUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(text + '\n\n' + appUrl)}`;
+            window.open(composeUrl, '_blank', 'noopener,noreferrer');
             return true;
           } catch (e) {
-            console.error('Prompt also failed:', e);
+            console.error('[cbTARO] Final fallback also failed:', e);
             return false;
           }
         }
@@ -1268,8 +1287,8 @@ Got a real answer.
         try {
           playButtonSound();
 
-          // Always share app link using shareAppLink function
-          await shareAppLink();
+          // Share Daily Taro using shareDailyTaro function
+          await shareDailyTaro();
         } catch (error) {
           console.error('Share failed:', error);
           alert('Failed to share. Please try again.');
@@ -1695,6 +1714,27 @@ Important: This must be a unique interpretation for this specific card spread. M
               {/* Table */}
               <div className={`taro-table ${gameStage === "animating" ? "table-animating" : ""}`}>
                 {/* When there's no spread — show deck */}
+                {/* Shared cast notice */}
+                {sharedFromCast && (
+                  <div style={{
+                    position: 'fixed',
+                    top: '20px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    backgroundColor: 'rgba(75, 144, 226, 0.9)',
+                    color: '#fff',
+                    padding: '10px 20px',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    zIndex: 10000,
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+                    maxWidth: '90%',
+                    textAlign: 'center'
+                  }}>
+                    Opened from shared cast
+                  </div>
+                )}
+
                 {gameStage === "idle" && (
                   <div className="taro-deck" onClick={handleChooseSpreadClick}>
                     <div className="taro-deck-inner" />

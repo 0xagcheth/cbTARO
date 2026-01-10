@@ -74,6 +74,38 @@
     <script type="text/babel">
       const { useState, useEffect } = React;
 
+      // Read shared cast parameters from URL or localStorage
+      (function() {
+        try {
+          const urlParams = new URLSearchParams(window.location.search);
+          const sharedCastHash = urlParams.get('sharedCastHash') || localStorage.getItem('cbTARO_sharedCastHash');
+          const sharedCastFid = urlParams.get('sharedCastFid') || localStorage.getItem('cbTARO_sharedCastFid');
+          const viewerFid = urlParams.get('viewerFid') || localStorage.getItem('cbTARO_viewerFid');
+
+          if (sharedCastHash || sharedCastFid || viewerFid) {
+            console.log('[cbTARO] Opened from shared cast:', {
+              castHash: sharedCastHash,
+              castFid: sharedCastFid,
+              viewerFid: viewerFid
+            });
+
+            // Store in localStorage for persistence
+            if (sharedCastHash) localStorage.setItem('cbTARO_sharedCastHash', sharedCastHash);
+            if (sharedCastFid) localStorage.setItem('cbTARO_sharedCastFid', sharedCastFid);
+            if (viewerFid) localStorage.setItem('cbTARO_viewerFid', viewerFid);
+
+            // Store globally for use in React components
+            window.cbTARO_sharedParams = {
+              castHash: sharedCastHash,
+              castFid: sharedCastFid,
+              viewerFid: viewerFid
+            };
+          }
+        } catch (error) {
+          console.warn('[cbTARO] Failed to read shared params:', error);
+        }
+      })();
+
       // Safety check for ethers
       if (typeof ethers === 'undefined') {
         console.error('ethers.js not loaded');
