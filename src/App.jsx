@@ -825,40 +825,63 @@ function TaroApp() {
       };
 
       /**
-       * Get EIP-1193 provider (Farcaster Mini App SDK or window.ethereum fallback)
+       * Check if we're in Mini App environment (Farcaster or Base)
+       * @returns {boolean}
+       */
+      const isInMiniAppEnvironment = () => {
+        const sdk = getFarcasterSDK();
+        if (!sdk) return false;
+        
+        // Check if SDK has isInMiniApp method
+        if (typeof sdk.isInMiniApp === 'function') {
+          return sdk.isInMiniApp();
+        }
+        
+        // Check if SDK has wallet.getEthereumProvider (indicates Mini App)
+        if (sdk?.wallet?.getEthereumProvider) {
+          return true;
+        }
+        
+        // Check window flags
+        return window.isInMiniApp === true;
+      };
+
+      /**
+       * Get EIP-1193 provider
+       * In Mini App (Farcaster/Base): uses SDK wallet provider ONLY
+       * In browser: uses window.ethereum (MetaMask) ONLY
        * According to Farcaster docs: https://miniapps.farcaster.xyz/docs/guides/wallets
        * @returns {Promise<Object|null>} EIP-1193 provider or null if not available
        */
       const getEip1193Provider = async () => {
-        try {
-          // First, try Farcaster Mini App SDK provider
-          const sdk = getFarcasterSDK();
-          if (sdk?.wallet?.getEthereumProvider) {
-            try {
+        const inMiniApp = isInMiniAppEnvironment();
+        
+        if (inMiniApp) {
+          // В Mini App - ТОЛЬКО SDK провайдер, БЕЗ fallback на window.ethereum
+          try {
+            const sdk = getFarcasterSDK();
+            if (sdk?.wallet?.getEthereumProvider) {
               const provider = await sdk.wallet.getEthereumProvider();
               if (provider) {
-                console.log('[wallet] ✅ Using Farcaster Mini App SDK provider');
+                console.log('[wallet] ✅ Using Mini App SDK provider (Farcaster/Base)');
                 return provider;
               }
-            } catch (error) {
-              console.debug('[wallet] Farcaster SDK provider not available:', error);
             }
-          } else {
-            console.debug('[wallet] SDK wallet.getEthereumProvider not available');
+            console.warn('[wallet] ⚠️ Mini App SDK provider not available');
+            return null;
+          } catch (error) {
+            console.error('[wallet] ❌ Error getting Mini App SDK provider:', error);
+            return null;
           }
-        } catch (error) {
-          console.debug('[wallet] Error accessing Farcaster SDK:', error);
+        } else {
+          // В браузере - ТОЛЬКО window.ethereum (MetaMask)
+          if (window.ethereum) {
+            console.log('[wallet] Using window.ethereum provider (browser)');
+            return window.ethereum;
+          }
+          console.warn('[wallet] ⚠️ No wallet provider found (not in Mini App, no MetaMask)');
+          return null;
         }
-
-        // Fallback to window.ethereum (MetaMask, etc.)
-        if (window.ethereum) {
-          console.log('[wallet] Using window.ethereum provider (fallback)');
-          return window.ethereum;
-        }
-
-        // No provider available
-        console.warn('[wallet] ⚠️ No EIP-1193 provider found');
-        return null;
       };
 
       // Wallet and payment functions
@@ -964,39 +987,35 @@ function TaroApp() {
         }
       };
 
-      // Auto-connect wallet if already connected in Farcaster Mini App
-      // According to docs: if user already has a connected wallet, isConnected will be true
+      // Auto-connect wallet in Mini App (Farcaster/Base) при загрузке
+      // В Mini App кошелек должен подключаться автоматически
       useEffect(() => {
         const autoConnectWallet = async () => {
+          // Проверяем, что мы в Mini App
+          if (!isInMiniAppEnvironment()) {
+            console.log('[wallet] Not in Mini App - skipping auto-connect');
+            return;
+          }
+
           try {
-            const sdk = getFarcasterSDK();
-            if (!sdk) {
-              // Not in Mini App, skip auto-connect
-              return;
-            }
-
-            // Check if we're in Mini App environment
-            const isInMiniApp = typeof sdk.isInMiniApp === 'function' 
-              ? sdk.isInMiniApp() 
-              : false;
-
-            if (!isInMiniApp) {
-              return;
-            }
-
-            // Try to get provider and check if already connected
+            console.log('[wallet] 🔄 Auto-connecting wallet in Mini App...');
+            
+            // Получаем провайдер из SDK
             const provider = await getEip1193Provider();
             if (!provider) {
+              console.warn('[wallet] ⚠️ No provider available in Mini App');
+              setWalletError('no_provider');
               return;
             }
 
-            // Check if wallet is already connected
+            // Проверяем, подключен ли уже кошелек
             try {
               const accounts = await provider.request({ method: 'eth_accounts' });
-              if (accounts && accounts.length > 0 && !isWalletConnected) {
-                console.log('[wallet] ✅ Auto-connecting to already connected wallet');
+              
+              if (accounts && accounts.length > 0) {
+                // Кошелек уже подключен - используем его
+                console.log('[wallet] ✅ Wallet already connected, using it');
                 
-                // Create ethers provider
                 const ethersProvider = new ethers.providers.Web3Provider(provider);
                 const signer = ethersProvider.getSigner();
                 const address = await signer.getAddress();
@@ -1005,21 +1024,43 @@ function TaroApp() {
                 setWalletAddress(address);
                 setWalletError(null);
 
-                // Resolve Farcaster identity
+                // Получаем информацию о пользователе
                 await resolveFarcasterIdentity(address);
+                
+                console.log('[wallet] ✅ Auto-connected successfully:', address);
+              } else {
+                // Кошелек не подключен - пытаемся подключить
+                console.log('[wallet] 🔄 Requesting wallet connection...');
+                const requestedAccounts = await provider.request({ method: 'eth_requestAccounts' });
+                
+                if (requestedAccounts && requestedAccounts.length > 0) {
+                  const ethersProvider = new ethers.providers.Web3Provider(provider);
+                  const signer = ethersProvider.getSigner();
+                  const address = await signer.getAddress();
+
+                  setIsWalletConnected(true);
+                  setWalletAddress(address);
+                  setWalletError(null);
+
+                  await resolveFarcasterIdentity(address);
+                  
+                  console.log('[wallet] ✅ Wallet connected successfully:', address);
+                }
               }
             } catch (error) {
-              console.debug('[wallet] Auto-connect check failed (non-fatal):', error);
+              console.error('[wallet] ❌ Error during auto-connect:', error);
+              setWalletError('connection_failed');
             }
           } catch (error) {
-            console.debug('[wallet] Auto-connect error (non-fatal):', error);
+            console.error('[wallet] ❌ Auto-connect failed:', error);
+            setWalletError('no_provider');
           }
         };
 
-        // Wait a bit for SDK to be fully initialized
-        const timer = setTimeout(autoConnectWallet, 1000);
+        // Ждем немного для инициализации SDK
+        const timer = setTimeout(autoConnectWallet, 500);
         return () => clearTimeout(timer);
-      }, []); // Run once on mount
+      }, []); // Запускается один раз при монтировании
 
       const ensureBase = async (provider) => {
         const network = await provider.getNetwork();
