@@ -810,23 +810,41 @@ function TaroApp() {
       };
 
       /**
+       * Get Farcaster Mini App SDK instance
+       * @returns {Object|null} SDK instance or null
+       */
+      const getFarcasterSDK = () => {
+        // Try multiple possible SDK locations
+        return window.miniAppSDK || 
+               window.farcaster?.sdk || 
+               window.farcaster || 
+               window.farcasterSDK || 
+               window.sdk || 
+               window.FarcasterSDK || 
+               null;
+      };
+
+      /**
        * Get EIP-1193 provider (Farcaster Mini App SDK or window.ethereum fallback)
+       * According to Farcaster docs: https://miniapps.farcaster.xyz/docs/guides/wallets
        * @returns {Promise<Object|null>} EIP-1193 provider or null if not available
        */
       const getEip1193Provider = async () => {
         try {
           // First, try Farcaster Mini App SDK provider
-          const sdk = window.miniAppSDK || window.farcaster?.sdk || window.farcaster || window.farcasterSDK || window.sdk || window.FarcasterSDK;
+          const sdk = getFarcasterSDK();
           if (sdk?.wallet?.getEthereumProvider) {
             try {
               const provider = await sdk.wallet.getEthereumProvider();
               if (provider) {
-                console.log('[wallet] Using Farcaster Mini App SDK provider');
+                console.log('[wallet] ✅ Using Farcaster Mini App SDK provider');
                 return provider;
               }
             } catch (error) {
               console.debug('[wallet] Farcaster SDK provider not available:', error);
             }
+          } else {
+            console.debug('[wallet] SDK wallet.getEthereumProvider not available');
           }
         } catch (error) {
           console.debug('[wallet] Error accessing Farcaster SDK:', error);
@@ -834,12 +852,12 @@ function TaroApp() {
 
         // Fallback to window.ethereum (MetaMask, etc.)
         if (window.ethereum) {
-          console.log('[wallet] Using window.ethereum provider');
+          console.log('[wallet] Using window.ethereum provider (fallback)');
           return window.ethereum;
         }
 
         // No provider available
-        console.warn('[wallet] No EIP-1193 provider found');
+        console.warn('[wallet] ⚠️ No EIP-1193 provider found');
         return null;
       };
 
@@ -882,27 +900,58 @@ function TaroApp() {
         }
       };
 
-      // Resolve Farcaster identity from miniapp context
-      const resolveFarcasterIdentity = (address) => {
+      /**
+       * Resolve Farcaster identity from Mini App SDK context
+       * According to Farcaster docs: context.user contains user info
+       */
+      const resolveFarcasterIdentity = async (address) => {
         try {
-          // Try different possible SDK global names and paths
-          const user = window.farcaster?.context?.user ||
-                      window.farcasterSDK?.context?.user ||
-                      window.sdk?.context?.user ||
-                      window.FarcasterSDK?.context?.user ||
-                      window.farcaster?.user ||
-                      window.farcasterSDK?.user;
-
-          if (user?.fid) {
-            setFid(user.fid);
-          }
-          if (user?.pfpUrl) {
-            setPfpUrl(user.pfpUrl);
+          const sdk = getFarcasterSDK();
+          if (!sdk) {
+            console.debug('[identity] No Farcaster SDK found');
+            return;
           }
 
-          console.log('🎭 Farcaster identity resolved:', { fid: user?.fid, hasPfp: !!user?.pfpUrl });
+          // Try to get context (may be async)
+          let context = null;
+          if (typeof sdk.context === 'function') {
+            context = await sdk.context();
+          } else if (sdk.context && typeof sdk.context.then === 'function') {
+            context = await sdk.context;
+          } else if (sdk.context) {
+            context = sdk.context;
+          } else if (typeof sdk.getContext === 'function') {
+            context = await sdk.getContext();
+          }
+
+          // Extract user from context
+          const user = context?.user || context?.viewer || sdk.user || null;
+
+          if (user) {
+            const fid = user.fid || user.userFid || null;
+            const pfpUrl = user.pfpUrl || user.pfp_url || user.avatarUrl || user.avatar_url || null;
+            const wallet = user.walletAddress || user.wallet || address || null;
+
+            if (fid) {
+              setFid(fid);
+              console.log('[identity] ✅ Farcaster FID loaded:', fid);
+            }
+            if (pfpUrl) {
+              setPfpUrl(pfpUrl);
+              console.log('[identity] ✅ Farcaster avatar loaded');
+            }
+            if (wallet && wallet !== walletAddress) {
+              setWalletAddress(wallet);
+              setIsWalletConnected(true);
+              console.log('[identity] ✅ Farcaster wallet loaded:', wallet);
+            }
+
+            console.log('[identity] ✅ Farcaster identity resolved:', { fid, hasPfp: !!pfpUrl, hasWallet: !!wallet });
+          } else {
+            console.debug('[identity] No user data in Farcaster context');
+          }
         } catch (error) {
-          console.log('🎭 No Farcaster context available:', error.message);
+          console.warn('[identity] Error resolving Farcaster identity:', error);
         }
       };
 
@@ -911,9 +960,66 @@ function TaroApp() {
         playButtonSound();
         const result = await connectWallet();
         if (result?.address) {
-          resolveFarcasterIdentity(result.address);
+          await resolveFarcasterIdentity(result.address);
         }
       };
+
+      // Auto-connect wallet if already connected in Farcaster Mini App
+      // According to docs: if user already has a connected wallet, isConnected will be true
+      useEffect(() => {
+        const autoConnectWallet = async () => {
+          try {
+            const sdk = getFarcasterSDK();
+            if (!sdk) {
+              // Not in Mini App, skip auto-connect
+              return;
+            }
+
+            // Check if we're in Mini App environment
+            const isInMiniApp = typeof sdk.isInMiniApp === 'function' 
+              ? sdk.isInMiniApp() 
+              : false;
+
+            if (!isInMiniApp) {
+              return;
+            }
+
+            // Try to get provider and check if already connected
+            const provider = await getEip1193Provider();
+            if (!provider) {
+              return;
+            }
+
+            // Check if wallet is already connected
+            try {
+              const accounts = await provider.request({ method: 'eth_accounts' });
+              if (accounts && accounts.length > 0 && !isWalletConnected) {
+                console.log('[wallet] ✅ Auto-connecting to already connected wallet');
+                
+                // Create ethers provider
+                const ethersProvider = new ethers.providers.Web3Provider(provider);
+                const signer = ethersProvider.getSigner();
+                const address = await signer.getAddress();
+
+                setIsWalletConnected(true);
+                setWalletAddress(address);
+                setWalletError(null);
+
+                // Resolve Farcaster identity
+                await resolveFarcasterIdentity(address);
+              }
+            } catch (error) {
+              console.debug('[wallet] Auto-connect check failed (non-fatal):', error);
+            }
+          } catch (error) {
+            console.debug('[wallet] Auto-connect error (non-fatal):', error);
+          }
+        };
+
+        // Wait a bit for SDK to be fully initialized
+        const timer = setTimeout(autoConnectWallet, 1000);
+        return () => clearTimeout(timer);
+      }, []); // Run once on mount
 
       const ensureBase = async (provider) => {
         const network = await provider.getNetwork();
