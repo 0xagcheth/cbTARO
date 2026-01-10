@@ -5856,12 +5856,11 @@ Important: This must be a unique interpretation for this specific card spread. M
   <!-- Farcaster Mini App SDK - call ready() IMMEDIATELY -->
   <!-- According to: https://miniapps.farcaster.xyz/docs/getting-started#making-your-app-display -->
   <script type="module">
-    import { sdk } from "https://esm.sh/@farcaster/miniapp-sdk@latest";
-
     // Call ready() IMMEDIATELY - no delays, no conditions
     // This must be called as soon as possible to hide splash screen
     (async () => {
       try {
+        const { sdk } = await import("https://esm.sh/@farcaster/miniapp-sdk@latest");
         await sdk.actions.ready();
         console.log("[miniapp] ✅ ready() called successfully");
       } catch (e) {
