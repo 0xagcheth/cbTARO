@@ -1098,25 +1098,26 @@
       
       // Get Ethereum provider (Farcaster SDK or browser)
       async function getEthereumProvider() {
-        // Check if in Farcaster Mini App
+        // Try Farcaster Mini App SDK first
+        // According to: https://miniapps.farcaster.xyz/docs/guides/wallets
         try {
           const { sdk } = await import('https://esm.sh/@farcaster/miniapp-sdk@latest');
-          if (sdk && sdk.context) {
-            // In Farcaster Mini App: use SDK provider
-            console.log('[wallet] Using Farcaster SDK provider');
-            return await sdk.wallet.getEthereumProvider();
+          const provider = await sdk.wallet.getEthereumProvider();
+          if (provider) {
+            console.log('[wallet] ✅ Using Farcaster SDK provider');
+            return provider;
           }
         } catch (error) {
-          console.log('[wallet] Not in Farcaster, using browser provider');
+          console.log('[wallet] Not in Farcaster Mini App, trying browser provider:', error.message);
         }
         
-        // In browser: use window.ethereum (MetaMask, Coinbase, etc.)
+        // Fallback to browser wallet (MetaMask, Coinbase, etc.)
         if (window.ethereum) {
-          console.log('[wallet] Using window.ethereum provider');
+          console.log('[wallet] ✅ Using window.ethereum provider');
           return window.ethereum;
         }
         
-        console.warn('[wallet] No wallet provider found');
+        console.warn('[wallet] ❌ No wallet provider found');
         return null;
       }
 
