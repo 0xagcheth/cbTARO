@@ -897,7 +897,9 @@
           checkWallet();
         }, [authState]); // Check wallet on mount and when authState changes
 
+        // STEP 5: Connect wallet - only called on button click, uses eth_requestAccounts
         const connectWallet = async () => {
+          console.log('[wallet] 🔗 Connect button clicked - requesting accounts...');
           const provider = await getEthereumProvider();
           
           if (!provider) {
@@ -913,6 +915,8 @@
               setAuthState('wallet_connected_fetching_profile');
             }
             
+            // STEP 5: Only use eth_requestAccounts on button click (shows prompt)
+            console.log('[wallet] Requesting eth_requestAccounts (will show prompt)...');
             const accounts = await provider.request({ method: 'eth_requestAccounts' });
             
             if (!accounts || accounts.length === 0) {
