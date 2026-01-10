@@ -1025,36 +1025,6 @@
         );
       };
 
-      // =====================================================
-      // WALLET PROVIDER HELPER (GLOBAL)
-      // According to: https://miniapps.farcaster.xyz/docs/guides/wallets
-      // =====================================================
-      
-      // Get Ethereum provider (Farcaster SDK or browser)
-      async function getEthereumProvider() {
-        // Try Farcaster Mini App SDK first
-        // According to: https://miniapps.farcaster.xyz/docs/guides/wallets
-        try {
-          const { sdk } = await import('https://esm.sh/@farcaster/miniapp-sdk@latest');
-          const provider = await sdk.wallet.getEthereumProvider();
-          if (provider) {
-            console.log('[wallet] ✅ Using Farcaster SDK provider');
-            return provider;
-          }
-        } catch (error) {
-          console.log('[wallet] Not in Farcaster Mini App, trying browser provider:', error.message);
-        }
-        
-        // Fallback to browser wallet (MetaMask, Coinbase, etc.)
-        if (window.ethereum) {
-          console.log('[wallet] ✅ Using window.ethereum provider');
-          return window.ethereum;
-        }
-        
-        console.warn('[wallet] ❌ No wallet provider found');
-        return null;
-      }
-
       function TaroApp() {
         const [gameStage, setGameStage] = useState("idle");
         const [selectedSpread, setSelectedSpread] = useState(null);
