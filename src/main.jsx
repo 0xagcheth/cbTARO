@@ -36,16 +36,18 @@ window.addEventListener('orientationchange', function() {
  * CRITICAL: Call ready() immediately to hide splash screen
  * According to: https://miniapps.farcaster.xyz/docs/getting-started#making-your-app-display
  */
-import { sdk } from '@farcaster/miniapp-sdk';
 
-// Call ready() IMMEDIATELY - no conditions, no delays
-// This is the FIRST thing that must happen
-try {
-  sdk.actions.ready();
-  console.log('[miniapp] ✅ ready() called');
-} catch (error) {
-  console.warn('[miniapp] ready() failed (not in Mini App):', error);
-}
+// Import SDK and call ready() immediately
+// Using dynamic import to handle environments where SDK is not available
+(async () => {
+  try {
+    const { sdk } = await import('@farcaster/miniapp-sdk');
+    await sdk.actions.ready();
+    console.log('[miniapp] ✅ ready() called');
+  } catch (error) {
+    console.warn('[miniapp] ready() not called (not in Mini App or SDK not available):', error);
+  }
+})();
 
 // Render React app with QueryClientProvider + WagmiProvider
 const root = ReactDOM.createRoot(document.getElementById('root'));
