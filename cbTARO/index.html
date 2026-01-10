@@ -1708,7 +1708,8 @@ Got a real answer.
             const shareText = getShareText(selectedSpread);
             // IMPORTANT: appUrl must be in text
             const appUrl = "https://0xagcheth.github.io/cbTARO/";
-            const finalText = `${shareText}\n${appUrl}`;
+            // Ensure no trailing space after URL
+            const finalText = `${shareText.trim()}\n${appUrl.trim()}`;
             const embeds = [];
             embeds.push('https://0xagcheth.github.io/cbTARO/Assets/imagine/b.png');
             if (selectedSpread === "CUSTOM" && aiInterpretation) {
@@ -1744,7 +1745,8 @@ Got a real answer.
             }
 
             // IMPORTANT: appUrl must be appended to text so it appears as a visible line
-            const finalText = `${shareText}\n${appUrl}`;
+            // Ensure no trailing space after URL
+            const finalText = `${shareText.trim()}\n${appUrl.trim()}`;
 
             // Build embeds array
             const embeds = [appUrl];
