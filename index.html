@@ -1014,9 +1014,14 @@
         }, [authState]); // Check wallet on mount and when authState changes
 
         // ===== STEP 5: Connect Wallet Flow for Mobile WebView =====
+        // Wallet connects ONLY on explicit user action (button click)
+        // This is more reliable in Farcaster Mini App mobile WebViews
         const connectWallet = async () => {
           console.log('[wallet] ===== CONNECT WALLET (BUTTON CLICK) =====');
-          console.log('[wallet] connectWallet() called');
+          console.log('[wallet] connectWallet() called - user explicitly requested connection');
+          
+          // Set loading state
+          setAuthState('wallet_connected_fetching_profile');
           
           const ethProvider = await getEthereumProvider();
           if (!ethProvider) {
@@ -1035,46 +1040,30 @@
             // Create ethers provider
             const provider = new ethers.providers.Web3Provider(ethProvider, 'any');
             
-            // First call eth_accounts (silent)
-            console.log('[wallet] calling eth_accounts (silent)...');
-            const existing = await ethProvider.request({ method: 'eth_accounts' });
-            console.log('[wallet] eth_accounts result:', existing?.length || 0, 'accounts');
-            
-            if (existing?.length) {
-              // If returns non-empty -> set connected state and return signer/address WITHOUT calling eth_requestAccounts
-              const signer = provider.getSigner();
-              const address = existing[0];
+            // Always call eth_requestAccounts on button click (explicit user action)
+            // This ensures wallet prompt appears in Farcaster Mini App
+            console.log('[wallet] calling eth_requestAccounts (user requested connection)...');
+            let accounts;
+            try {
+              accounts = await ethProvider.request({ method: 'eth_requestAccounts' });
+              console.log('[wallet] eth_requestAccounts result:', accounts?.length || 0, 'accounts');
+              console.log('[wallet] eth_requestAccounts accounts:', accounts);
               
-              console.log('[wallet] ✅ connected via eth_accounts:', address);
-
-              setIsWalletConnected(true);
-              setWalletAddress(address);
-              
-              // Don't show spinner if we have cached avatar
-              if (!profile?.pfpUrl) {
-                setAuthState('wallet_connected_fetching_profile');
+              if (!accounts || accounts.length === 0) {
+                console.log('[wallet] User rejected connection or no accounts returned');
+                setAuthState('wallet_disconnected');
+                return null;
               }
-              
-              // Resolve profile (non-blocking - do not block wallet connection if fails)
-              resolveFarcasterProfileByAddress(address).then((resolvedProfile) => {
-                if (resolvedProfile?.fid) {
-                  setProfile(resolvedProfile);
-                  saveProfileCache(resolvedProfile);
-                  setAuthState('wallet_connected_profile_ready');
-                } else {
-                  setAuthState('wallet_connected_profile_ready');
-                }
-              }).catch(() => {
-                setAuthState('wallet_connected_profile_ready');
+            } catch (requestError) {
+              console.error('[wallet] eth_requestAccounts error:', requestError);
+              console.error('[wallet] Request error details:', {
+                message: requestError.message,
+                code: requestError.code,
+                stack: requestError.stack
               });
-
-              return { provider, signer, address };
+              setAuthState('wallet_disconnected');
+              throw requestError;
             }
-
-            // Only if empty -> call eth_requestAccounts (MUST happen on user gesture, so keep it inside button click path)
-            console.log('[wallet] calling eth_requestAccounts (interactive)...');
-            const accounts = await ethProvider.request({ method: 'eth_requestAccounts' });
-            console.log('[wallet] eth_requestAccounts result:', accounts?.length || 0, 'accounts');
 
             const signer = provider.getSigner();
             const address = accounts?.[0] || await signer.getAddress();
