@@ -183,28 +183,112 @@ Replace placeholders in `.well-known/farcaster.json`:
 ### 📱 Features
 
 - **1 Card Reading**: Free daily tarot card
-- **3 Card Reading**: 0.0001 ETH per reading
-- **Custom Reading**: 0.0005 ETH per reading
+- **3 Card Reading**: 0.0001 ETH per reading (paid spreads)
+- **Custom Reading**: 0.001 ETH per reading (paid spreads)
 - **Share on Farcaster**: Generate images and share readings
 - **Usage Tracking**: CSV export for admin wallet
+- **Wallet Integration**: Seamless wallet connection via Farcaster Mini App SDK
 
 ### 🛠️ Tech Stack
 
-- **Frontend**: React 18 + Babel (CDN)
-- **Web3**: Ethers.js v5
-- **Blockchain**: Base network
-- **Payments**: USDC ERC-20
+- **Frontend**: React 18 + Vite
+- **Web3**: Wagmi v2 + Viem + @tanstack/react-query
+- **Wallet Connector**: @farcaster/miniapp-wagmi-connector
+- **Blockchain**: Base network (Chain ID: 8453)
+- **Payments**: Native ETH transfers
 - **Hosting**: GitHub Pages
 - **Mini App**: Farcaster Frame SDK
 - **Analytics**: Cloudflare Worker + D1 Database
 
+### 💰 Wallet & Payments Implementation
+
+This app implements Farcaster Mini Apps wallet integration following the official guide at [https://miniapps.farcaster.xyz/docs/guides/wallets](https://miniapps.farcaster.xyz/docs/guides/wallets).
+
+#### Payment Configuration
+
+**Recipient Address**: `0xD4bF185c846F6CAbDaa34122d0ddA43765E754A6`
+
+**Pricing** (hardcoded constants):
+- 3-card spread: **0.0001 ETH**
+- Custom spread: **0.001 ETH**
+
+#### Implementation Details
+
+1. **Wagmi + Farcaster Connector**:
+   - Uses `wagmi` v2 with `@farcaster/miniapp-wagmi-connector`
+   - Configured for Base chain (8453)
+   - Wrapped in `QueryClientProvider` + `WagmiProvider`
+
+2. **Payment Flow**:
+   - User clicks paid spread → checks wallet connection
+   - If not connected → prompts to connect
+   - Sends ETH transfer to recipient address
+   - On transaction hash → marks spread as paid for session
+   - Prevents double-charging via session-based `paidSpreads` state
+   - Starts spread animation after successful payment
+
+3. **Non-Farcaster Compatibility**:
+   - Works outside Farcaster (regular browser)
+   - Shows informational message: "For best experience, open in Farcaster or Base app"
+   - Free tarot reading (1-card) works everywhere
+   - Paid spreads require wallet connection (MetaMask or similar in browser)
+
+4. **Error Handling**:
+   - Graceful handling of rejected transactions
+   - Network switching (auto-switch to Base if wrong chain)
+   - Clear UI messages instead of alerts
+   - No crashes outside Farcaster environment
+
+#### Files Changed
+
+- `package.json`: Added `@tanstack/react-query`, updated `@farcaster/miniapp-wagmi-connector` to `^1.1.0`
+- `src/wagmi.ts`: Wagmi config with Base chain and Farcaster connector
+- `src/main.jsx`: Wrapped app in `QueryClientProvider` + `WagmiProvider`
+- `src/App.jsx`:
+  - Replaced ethers.js wallet logic with Wagmi hooks
+  - Updated payment amounts (0.0001 ETH for THREE, 0.001 ETH for CUSTOM)
+  - Added session-based `paidSpreads` tracking
+  - Added `isInMiniApp` detection
+  - Added UI labels for spread pricing
+  - Added informational message for non-Farcaster users
+
 ### 🚀 Deployment
 
-1. Update accountAssociation with real values
-2. Ensure all assets exist at correct URLs
-3. Deploy to GitHub Pages
-4. Test manifest accessibility: `https://0xagcheth.github.io/.well-known/farcaster.json`
-5. Share link in Farcaster to test embed
+#### Local Development
+
+```bash
+# Install dependencies
+npm install
+
+# Run dev server
+npm run dev
+
+# Open http://localhost:5173/cbTARO/
+```
+
+#### Build & Deploy to GitHub Pages
+
+```bash
+# Build production bundle
+npm run build
+
+# Preview production build locally
+npm run preview
+
+# Deploy to GitHub Pages
+npm run deploy
+```
+
+#### Deployment Checklist
+
+1. ✅ Update accountAssociation with real values in `.well-known/farcaster.json`
+2. ✅ Ensure all assets exist at correct URLs
+3. ✅ Verify `vite.config.js` has `base: '/cbTARO/'`
+4. ✅ Run `npm run build` and check `dist/` output
+5. ✅ Deploy to GitHub Pages via `npm run deploy` or GitHub Actions
+6. ✅ Test manifest accessibility: `https://0xagcheth.github.io/.well-known/farcaster.json`
+7. ✅ Test app loads without 404 for assets: `https://0xagcheth.github.io/cbTARO/`
+8. ✅ Share link in Farcaster to test embed and wallet connection
 
 ### 📊 Analytics Setup (Cloudflare Worker + D1)
 
@@ -288,9 +372,17 @@ This will:
 
 ### 📚 Resources
 
-- [Farcaster Mini Apps Spec](https://miniapps.farcaster.xyz/specification)
+- [Farcaster Mini Apps Documentation](https://miniapps.farcaster.xyz)
 - [Farcaster Developer Docs](https://docs.farcaster.xyz/)
-- [Frame SDK](https://github.com/farcasterxyz/frame-sdk)
+- [Mini App SDK Reference](https://miniapps.farcaster.xyz/docs/sdk)
+- [Wallet Integration Guide](https://miniapps.farcaster.xyz/docs/guides/ethereum-wallet)
+
+### 📖 Project Documentation
+
+- `README.md` - Main project documentation
+- `WALLET_IMPLEMENTATION.md` - Wallet & payments technical details
+- `FARCASTER_MINIAPP_GUIDE.md` - **Complete Farcaster Mini Apps integration guide** (Russian)
+- `worker/README.md` - Analytics backend documentation
 
 ---
 

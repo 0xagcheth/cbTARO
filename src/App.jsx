@@ -18,6 +18,13 @@ import {
   loadStats,
   getStatsKey
 } from './utils/analytics';
+import {
+  getUserContext,
+  triggerHaptic,
+  composeCast as miniAppComposeCast,
+  openUrl,
+  isInMiniApp as checkIsInMiniApp,
+} from './utils/miniapp';
 
 // Safety check for ethers
 if (typeof ethers === 'undefined') {
@@ -628,7 +635,14 @@ function TaroApp() {
 
   // Payment states
   const [txStatus, setTxStatus] = useState("idle"); // idle, paying, success, error
-  const [walletError, setWalletError] = useState(null); // null, "no_provider", "connection_failed", "wrong_chain", "payment_failed"
+  const [walletError, setWalletError] = useState(null); // null, "no_provider", "connection_failed", "wrong_chain", "payment_failed", "not_connected"
+  
+  // Session-based paid tracking to prevent double-charging
+  // Tracks which spreads have been paid for in this session
+  const [paidSpreads, setPaidSpreads] = useState({
+    THREE: false,
+    CUSTOM: false
+  });
   
   // Legacy state for compatibility (synced with wagmi)
   const [isWalletConnected, setIsWalletConnected] = useState(false);
@@ -713,18 +727,55 @@ function TaroApp() {
     setWalletAddress(address || null);
   }, [isConnected, address]);
 
-  // Diagnostic logging for mobile Mini App
+  // Check if we're in Farcaster Mini App environment
+  const isInMiniApp = window.isInMiniApp || false;
+  
+  // Initialize Mini App and get user context
   useEffect(() => {
-    console.log('🔍 [DIAGNOSTIC] App initialized:', {
-      location: window.location.href,
-      userAgent: navigator.userAgent,
-      isConnected,
-      address: address || 'not connected',
-      chainId: currentChainId || 'unknown',
-      connectors: connectors.length,
-      inMiniApp: window.isInMiniApp || false
-    });
-  }, [isConnected, address, currentChainId, connectors.length]);
+    async function initializeApp() {
+      console.log('🔍 [DIAGNOSTIC] App initialized:', {
+        location: window.location.href,
+        userAgent: navigator.userAgent,
+        isConnected,
+        address: address || 'not connected',
+        chainId: currentChainId || 'unknown',
+        connectors: connectors.length,
+        inMiniApp: isInMiniApp
+      });
+
+      // Get Farcaster user context if in Mini App
+      if (isInMiniApp) {
+        try {
+          const userContext = await getUserContext();
+          if (userContext) {
+            console.log('[miniapp] 👤 User context loaded:', {
+              fid: userContext.fid,
+              username: userContext.username,
+              displayName: userContext.displayName,
+              theme: userContext.theme,
+            });
+
+            // Store FID and pfp for analytics
+            if (userContext.fid) {
+              setFid(userContext.fid);
+            }
+            if (userContext.pfpUrl) {
+              setPfpUrl(userContext.pfpUrl);
+            }
+
+            // Auto-track visit with FID
+            if (userContext.fid && address) {
+              await trackVisit(userContext.fid, address);
+            }
+          }
+        } catch (error) {
+          console.error('[miniapp] Failed to get user context:', error);
+        }
+      }
+    }
+
+    initializeApp();
+  }, [isConnected, address, currentChainId, connectors.length, isInMiniApp]);
 
   // Handle transaction success/error
   useEffect(() => {
@@ -733,8 +784,14 @@ function TaroApp() {
       setTxHash(txData.hash);
       console.log('[payment] ✅ Transaction successful:', txData.hash);
       
-      // After successful payment, start the spread animation
+      // After successful payment, mark spread as paid and start the spread animation
       if (selectedSpread === "THREE" || selectedSpread === "CUSTOM") {
+        // Mark spread as paid for this session (prevents double-charging)
+        setPaidSpreads(prev => ({
+          ...prev,
+          [selectedSpread]: true
+        }));
+        
         // Log usage
         if (selectedSpread === "THREE") {
           usageLogger.increment("THREE");
@@ -857,8 +914,12 @@ function TaroApp() {
   // No need to duplicate here - main.jsx handles it after DOMContentLoaded and React render
 
 
-      // Function to play button sound
-      const playButtonSound = () => {
+      // Function to play button sound with haptic feedback
+      const playButtonSound = async () => {
+        // Haptic feedback for Farcaster Mini App
+        await triggerHaptic('light');
+        
+        // Audio feedback
         if (!soundEnabled) return;
         const audio = new Audio('./Assets/audio/tab.mp3');
         audio.volume = 0.3; // Set volume to 30%
@@ -1611,13 +1672,21 @@ Important: This must be a unique interpretation for this specific card spread. M
           usageLogger.increment("ONE");
           await startSpreadAnimation(spread);
         } else if (spread === "THREE") {
-          // Pay 0.0001 ETH each time for 3-card spread
+          // Pay 0.0001 ETH for 3-card spread
           try {
             // Check if wallet is connected
             if (!isConnected || !address) {
               setTxStatus("error");
               setWalletError('not_connected');
               alert("Please connect your wallet first");
+              return;
+            }
+
+            // Check if already paid in this session
+            if (paidSpreads.THREE) {
+              console.log('[payment] Already paid for THREE spread in this session, starting animation directly');
+              usageLogger.increment("THREE");
+              await startSpreadAnimation(spread);
               return;
             }
 
@@ -1636,7 +1705,7 @@ Important: This must be a unique interpretation for this specific card spread. M
             return;
           }
         } else if (spread === "CUSTOM") {
-          // Pay 0.0005 ETH for custom reading
+          // Pay 0.001 ETH for custom reading
           try {
             // Check if wallet is connected
             if (!isConnected || !address) {
@@ -1646,15 +1715,23 @@ Important: This must be a unique interpretation for this specific card spread. M
               return;
             }
 
+            // Check if already paid in this session
+            if (paidSpreads.CUSTOM) {
+              console.log('[payment] Already paid for CUSTOM spread in this session, starting animation directly');
+              usageLogger.increment("CUSTOM");
+              await startSpreadAnimation(spread);
+              return;
+            }
+
             // Ensure we're on Base network and send payment
-            await payETH("0.0005");
+            await payETH("0.001");
             // Transaction status will be handled by useEffect when txSuccess/txError changes
           } catch (error) {
             console.error("Payment failed:", error);
             setTxStatus("error");
             const errorMsg = error?.shortMessage || error?.message || "Payment failed";
             if (errorMsg.includes("user rejected") || errorMsg.includes("User rejected")) {
-              alert("Payment cancelled. Custom reading requires 0.0005 ETH payment.");
+              alert("Payment cancelled. Custom reading requires 0.001 ETH payment.");
             } else {
               alert(`Payment failed: ${errorMsg}`);
             }
@@ -1909,6 +1986,20 @@ Important: This must be a unique interpretation for this specific card spread. M
               Failed to connect wallet. Please try again.
             </div>
           )}
+          {!isInMiniApp && !isConnected && (
+            <div className="wallet-error-message" style={{
+              padding: '8px 12px',
+              margin: '8px 16px',
+              backgroundColor: 'rgba(33, 150, 243, 0.1)',
+              border: '1px solid rgba(33, 150, 243, 0.3)',
+              borderRadius: '4px',
+              fontSize: '12px',
+              color: '#2196f3',
+              textAlign: 'center'
+            }}>
+              💡 For best experience, open in Farcaster or Base app. Free tarot reading works everywhere!
+            </div>
+          )}
 
           <div className="taro-container">
 
@@ -2079,6 +2170,7 @@ Important: This must be a unique interpretation for this specific card spread. M
                             </div>
                           </div>
                         </div>
+                        <div className="spread-label">Free</div>
                       </div>
 
                       {/* Three cards on the right */}
@@ -2125,6 +2217,7 @@ Important: This must be a unique interpretation for this specific card spread. M
                             </div>
                           </div>
                         </div>
+                        <div className="spread-label">0.0001 ETH</div>
                       </div>
                     </div>
 
@@ -2164,6 +2257,9 @@ Important: This must be a unique interpretation for this specific card spread. M
                       rows={4}
                       disabled={isLoading}
                     />
+                      <div className="custom-modal-price-label">
+                        Custom Reading: 0.001 ETH
+                      </div>
                       <div className="custom-modal-actions">
                       <button
                           className="custom-modal-btn secondary"

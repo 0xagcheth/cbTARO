@@ -1,8 +1,12 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { WagmiProvider } from 'wagmi'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { wagmiConfig } from './wagmi'
 import App from './App.jsx'
+
+// Create QueryClient for wagmi
+const queryClient = new QueryClient()
 
 // Mobile WebView fixes script
 function setVH() {
@@ -28,74 +32,51 @@ window.addEventListener('orientationchange', function() {
 
 /**
  * Bootstrap Mini App SDK
- * Checks if app is running in Farcaster/Base Mini App and calls ready()
- * Uses @farcaster/miniapp-sdk from npm
+ * Uses utility module for complete SDK integration
  */
-let readyCalled = false; // Ensure ready() is called only once
+import { initMiniApp, isInMiniApp as checkIsInMiniApp, getMiniAppSDK } from './utils/miniapp';
 
 async function bootstrapMiniApp() {
-  // Prevent multiple calls
-  if (readyCalled) {
-    return;
-  }
-
   try {
-    // Import @farcaster/miniapp-sdk from npm
-    const mod = await import("@farcaster/miniapp-sdk");
-    const sdk = mod.default || mod.sdk || mod;
+    const inMiniApp = await checkIsInMiniApp();
     
-    if (!sdk) {
+    if (!inMiniApp) {
       if (import.meta.env.DEV) {
-        console.debug('[miniapp] SDK not found, running in regular browser');
+        console.debug('[miniapp] Not in Mini App environment');
       }
-      return { isInMiniApp: false, sdk: null };
+      return { isInMiniApp: false };
     }
+
+    // Initialize Mini App (calls ready())
+    const success = await initMiniApp();
     
-    // Check if we're in Mini App environment
-    const isInMiniApp = typeof sdk?.isInMiniApp === 'function' 
-      ? sdk.isInMiniApp() 
-      : false;
-    
-    if (!isInMiniApp) {
-      if (import.meta.env.DEV) {
-        console.debug('[miniapp] Not in Mini App environment, skipping ready()');
-      }
-      return { isInMiniApp: false, sdk: null };
-    }
-    
-    // Call ready() to hide splash screen
-    if (typeof sdk?.actions?.ready === 'function') {
-      try {
-        await sdk.actions.ready();
-        readyCalled = true;
-        console.log('[miniapp] ready() called');
-        
-        // Store SDK globally for use in app
-        window.miniAppSDK = sdk;
-        window.isInMiniApp = true;
-        
-        return { isInMiniApp: true, sdk };
-      } catch (error) {
-        console.warn('[miniapp] Failed to call ready():', error);
-        return { isInMiniApp: false, sdk: null };
-      }
+    if (success) {
+      // Store SDK globally for backwards compatibility
+      const sdk = await getMiniAppSDK();
+      window.miniAppSDK = sdk;
+      window.isInMiniApp = true;
+      
+      console.log('[miniapp] ✅ Mini App initialized successfully');
+      return { isInMiniApp: true, sdk };
     } else {
-      console.warn('[miniapp] sdk.actions.ready is not a function');
-      return { isInMiniApp: false, sdk: null };
+      console.warn('[miniapp] Failed to initialize Mini App');
+      return { isInMiniApp: false };
     }
   } catch (error) {
     console.warn('[miniapp] Error bootstrapping Mini App:', error);
-    return { isInMiniApp: false, sdk: null };
+    return { isInMiniApp: false };
   }
 }
 
-// Render React app with WagmiProvider
+// Render React app with QueryClientProvider + WagmiProvider
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <WagmiProvider config={wagmiConfig}>
-      <App />
-    </WagmiProvider>
+    <QueryClientProvider client={queryClient}>
+      <WagmiProvider config={wagmiConfig}>
+        <App />
+      </WagmiProvider>
+    </QueryClientProvider>
   </React.StrictMode>
 );
 
