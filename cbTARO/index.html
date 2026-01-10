@@ -25,7 +25,7 @@
     <link rel="preconnect" href="https://warpcast.com" />
     <link rel="preconnect" href="https://i.imgur.com" />
     <link rel="preconnect" href="https://res.cloudinary.com" />
-    <script type="module" crossorigin src="/cbTARO/assets/index-Be7OpX-P.js"></script>
+    <script type="module" crossorigin src="/cbTARO/assets/index-C-NiXvuE.js"></script>
   </head>
   <body>
     <div id="root"></div>
@@ -70,7 +70,7 @@
       });
     </script>
 
-    <!-- Farcaster SDK ready - handled in src/main.jsx via @farcaster/miniapp-sdk -->
+    <!-- ===== Mini App SDK (Farcaster) singleton ===== -->
 
     <script type="text/babel">
       const { useState, useEffect } = React;
@@ -875,53 +875,77 @@
           checkAndConnectWallet();
         }, [authState]); // Check wallet on mount and when authState changes
 
-        // STEP 5: Connect wallet - only called on button click, uses eth_requestAccounts
+        // Connect wallet - silent check first, then interactive request
         const connectWallet = async () => {
-          console.log('[wallet] 🔗 Connect button clicked - requesting accounts...');
-          const provider = await getEthereumProvider();
-          
-          if (!provider) {
-            // Show user-friendly message instead of alert
+          const ethProvider = await getEthereumProvider();
+          if (!ethProvider) {
             setAuthState('error');
             console.warn('[wallet] No wallet provider found. Open in Farcaster/Base app or install MetaMask.');
             return null;
           }
 
           try {
-            // Don't show spinner if we have cached avatar
+            // 1) silent check
+            const existing = await ethProvider.request({ method: 'eth_accounts' });
+            if (existing?.length) {
+              const provider = new ethers.providers.Web3Provider(ethProvider, 'any');
+              const signer = provider.getSigner();
+              const address = existing[0];
+
+              setIsWalletConnected(true);
+              setWalletAddress(address);
+              
+              // Don't show spinner if we have cached avatar
+              if (!profile?.pfpUrl) {
+                setAuthState('wallet_connected_fetching_profile');
+              }
+              
+              // Resolve profile (non-blocking)
+              resolveFarcasterProfileByAddress(address).then((resolvedProfile) => {
+                if (resolvedProfile?.fid) {
+                  setProfile(resolvedProfile);
+                  saveProfileCache(resolvedProfile);
+                  setAuthState('wallet_connected_profile_ready');
+                } else {
+                  setAuthState('wallet_connected_profile_ready');
+                }
+              }).catch(() => {
+                setAuthState('wallet_connected_profile_ready');
+              });
+
+              return { provider, signer, address };
+            }
+
+            // 2) interactive request (from user click)
             if (!profile?.pfpUrl) {
               setAuthState('wallet_connected_fetching_profile');
             }
             
-            // STEP 5: Only use eth_requestAccounts on button click (shows prompt)
-            console.log('[wallet] Requesting eth_requestAccounts (will show prompt)...');
-            const accounts = await provider.request({ method: 'eth_requestAccounts' });
-            
-            if (!accounts || accounts.length === 0) {
-              setAuthState('wallet_disconnected');
-              return null;
-            }
+            const accounts = await ethProvider.request({ method: 'eth_requestAccounts' });
 
-            const address = accounts[0];
+            const provider = new ethers.providers.Web3Provider(ethProvider, 'any');
+            const signer = provider.getSigner();
+            const address = accounts?.[0] || await signer.getAddress();
+
+            setIsWalletConnected(true);
             setWalletAddress(address);
             
-            // Resolve profile (non-blocking - keep showing cached avatar)
+            // Resolve profile (non-blocking)
             resolveFarcasterProfileByAddress(address).then((resolvedProfile) => {
               if (resolvedProfile?.fid) {
-                // Update profile and cache
                 setProfile(resolvedProfile);
                 saveProfileCache(resolvedProfile);
                 setAuthState('wallet_connected_profile_ready');
               } else {
-                setAuthState('wallet_connected_profile_ready'); // Connected but no profile
+                setAuthState('wallet_connected_profile_ready');
               }
             }).catch(() => {
-              setAuthState('wallet_connected_profile_ready'); // Error but keep showing cached
+              setAuthState('wallet_connected_profile_ready');
             });
 
-            return { address };
-          } catch (error) {
-            if (DEV) console.warn('⚠️ Wallet connection error:', error);
+            return { provider, signer, address };
+          } catch (e) {
+            console.error('Failed to connect wallet:', e);
             setAuthState('wallet_disconnected');
             return null;
           }
@@ -1044,27 +1068,25 @@
       // =====================================================
       
       // Get Ethereum provider (Farcaster SDK or browser)
-      // Simplified version that doesn't block app loading
+      // Uses singleton SDK - stable and reliable
       async function getEthereumProvider() {
-        // Try Farcaster Mini App SDK first (non-blocking)
+        // 1) Mini App provider first
         try {
-          const { sdk } = await import('https://esm.sh/@farcaster/miniapp-sdk@latest');
-          const provider = await sdk.wallet.getEthereumProvider();
-          if (provider) {
-            console.log('[wallet] ✅ Using Farcaster SDK provider');
-            return provider;
+          const p = await window.getFcEthereumProvider();
+          if (p) {
+            console.log('[wallet] ✅ Using Farcaster Mini App provider');
+            return p;
           }
-        } catch (error) {
-          // Not in Mini App or SDK not available - fallback to browser
-          console.log('[wallet] SDK not available, using browser provider');
+        } catch (e) {
+          console.log('[wallet] Mini App provider not available', e);
         }
-        
-        // Fallback to browser wallet (MetaMask, Coinbase, etc.)
+
+        // 2) Browser fallback
         if (window.ethereum) {
           console.log('[wallet] ✅ Using window.ethereum provider');
           return window.ethereum;
         }
-        
+
         console.warn('[wallet] ❌ No wallet provider found');
         return null;
       }
@@ -1150,8 +1172,16 @@
         useEffect(() => {
           const loadFarcasterContext = async () => {
             try {
-              // Try different SDK access patterns
-              const sdk = window.farcaster || window.farcasterSDK || window.sdk || window.FarcasterSDK;
+              // Use singleton SDK - stable and reliable
+              let sdk = null;
+              try {
+                sdk = await window.getFcSdk();
+              } catch (e) {
+                // Not in Mini App context or SDK import failed
+                console.log('📱 No Farcaster SDK found - running in regular browser');
+                setFcReady(true); // Mark as ready even if no SDK
+                return;
+              }
               
               if (!sdk) {
                 console.log('📱 No Farcaster SDK found - running in regular browser');
@@ -1262,7 +1292,7 @@
         // Function to play button sound
         const playButtonSound = () => {
           if (!soundEnabled) return;
-          const audio = new Audio('./public/Assets/audio/tab.mp3');
+          const audio = new Audio('./Assets/audio/tab.mp3');
           audio.volume = 0.3; // Set volume to 30%
           audio.play().catch(e => console.log('Audio play failed:', e));
         };
@@ -1270,7 +1300,7 @@
         // Function to play spread animation sound
         const playSpreadSound = () => {
           if (!soundEnabled) return;
-          const audio = new Audio('./public/Assets/audio/spread.mp3');
+          const audio = new Audio('./Assets/audio/spread.mp3');
           audio.volume = 0.4; // Set volume to 40%
           audio.play().catch(e => console.log('Audio play failed:', e));
         };
@@ -1449,10 +1479,15 @@
           return provider;
         };
 
-        // Check if running in Base App
+        // Check if running in Base App (more reliable detection)
         const isBaseApp = () => {
           const ua = navigator.userAgent.toLowerCase();
-          return ua.includes('base') || window.location.hostname.includes('base.org');
+          // Base app usually sends specific UA with 'baseapp' or 'base' + 'wallet'
+          const isBase = ua.includes('baseapp') || (ua.includes('base') && ua.includes('wallet'));
+          if (isBase) {
+            console.log('[base] Detected Base App, UA:', ua);
+          }
+          return isBase;
         };
 
         // Pay using Base Pay (for Base App) or regular ETH transaction (for Farcaster/browser)
@@ -1463,7 +1498,8 @@
           // Check if in Base App - use Base Pay (no signer needed)
           if (isBaseApp()) {
             try {
-              console.log('[payment] Using Base Pay for Base App');
+              const ua = navigator.userAgent.toLowerCase();
+              console.log('[payment] Using Base Pay for Base App, UA:', ua);
               // Dynamic import for Base Pay SDK
               const { pay, getPaymentStatus } = await import('https://esm.sh/@base-org/account@latest');
               
@@ -1501,6 +1537,7 @@
               }
             } catch (error) {
               console.error('[payment] Base Pay failed, falling back to regular transaction:', error);
+              console.log('[payment] Base Pay error details:', error.message);
               // Fallback to regular transaction if Base Pay fails
             }
           }
@@ -1754,20 +1791,25 @@ Got a real answer.
           try {
             playButtonSound();
 
-            // Get Farcaster Mini App SDK
-            const sdk = window.farcaster || window.farcasterSDK || window.sdk || window.FarcasterSDK;
+            // Get Farcaster Mini App SDK via singleton
+            let sdk = null;
+            try { 
+              sdk = await window.getFcSdk(); 
+            } catch (e) { 
+              sdk = null; 
+            }
             
-            if (!sdk || !sdk.actions || !sdk.actions.composeCast) {
+            if (!sdk?.actions?.composeCast) {
               // Fallback to Farcaster compose URL if SDK not available
               console.warn('Farcaster Mini App SDK not available, using fallback');
-            const shareText = getShareText(selectedSpread);
-            const baseShare = "https://0xagcheth.github.io/cbTARO/share";
-            // Cache-bust parameter: v=Date.now() forces embed refresh (prevents caching)
-            const shareUrl = `${baseShare}?v=${Date.now()}`;
-            // shareUrl must be the last line with NO trailing whitespace
-            const finalText = `${shareText.trim()}\n${shareUrl}`;
-            // Fallback: open Farcaster compose with text (castText already contains shareUrl)
-            window.open(`https://farcaster.xyz/~/compose?text=${encodeURIComponent(finalText)}`, "_blank");
+              const shareText = getShareText(selectedSpread);
+              const baseShare = "https://0xagcheth.github.io/cbTARO/share";
+              // Cache-bust parameter: v=Date.now() forces embed refresh (prevents caching)
+              const shareUrl = `${baseShare}?v=${Date.now()}`;
+              // shareUrl must be the last line with NO trailing whitespace
+              const finalText = `${shareText.trim()}\n${shareUrl}`;
+              // Fallback: open Farcaster compose with text (castText already contains shareUrl)
+              window.open(`https://farcaster.xyz/~/compose?text=${encodeURIComponent(finalText)}`, "_blank");
               return;
             }
 
@@ -5854,7 +5896,7 @@ Important: This must be a unique interpretation for this specific card spread. M
     }
   </style>
 
-  <!-- Farcaster Mini App SDK - call ready() IMMEDIATELY -->
-  <!-- According to: https://miniapps.farcaster.xyz/docs/getting-started#making-your-app-display -->
+  <!-- Farcaster Mini App SDK ready() is now handled in singleton module above -->
+  <!-- No need for duplicate ready() call here -->
 </body>
 </html>
