@@ -20,6 +20,7 @@
     "ogDescription": "Draw a tarot card and share your mystical reading on Farcaster.",
     "ogImageUrl": "https://0xagcheth.github.io/cbTARO/og.png",
     "buttonTitle": "Open cbTARO",
-    "imageUrl": "https://0xagcheth.github.io/cbTARO/og.png"
+    "imageUrl": "https://0xagcheth.github.io/cbTARO/og.png",
+    "castShareUrl": "https://0xagcheth.github.io/cbTARO/share"
   }
 }
