@@ -75,6 +75,37 @@
     <script type="text/babel">
       const { useState, useEffect } = React;
 
+      // =====================================================
+      // STEP 1: DIAGNOSTICS - Check Mini App context
+      // =====================================================
+      // According to: https://miniapps.farcaster.xyz/docs/guides/wallets
+      console.log('[miniapp] 🔍 DIAGNOSTICS START');
+      console.log('[miniapp] location:', location.href);
+      console.log('[miniapp] has fc sdk:', typeof window.farcasterSDK !== 'undefined');
+      console.log('[miniapp] has window.farcaster:', typeof window.farcaster !== 'undefined');
+      console.log('[miniapp] has ethereum:', typeof window.ethereum !== 'undefined');
+      console.log('[miniapp] userAgent:', navigator.userAgent);
+      
+      // Try to detect Mini App SDK
+      (async () => {
+        try {
+          const { sdk } = await import('https://esm.sh/@farcaster/miniapp-sdk@latest');
+          console.log('[miniapp] ✅ SDK imported successfully');
+          console.log('[miniapp] SDK has wallet:', typeof sdk.wallet !== 'undefined');
+          console.log('[miniapp] SDK has actions:', typeof sdk.actions !== 'undefined');
+          
+          // Check if we can get provider
+          try {
+            const provider = await sdk.wallet.getEthereumProvider();
+            console.log('[miniapp] ✅ SDK wallet provider available:', !!provider);
+          } catch (e) {
+            console.log('[miniapp] ⚠️ SDK wallet provider not available:', e.message);
+          }
+          } catch (error) {
+          console.log('[miniapp] ❌ SDK import failed:', error.message);
+        }
+      })();
+
       // Read shared cast parameters from URL or localStorage
       (function() {
         try {
@@ -864,10 +895,12 @@
             }
           };
 
-          checkAndConnectWallet();
-        }, [authState]); // Removed isMiniApp from deps - check wallet in all environments
+          checkWallet();
+        }, [authState]); // Check wallet on mount and when authState changes
 
+        // STEP 5: Connect wallet - only called on button click, uses eth_requestAccounts
         const connectWallet = async () => {
+          console.log('[wallet] 🔗 Connect button clicked - requesting accounts...');
           const provider = await getEthereumProvider();
           
           if (!provider) {
@@ -883,6 +916,8 @@
               setAuthState('wallet_connected_fetching_profile');
             }
             
+            // STEP 5: Only use eth_requestAccounts on button click (shows prompt)
+            console.log('[wallet] Requesting eth_requestAccounts (will show prompt)...');
             const accounts = await provider.request({ method: 'eth_requestAccounts' });
             
             if (!accounts || accounts.length === 0) {
@@ -1031,24 +1066,39 @@
       // According to: https://miniapps.farcaster.xyz/docs/guides/wallets
       // =====================================================
       
-      // Get Ethereum provider (Farcaster SDK or browser)
-      async function getEthereumProvider() {
-        // Try Farcaster Mini App SDK first
-        // According to: https://miniapps.farcaster.xyz/docs/guides/wallets
+      // Check if we're in Mini App context
+      // According to: https://miniapps.farcaster.xyz/docs/guides/wallets
+      async function isInMiniAppContext() {
         try {
           const { sdk } = await import('https://esm.sh/@farcaster/miniapp-sdk@latest');
+          // Try to get provider - if it works, we're in Mini App
           const provider = await sdk.wallet.getEthereumProvider();
           if (provider) {
-            console.log('[wallet] ✅ Using Farcaster SDK provider');
-            return provider;
+            console.log('[wallet] ✅ Confirmed: In Mini App context');
+            return { sdk, provider, inMiniApp: true };
           }
         } catch (error) {
-          console.log('[wallet] Not in Farcaster Mini App, trying browser provider:', error.message);
+          console.log('[wallet] Not in Mini App context:', error.message);
+        }
+        return { sdk: null, provider: null, inMiniApp: false };
+      }
+
+      // Get Ethereum provider (Farcaster SDK or browser)
+      // STEP 3: Provider must be from SDK, not window.ethereum in Mini App
+      // According to: https://miniapps.farcaster.xyz/docs/guides/wallets
+      async function getEthereumProvider() {
+        // STEP 3: Always try SDK first - this is the native Farcaster Wallet
+        const { sdk, provider, inMiniApp } = await isInMiniAppContext();
+        
+        if (inMiniApp && provider) {
+          console.log('[wallet] ✅ Using Farcaster SDK provider (native wallet)');
+          return provider;
         }
         
-        // Fallback to browser wallet (MetaMask, Coinbase, etc.)
-        if (window.ethereum) {
-          console.log('[wallet] ✅ Using window.ethereum provider');
+        // STEP 3: Only use window.ethereum if NOT in Mini App
+        // This is critical - in Mini App we MUST use SDK provider
+        if (!inMiniApp && window.ethereum) {
+          console.log('[wallet] ✅ Using window.ethereum provider (browser)');
           return window.ethereum;
         }
         
@@ -1406,27 +1456,33 @@
           }
         };
 
+        // Ensure we're on Base network (8453)
+        // Uses getEthereumProvider() to get correct provider (SDK in Mini App, window.ethereum in browser)
         const ensureBase = async (provider) => {
           const network = await provider.getNetwork();
           if (network.chainId !== 8453) {
             try {
-              // Get the correct provider (Farcaster or browser)
+              console.log('[wallet] ⚠️ Not on Base network, switching...');
+              // Get the correct provider (Farcaster SDK or browser)
               const ethProvider = await getEthereumProvider();
               if (!ethProvider) {
                 throw new Error('No wallet provider found');
               }
               
+              console.log('[wallet] Requesting wallet_switchEthereumChain to Base...');
               await ethProvider.request({
                 method: 'wallet_switchEthereumChain',
-                params: [{ chainId: '0x2105' }],
+                params: [{ chainId: '0x2105' }], // Base mainnet
               });
               // Reload provider after network switch
+              console.log('[wallet] ✅ Switched to Base network');
               return new ethers.providers.Web3Provider(ethProvider);
             } catch (error) {
-              console.error('Failed to switch to Base network:', error);
+              console.error('[wallet] ❌ Failed to switch to Base network:', error);
               throw new Error('Please switch to Base network manually');
             }
           }
+          console.log('[wallet] ✅ Already on Base network');
           return provider;
         };
 
@@ -1946,6 +2002,7 @@ Important: This must be a unique interpretation for this specific card spread. M
             // Pay 0.001 ETH for custom reading
             try {
               setTxStatus("paying");
+              console.log('[payment] Starting custom spread payment...');
               const wallet = await connectWallet();
               if (!wallet) {
                 setTxStatus("error");
@@ -1953,9 +2010,11 @@ Important: This must be a unique interpretation for this specific card spread. M
                 return;
               }
 
+              console.log('[payment] Ensuring Base network...');
               const provider = await ensureBase(wallet.provider);
               const signer = provider.getSigner();
-
+              
+              console.log('[payment] Calling payETH(0.001 ETH)...');
               const result = await payETH(signer, 0.001);
               setTxHash(result.txHash);
               setTxStatus("success");
