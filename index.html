@@ -1482,17 +1482,33 @@
         // Function to play button sound
         const playButtonSound = () => {
           if (!soundEnabled) return;
-          const audio = new Audio('./Assets/audio/tab.mp3');
+          // Use absolute path for GitHub Pages compatibility
+          const audioPath = '/cbTARO/Assets/audio/tab.mp3';
+          const audio = new Audio(audioPath);
           audio.volume = 0.3; // Set volume to 30%
-          audio.play().catch(e => console.log('Audio play failed:', e));
+          audio.play().catch(e => {
+            console.log('Audio play failed:', e);
+            // Fallback: try relative path for local development
+            const fallbackAudio = new Audio('./Assets/audio/tab.mp3');
+            fallbackAudio.volume = 0.3;
+            fallbackAudio.play().catch(() => {});
+          });
         };
 
         // Function to play spread animation sound
         const playSpreadSound = () => {
           if (!soundEnabled) return;
-          const audio = new Audio('./Assets/audio/spread.mp3');
+          // Use absolute path for GitHub Pages compatibility
+          const audioPath = '/cbTARO/Assets/audio/spread.mp3';
+          const audio = new Audio(audioPath);
           audio.volume = 0.4; // Set volume to 40%
-          audio.play().catch(e => console.log('Audio play failed:', e));
+          audio.play().catch(e => {
+            console.log('Audio play failed:', e);
+            // Fallback: try relative path for local development
+            const fallbackAudio = new Audio('./Assets/audio/spread.mp3');
+            fallbackAudio.volume = 0.4;
+            fallbackAudio.play().catch(() => {});
+          });
         };
 
         // Wallet and payment functions
