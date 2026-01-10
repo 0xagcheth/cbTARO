@@ -36,10 +36,12 @@ export function buildShareText(baseText) {
   }
   
   // Append URL without any trailing space - ensure clean concatenation
+  // IMPORTANT: URL must be the very last characters, no trailing whitespace
   const cleanUrl = APP_URL.trim();
   text += cleanUrl;
   
-  // Final trim to remove any accidental trailing spaces
+  // Final trimEnd() to remove any accidental trailing spaces/newlines
+  // This ensures URL is the absolute last characters
   return text.trimEnd();
 }
 

@@ -1233,19 +1233,17 @@ Got a real answer.
        * IMPORTANT: appUrl must be in text (not only in embeds)
        */
       async function shareDailyTaro() {
-        const appUrl = "https://0xagcheth.github.io/cbTARO/";
+        const FRAME_URL = "https://0xagcheth.github.io/cbTARO/frame/";
         const baseText = `🃏 Daily Taro
 
 Today's card gave me a clear signal.
 Sometimes one card is all you need.
 
 🔮 Pulled with cbTARO on Base`;
-        
-        // IMPORTANT: appUrl must be appended to text so it appears as a visible line
-        // Ensure no trailing space after URL - trim both and join without any spaces
-        const cleanBaseText = baseText.trim();
-        const cleanAppUrl = appUrl.trim();
-        const finalText = `${cleanBaseText}\n${cleanAppUrl}`;
+
+        // IMPORTANT: FRAME_URL must be appended to text so Farcaster renders it as a Frame
+        // Ensure NO trailing whitespace after URL - URL must be the very last characters
+        const finalText = `${baseText}\n${FRAME_URL}`.trimEnd();
 
         try {
           // 1. Try Farcaster Mini App SDK first
@@ -1254,11 +1252,9 @@ Sometimes one card is all you need.
           
           if (isInMiniApp && sdk?.actions?.composeCast) {
             try {
-              // Ensure finalText has no trailing spaces - trim the entire string
-              const cleanFinalText = finalText.trimEnd();
+              // Do NOT include FRAME_URL in embeds - Farcaster will auto-detect it from text
               await sdk.actions.composeCast({
-                text: cleanFinalText,  // URL is in text, no trailing spaces
-                embeds: [cleanAppUrl]  // Use clean URL without spaces
+                text: finalText  // FRAME_URL in text will render as Frame preview
               });
               if (import.meta.env.DEV) {
                 console.debug('[cbTARO] Shared via Farcaster Mini App SDK');
@@ -1270,15 +1266,13 @@ Sometimes one card is all you need.
             }
           }
 
-          // 2. Fallback: Warpcast compose URL
+          // 2. Fallback: Farcaster compose URL
           try {
-            // Ensure finalText has no trailing spaces before encoding
-            const cleanFinalText = finalText.trimEnd();
-            const composeUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(cleanFinalText)}`;
+            const composeUrl = `https://farcaster.xyz/~/compose?text=${encodeURIComponent(finalText)}`;
             window.open(composeUrl, '_blank', 'noopener,noreferrer');
             return true;
           } catch (error) {
-            console.error('[cbTARO] Failed to open Warpcast compose:', error);
+            console.error('[cbTARO] Failed to open Farcaster compose:', error);
             return false;
           }
         } catch (error) {
