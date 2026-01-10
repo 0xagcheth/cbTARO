@@ -1078,14 +1078,12 @@
 
             const signer = provider.getSigner();
             const address = accounts?.[0] || await signer.getAddress();
+            
+            console.log('[wallet] ✅ Wallet connected successfully');
+            console.log('[wallet] Address:', address);
 
             setIsWalletConnected(true);
             setWalletAddress(address);
-            
-            // Don't show spinner if we have cached avatar
-            if (!profile?.pfpUrl) {
-              setAuthState('wallet_connected_fetching_profile');
-            }
             
             // Resolve profile (non-blocking - do not block wallet connection if fails)
             resolveFarcasterProfileByAddress(address).then((resolvedProfile) => {
@@ -1100,8 +1098,6 @@
               setAuthState('wallet_connected_profile_ready');
             });
 
-            console.log('[wallet] ✅ Wallet connected successfully');
-            console.log('[wallet] Address:', address);
             console.log('[wallet] ===== CONNECT WALLET END =====');
             
             return { provider, signer, address };
