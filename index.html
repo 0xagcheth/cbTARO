@@ -1429,9 +1429,63 @@
           return provider;
         };
 
+        // Check if running in Base App
+        const isBaseApp = () => {
+          const ua = navigator.userAgent.toLowerCase();
+          return ua.includes('base') || window.location.hostname.includes('base.org');
+        };
+
+        // Pay using Base Pay (for Base App) or regular ETH transaction (for Farcaster/browser)
+        // According to: https://docs.base.org/mini-apps/technical-guides/accept-payments
         const payETH = async (signer, amountETH) => {
           const TREASURY = '0xD4bF185c846F6CAbDaa34122d0ddA43765E754A6';
 
+          // Check if in Base App - use Base Pay
+          if (isBaseApp()) {
+            try {
+              console.log('[payment] Using Base Pay for Base App');
+              // Dynamic import for Base Pay SDK
+              const { pay, getPaymentStatus } = await import('https://esm.sh/@base-org/account@latest');
+              
+              // Convert ETH amount to USD (approximate, 1 ETH = $3000 for now)
+              // In production, you'd want to fetch real-time rate
+              const ETH_TO_USD = 3000;
+              const amountUSD = (parseFloat(amountETH) * ETH_TO_USD).toFixed(2);
+              
+              console.log(`[payment] Base Pay: ${amountUSD} USD to ${TREASURY}`);
+              
+              const payment = await pay({
+                amount: amountUSD,           // USD amount
+                to: TREASURY,                // recipient address
+                testnet: false               // mainnet (set true for testnet)
+              });
+              
+              console.log(`[payment] ✅ Base Pay sent! ID: ${payment.id}`);
+              
+              // Check payment status
+              const { status } = await getPaymentStatus({ 
+                id: payment.id,
+                testnet: false 
+              });
+              
+              if (status === 'completed') {
+                console.log('[payment] ✅ Base Pay confirmed!');
+                // Return in same format as regular transaction
+                return { 
+                  txHash: payment.id,  // Base Pay ID as txHash
+                  receipt: { status: 'completed' }
+                };
+              } else {
+                throw new Error(`Base Pay status: ${status}`);
+              }
+            } catch (error) {
+              console.error('[payment] Base Pay failed, falling back to regular transaction:', error);
+              // Fallback to regular transaction if Base Pay fails
+            }
+          }
+
+          // Regular ETH transaction (Farcaster or browser)
+          console.log('[payment] Using regular ETH transaction');
           const tx = await signer.sendTransaction({
             to: TREASURY,
             value: ethers.utils.parseEther(amountETH.toString())
