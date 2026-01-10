@@ -884,25 +884,27 @@
           }, 100);
         }, []);
 
-        // Auto-check wallet connection (works in both Farcaster and browser)
+        // Auto-check and connect wallet (ONLY wallet-based auth)
         // According to: https://miniapps.farcaster.xyz/docs/guides/wallets
-        // "If a user already has a connected wallet the connector will automatically connect to it"
+        // In Farcaster/Base app: sdk.wallet.getEthereumProvider() returns native wallet
+        // In browser: window.ethereum returns MetaMask/Coinbase
         useEffect(() => {
-          // IMPORTANT: In Farcaster Mini App, context (FID) and wallet (address) are separate!
-          // We need to check wallet even if we have Mini App context
-          // Skip only if wallet is already connected
+          // Skip if wallet is already connected
           if (authState === 'wallet_connected_profile_ready') return;
 
-          const checkWallet = async () => {
+          const checkAndConnectWallet = async () => {
+            console.log('[wallet] Starting wallet check...');
             const provider = await getEthereumProvider();
+            
             if (!provider) {
-              console.log('[wallet] No provider found, user needs to connect');
+              console.log('[wallet] ❌ No provider found');
               setAuthState('wallet_disconnected');
               return;
             }
 
             try {
-              console.log('[wallet] Checking for connected accounts...');
+              // Check if wallet is already connected (eth_accounts doesn't prompt)
+              console.log('[wallet] Checking eth_accounts...');
               const accounts = await provider.request({ method: 'eth_accounts' });
               if (accounts && accounts.length > 0) {
                 const address = accounts[0];
