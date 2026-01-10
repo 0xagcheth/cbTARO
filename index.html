@@ -1114,20 +1114,19 @@
             // Legacy code removed - SDK initialization is in main.jsx
             console.log('🔄 Component mounted');
 
-              // DISABLED: ready() is now called via ESM module at end of index.html
-              // const sdk = window.farcaster || window.farcasterSDK || window.sdk || window.FarcasterSDK;
-              // if (sdk && sdk.actions && typeof sdk.actions.ready === 'function') {
-              //   try {
-              //     sdk.actions.ready();
-              //     console.log('✅ Fallback: farcaster.actions.ready() called');
-              //   } catch (error) {
-              //     console.error('❌ Fallback SDK error:', error);
-              //   }
-              // } else if (window.parent !== window) {
-                console.log('📱 Fallback: iframe detected, sending ready message');
-                window.parent.postMessage({ type: 'ready' }, '*');
-              }
-            }
+            // DISABLED: ready() is now called via ESM module at end of index.html
+            // const sdk = window.farcaster || window.farcasterSDK || window.sdk || window.FarcasterSDK;
+            // if (sdk && sdk.actions && typeof sdk.actions.ready === 'function') {
+            //   try {
+            //     sdk.actions.ready();
+            //     console.log('✅ Fallback: farcaster.actions.ready() called');
+            //   } catch (error) {
+            //     console.error('❌ Fallback SDK error:', error);
+            //   }
+            // } else if (window.parent !== window) {
+            //   console.log('📱 Fallback: iframe detected, sending ready message');
+            //   window.parent.postMessage({ type: 'ready' }, '*');
+            // }
           }, 2000);
 
           return () => clearTimeout(timer);
