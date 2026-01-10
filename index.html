@@ -2723,37 +2723,7 @@ Important: This must be a unique interpretation for this specific card spread. M
     window.addEventListener('resize', updateViewportInfo);
     updateViewportInfo();
 
-    // Render app FIRST - don't block on anything
     root.render(<TaroApp />);
-    
-    // Run diagnostics AFTER app is rendered (non-blocking)
-    setTimeout(() => {
-      console.log('[miniapp] 🔍 DIAGNOSTICS START');
-      console.log('[miniapp] location:', location.href);
-      console.log('[miniapp] has fc sdk:', typeof window.farcasterSDK !== 'undefined');
-      console.log('[miniapp] has window.farcaster:', typeof window.farcaster !== 'undefined');
-      console.log('[miniapp] has ethereum:', typeof window.ethereum !== 'undefined');
-      console.log('[miniapp] userAgent:', navigator.userAgent);
-      
-      // Try to detect Mini App SDK (non-blocking)
-      (async () => {
-        try {
-          const { sdk } = await import('https://esm.sh/@farcaster/miniapp-sdk@latest');
-          console.log('[miniapp] ✅ SDK imported successfully');
-          console.log('[miniapp] SDK has wallet:', typeof sdk.wallet !== 'undefined');
-          console.log('[miniapp] SDK has actions:', typeof sdk.actions !== 'undefined');
-          
-          try {
-            const provider = await sdk.wallet.getEthereumProvider();
-            console.log('[miniapp] ✅ SDK wallet provider available:', !!provider);
-          } catch (e) {
-            console.log('[miniapp] ⚠️ SDK wallet provider not available:', e.message);
-          }
-        } catch (error) {
-          console.log('[miniapp] ❌ SDK import failed:', error.message);
-        }
-      })();
-    }, 500);
   </script>
 
   <style>
