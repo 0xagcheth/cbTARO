@@ -25,9 +25,33 @@
     <link rel="preconnect" href="https://warpcast.com" />
     <link rel="preconnect" href="https://i.imgur.com" />
     <link rel="preconnect" href="https://res.cloudinary.com" />
-    <script type="module" crossorigin src="/cbTARO/assets/index-C-NiXvuE.js"></script>
+    <script type="module" crossorigin src="/cbTARO/assets/index-CN0EeezY.js"></script>
   </head>
   <body>
+    <!-- ===== STEP 1: Boot + Error Instrumentation ===== -->
+    <script>
+      // Boot instrumentation - must be first
+      window.__CBTARO = { bootTs: Date.now() };
+      console.log('[BOOT] cbTARO boot at', new Date(window.__CBTARO.bootTs).toISOString());
+      console.log('[BOOT] location:', window.location.href);
+      console.log('[BOOT] userAgent:', navigator.userAgent);
+      
+      // Error logging
+      window.addEventListener('error', (event) => {
+        console.error('[BOOT] Global error:', {
+          message: event.message,
+          filename: event.filename,
+          lineno: event.lineno,
+          colno: event.colno,
+          error: event.error
+        });
+      });
+      
+      window.addEventListener('unhandledrejection', (event) => {
+        console.error('[BOOT] Unhandled promise rejection:', event.reason);
+      });
+    </script>
+
     <div id="root"></div>
     <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 
@@ -70,7 +94,17 @@
       });
     </script>
 
-    <!-- ===== Mini App SDK (Farcaster) singleton ===== -->
+    <!-- ===== STEP 2: Pin SDK Versions ===== -->
+    <script>
+      // Pin SDK versions - NO @latest
+      window.__SDK_URLS = {
+        fc: 'https://esm.sh/@farcaster/miniapp-sdk@0.2.1',
+        baseAccount: 'https://esm.sh/@base-org/account@1.0.0'
+      };
+      console.log('[BOOT] SDK URLs configured:', window.__SDK_URLS);
+    </script>
+
+    <!-- ===== STEP 3: Farcaster SDK Singleton Loader ===== -->
 
     <script type="text/babel">
       const { useState, useEffect } = React;
@@ -875,7 +909,7 @@
           checkAndConnectWallet();
         }, [authState]); // Check wallet on mount and when authState changes
 
-        // Connect wallet - silent check first, then interactive request
+        // ===== STEP 5: Connect Wallet Flow for Mobile WebView =====
         const connectWallet = async () => {
           const ethProvider = await getEthereumProvider();
           if (!ethProvider) {
@@ -884,13 +918,25 @@
             return null;
           }
 
+          // Log provider type
+          const isMiniAppProvider = window.__fc.provider === ethProvider;
+          console.log('[wallet] provider type:', isMiniAppProvider ? 'miniapp' : 'window.ethereum');
+
           try {
-            // 1) silent check
+            // Create ethers provider
+            const provider = new ethers.providers.Web3Provider(ethProvider, 'any');
+            
+            // First call eth_accounts (silent)
+            console.log('[wallet] calling eth_accounts (silent)...');
             const existing = await ethProvider.request({ method: 'eth_accounts' });
+            console.log('[wallet] eth_accounts result:', existing?.length || 0, 'accounts');
+            
             if (existing?.length) {
-              const provider = new ethers.providers.Web3Provider(ethProvider, 'any');
+              // If returns non-empty -> set connected state and return signer/address WITHOUT calling eth_requestAccounts
               const signer = provider.getSigner();
               const address = existing[0];
+              
+              console.log('[wallet] ✅ connected via eth_accounts:', address);
 
               setIsWalletConnected(true);
               setWalletAddress(address);
@@ -900,7 +946,7 @@
                 setAuthState('wallet_connected_fetching_profile');
               }
               
-              // Resolve profile (non-blocking)
+              // Resolve profile (non-blocking - do not block wallet connection if fails)
               resolveFarcasterProfileByAddress(address).then((resolvedProfile) => {
                 if (resolvedProfile?.fid) {
                   setProfile(resolvedProfile);
@@ -916,21 +962,23 @@
               return { provider, signer, address };
             }
 
-            // 2) interactive request (from user click)
-            if (!profile?.pfpUrl) {
-              setAuthState('wallet_connected_fetching_profile');
-            }
-            
+            // Only if empty -> call eth_requestAccounts (MUST happen on user gesture, so keep it inside button click path)
+            console.log('[wallet] calling eth_requestAccounts (interactive)...');
             const accounts = await ethProvider.request({ method: 'eth_requestAccounts' });
+            console.log('[wallet] eth_requestAccounts result:', accounts?.length || 0, 'accounts');
 
-            const provider = new ethers.providers.Web3Provider(ethProvider, 'any');
             const signer = provider.getSigner();
             const address = accounts?.[0] || await signer.getAddress();
 
             setIsWalletConnected(true);
             setWalletAddress(address);
             
-            // Resolve profile (non-blocking)
+            // Don't show spinner if we have cached avatar
+            if (!profile?.pfpUrl) {
+              setAuthState('wallet_connected_fetching_profile');
+            }
+            
+            // Resolve profile (non-blocking - do not block wallet connection if fails)
             resolveFarcasterProfileByAddress(address).then((resolvedProfile) => {
               if (resolvedProfile?.fid) {
                 setProfile(resolvedProfile);
@@ -945,7 +993,7 @@
 
             return { provider, signer, address };
           } catch (e) {
-            console.error('Failed to connect wallet:', e);
+            console.error('[wallet] Failed to connect wallet:', e);
             setAuthState('wallet_disconnected');
             return null;
           }
@@ -1168,24 +1216,16 @@
           return () => clearTimeout(timer);
         }, []);
 
-        // Farcaster Mini App context auto-detection
+        // ===== STEP 7: Farcaster Context Loader (stop window.* detection) =====
         useEffect(() => {
           const loadFarcasterContext = async () => {
             try {
-              // Use singleton SDK - stable and reliable
-              let sdk = null;
-              try {
-                sdk = await window.getFcSdk();
-              } catch (e) {
-                // Not in Mini App context or SDK import failed
-                console.log('📱 No Farcaster SDK found - running in regular browser');
-                setFcReady(true); // Mark as ready even if no SDK
-                return;
-              }
+              // Use singleton SDK - stop window.* detection
+              const sdk = await window.loadFcSdk();
               
               if (!sdk) {
                 console.log('📱 No Farcaster SDK found - running in regular browser');
-                setFcReady(true); // Mark as ready even if no SDK
+                setFcReady(true); // Always mark as ready
                 return;
               }
 
@@ -1258,7 +1298,9 @@
               setFcReady(true);
             } catch (error) {
               console.warn('⚠️ Error loading Farcaster context (non-fatal):', error);
-              setFcReady(true); // Mark as ready even on error
+            } finally {
+              // Never mark fcReady=false forever; always set fcReady(true) in finally
+              setFcReady(true);
             }
           };
 
@@ -1449,34 +1491,37 @@
           }
         };
 
-        // Ensure we're on Base network (8453)
-        // Uses getEthereumProvider() to get correct provider (SDK in Mini App, window.ethereum in browser)
-        const ensureBase = async (provider) => {
-          const network = await provider.getNetwork();
+        // ===== STEP 6: Ensure Base Network (do NOT re-fetch provider internally) =====
+        // Accepts BOTH ethersProvider and ethProvider to avoid re-fetching
+        const ensureBase = async (ethersProvider, ethProvider) => {
+          const network = await ethersProvider.getNetwork();
+          console.log('[wallet] current chainId:', network.chainId);
+          
           if (network.chainId !== 8453) {
+            if (!ethProvider) {
+              throw new Error('ethProvider required for network switch');
+            }
+            
             try {
               console.log('[wallet] ⚠️ Not on Base network, switching...');
-              // Get the correct provider (Farcaster SDK or browser)
-              const ethProvider = await getEthereumProvider();
-              if (!ethProvider) {
-                throw new Error('No wallet provider found');
-              }
+              console.log('[wallet] attempting wallet_switchEthereumChain...');
               
-              console.log('[wallet] Requesting wallet_switchEthereumChain to Base...');
               await ethProvider.request({
                 method: 'wallet_switchEthereumChain',
                 params: [{ chainId: '0x2105' }], // Base mainnet
               });
-              // Reload provider after network switch
+              
+              // After switch return new ethers provider
               console.log('[wallet] ✅ Switched to Base network');
-              return new ethers.providers.Web3Provider(ethProvider);
+              return new ethers.providers.Web3Provider(ethProvider, 'any');
             } catch (error) {
               console.error('[wallet] ❌ Failed to switch to Base network:', error);
-              throw new Error('Please switch to Base network manually');
+              throw new Error('Please switch to Base in your wallet');
             }
           }
+          
           console.log('[wallet] ✅ Already on Base network');
-          return provider;
+          return ethersProvider;
         };
 
         // Check if running in Base App (more reliable detection)
@@ -1500,8 +1545,8 @@
             try {
               const ua = navigator.userAgent.toLowerCase();
               console.log('[payment] Using Base Pay for Base App, UA:', ua);
-              // Dynamic import for Base Pay SDK
-              const { pay, getPaymentStatus } = await import('https://esm.sh/@base-org/account@latest');
+              // Try importing @base-org/account using window.__SDK_URLS.baseAccount (pinned version)
+              const { pay, getPaymentStatus } = await import(window.__SDK_URLS.baseAccount);
               
               // Convert ETH amount to USD (approximate, 1 ETH = $3000 for now)
               // In production, you'd want to fetch real-time rate
@@ -1787,36 +1832,34 @@ Got a real answer.
           return `https://0xagcheth.github.io/cbTARO/public/${cleanPath}`;
         };
 
+        // ===== STEP 8: Fix Share composeCast (stop window.* detection) =====
         const handleShare = async () => {
           try {
             playButtonSound();
 
-            // Get Farcaster Mini App SDK via singleton
-            let sdk = null;
-            try { 
-              sdk = await window.getFcSdk(); 
-            } catch (e) { 
-              sdk = null; 
-            }
+            // Get Farcaster Mini App SDK via singleton (stop window.* detection)
+            const sdk = await window.loadFcSdk();
             
-            if (!sdk?.actions?.composeCast) {
+            // Check if composeCast is available
+            const hasComposeCast = sdk?.actions?.composeCast;
+            console.log('[share] composeCast available:', !!hasComposeCast);
+            
+            if (!hasComposeCast) {
               // Fallback to Farcaster compose URL if SDK not available
-              console.warn('Farcaster Mini App SDK not available, using fallback');
-              const shareText = getShareText(selectedSpread);
+              console.warn('[share] Farcaster Mini App SDK not available, using fallback');
+            const shareText = getShareText(selectedSpread);
               const baseShare = "https://0xagcheth.github.io/cbTARO/share";
-              // Cache-bust parameter: v=Date.now() forces embed refresh (prevents caching)
-              const shareUrl = `${baseShare}?v=${Date.now()}`;
-              // shareUrl must be the last line with NO trailing whitespace
+              // For debugging: use stable URL first (remove cache-bust temporarily)
+              const shareUrl = baseShare; // `${baseShare}?v=${Date.now()}`;
               const finalText = `${shareText.trim()}\n${shareUrl}`;
-              // Fallback: open Farcaster compose with text (castText already contains shareUrl)
               window.open(`https://farcaster.xyz/~/compose?text=${encodeURIComponent(finalText)}`, "_blank");
               return;
             }
 
             // Get card information
             const baseShare = "https://0xagcheth.github.io/cbTARO/share";
-            // Cache-bust parameter: v=Date.now() forces embed refresh (prevents caching)
-            const shareUrl = `${baseShare}?v=${Date.now()}`;
+            // For debugging: use stable URL first
+            const shareUrl = baseShare; // `${baseShare}?v=${Date.now()}`;
             let cardImageUrl = null;
             let cardSlug = "";
 
@@ -1834,20 +1877,20 @@ Got a real answer.
             }
 
             // IMPORTANT: shareUrl must be the last line with NO trailing whitespace/newlines
-            // This ensures Farcaster can properly detect and render the embed card
             const castText = `${shareText.trim()}\n${shareUrl}`;
 
-            // Build embeds array - shareUrl in embeds ensures embed card rendering
+            // For debugging reliability: temporarily set embeds to [shareUrl] only (remove cardImageUrl)
             const embeds = [shareUrl];
-            if (cardImageUrl) {
-              embeds.push(cardImageUrl);
-            }
+            // if (cardImageUrl) {
+            //   embeds.push(cardImageUrl);
+            // }
+            
+            console.log('[share] embeds array:', embeds);
 
             // Use Farcaster Mini App SDK to compose cast
-            // castText already contains shareUrl at the end, but embeds ensures preview
             await sdk.actions.composeCast({
               text: castText,
-              embeds: embeds  // shareUrl in embeds ensures embed card rendering
+              embeds: embeds
             });
 
           } catch (error) {
@@ -1978,7 +2021,9 @@ Important: This must be a unique interpretation for this specific card spread. M
                 return;
               }
 
-              const provider = await ensureBase(wallet.provider);
+              // Get ethProvider for ensureBase
+              const ethProvider = await getEthereumProvider();
+              const provider = await ensureBase(wallet.provider, ethProvider);
               const signer = provider.getSigner();
 
               const result = await payETH(signer, 0.0001);
@@ -2016,9 +2061,11 @@ Important: This must be a unique interpretation for this specific card spread. M
               }
 
               console.log('[payment] Ensuring Base network...');
-              const provider = await ensureBase(wallet.provider);
+              // Get ethProvider for ensureBase
+              const ethProvider = await getEthereumProvider();
+              const provider = await ensureBase(wallet.provider, ethProvider);
               const signer = provider.getSigner();
-              
+
               console.log('[payment] Calling payETH(0.001 ETH)...');
               const result = await payETH(signer, 0.001);
               setTxHash(result.txHash);
