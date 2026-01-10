@@ -35,7 +35,8 @@ export function buildShareText(baseText) {
     text = text.replace(/\n+$/, '\n\n');
   }
   
-  text += APP_URL;
+  // Append URL without any trailing space
+  text += APP_URL.trim();
   
   return text;
 }

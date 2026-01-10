@@ -1216,7 +1216,8 @@ Got a real answer.
         if (!reading) return null;
         
         // Format text: card name + description + app link
-        const text = `🔮 cbTARO reading: ${reading.name}\n\n${reading.text}\n\nOpen the app: ${APP_URL}`;
+        // Ensure no trailing space after URL
+        const text = `🔮 cbTARO reading: ${reading.name}\n\n${reading.text}\n\nOpen the app: ${APP_URL.trim()}`;
         
         // Embeds: first card image, then app URL (order matters)
         const embeds = [reading.imageUrl, APP_URL];
@@ -1241,7 +1242,8 @@ Sometimes one card is all you need.
 🔮 Pulled with cbTARO on Base`;
         
         // IMPORTANT: appUrl must be appended to text so it appears as a visible line
-        const finalText = `${baseText}\n${appUrl}`;
+        // Ensure no trailing space after URL
+        const finalText = `${baseText.trim()}\n${appUrl.trim()}`;
 
         try {
           // 1. Try Farcaster Mini App SDK first
