@@ -25,7 +25,7 @@
     <link rel="preconnect" href="https://warpcast.com" />
     <link rel="preconnect" href="https://i.imgur.com" />
     <link rel="preconnect" href="https://res.cloudinary.com" />
-    <script type="module" crossorigin src="/cbTARO/assets/index-CN0EeezY.js"></script>
+    <script type="module" crossorigin src="/cbTARO/assets/index-CJAKalba.js"></script>
   </head>
   <body>
     <!-- ===== STEP 1: Boot + Error Instrumentation ===== -->
@@ -911,16 +911,21 @@
 
         // ===== STEP 5: Connect Wallet Flow for Mobile WebView =====
         const connectWallet = async () => {
+          console.log('[wallet] ===== CONNECT WALLET (BUTTON CLICK) =====');
+          console.log('[wallet] connectWallet() called');
+          
           const ethProvider = await getEthereumProvider();
           if (!ethProvider) {
             setAuthState('error');
-            console.warn('[wallet] No wallet provider found. Open in Farcaster/Base app or install MetaMask.');
+            console.warn('[wallet] ❌ No wallet provider found. Open in Farcaster/Base app or install MetaMask.');
             return null;
           }
 
           // Log provider type
-          const isMiniAppProvider = window.__fc.provider === ethProvider;
+          const isMiniAppProvider = window.__fc?.provider === ethProvider;
           console.log('[wallet] provider type:', isMiniAppProvider ? 'miniapp' : 'window.ethereum');
+          console.log('[wallet] provider object:', ethProvider);
+          console.log('[wallet] provider has request:', typeof ethProvider.request === 'function');
 
           try {
             // Create ethers provider
@@ -991,10 +996,21 @@
               setAuthState('wallet_connected_profile_ready');
             });
 
+            console.log('[wallet] ✅ Wallet connected successfully');
+            console.log('[wallet] Address:', address);
+            console.log('[wallet] ===== CONNECT WALLET END =====');
+            
             return { provider, signer, address };
           } catch (e) {
-            console.error('[wallet] Failed to connect wallet:', e);
+            console.error('[wallet] ❌ Failed to connect wallet:', e);
+            console.error('[wallet] Error details:', {
+              message: e.message,
+              stack: e.stack,
+              name: e.name,
+              code: e.code
+            });
             setAuthState('wallet_disconnected');
+            console.log('[wallet] ===== CONNECT WALLET END (ERROR) =====');
             return null;
           }
         };
@@ -1115,26 +1131,47 @@
       // According to: https://miniapps.farcaster.xyz/docs/guides/wallets
       // =====================================================
       
-      // Get Ethereum provider (Farcaster SDK or browser)
-      // Uses singleton SDK - stable and reliable
+      // ===== STEP 4: Get Ethereum Provider with Deterministic Priority =====
+      // Do NOT do import() inside this function - only call singleton
       async function getEthereumProvider() {
-        // 1) Mini App provider first
+        console.log('[wallet] getEthereumProvider() called');
+        console.log('[wallet] window.fcProvider available:', typeof window.fcProvider === 'function');
+        console.log('[wallet] window.__fc state:', {
+          sdk: !!window.__fc?.sdk,
+          provider: !!window.__fc?.provider,
+          sdkPromise: !!window.__fc?.sdkPromise,
+          providerPromise: !!window.__fc?.providerPromise
+        });
+        
+        // First: try fcProvider() (Mini App provider)
         try {
-          const p = await window.getFcEthereumProvider();
+          console.log('[wallet] Attempting fcProvider()...');
+          const p = await window.fcProvider();
           if (p) {
-            console.log('[wallet] ✅ Using Farcaster Mini App provider');
+            console.log('[wallet] ✅ using fcProvider() - provider type:', typeof p);
+            console.log('[wallet] provider has request method:', typeof p.request === 'function');
             return p;
+          } else {
+            console.log('[wallet] fcProvider() returned null/undefined');
           }
         } catch (e) {
-          console.log('[wallet] Mini App provider not available', e);
+          console.log('[wallet] fcProvider() error:', e);
+          console.log('[wallet] Error details:', {
+            message: e.message,
+            stack: e.stack,
+            name: e.name
+          });
         }
 
-        // 2) Browser fallback
+        // Else fallback to window.ethereum with warning log
+        console.log('[wallet] Checking window.ethereum...');
         if (window.ethereum) {
-          console.log('[wallet] ✅ Using window.ethereum provider');
+          console.log('[wallet] ⚠️ fallback to window.ethereum');
+          console.log('[wallet] window.ethereum type:', typeof window.ethereum);
           return window.ethereum;
         }
 
+        // Else return null
         console.warn('[wallet] ❌ No wallet provider found');
         return null;
       }
