@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
+import { useAccount, useConnect, useSendTransaction, useChainId, useSwitchChain } from 'wagmi';
+import { parseEther } from 'viem';
 import { buildShareText, shareCast } from './utils/share';
 import { updateStreakOnVisit } from './utils/streak';
 import { 
@@ -613,11 +615,24 @@ function TaroApp() {
   const [adminStats, setAdminStats] = useState([]);
   const [isLoadingAdminStats, setIsLoadingAdminStats] = useState(false);
 
-  // Wallet and payment states
+  // Wagmi hooks for wallet connection
+  const { address, isConnected, chainId } = useAccount();
+  const { connect, connectors, error: connectError } = useConnect();
+  const { sendTransaction, isPending: isSendingTx, isSuccess: txSuccess, error: txError, data: txData } = useSendTransaction();
+  const currentChainId = useChainId();
+  const { switchChain } = useSwitchChain();
+
+  // Payment receiver address (TREASURY)
+  const RECEIVER_ADDRESS = '0xD4bF185c846F6CAbDaa34122d0ddA43765E754A6';
+  const BASE_CHAIN_ID = 8453;
+
+  // Payment states
+  const [txStatus, setTxStatus] = useState("idle"); // idle, paying, success, error
+  const [walletError, setWalletError] = useState(null); // null, "no_provider", "connection_failed", "wrong_chain", "payment_failed"
+  
+  // Legacy state for compatibility (synced with wagmi)
   const [isWalletConnected, setIsWalletConnected] = useState(false);
   const [walletAddress, setWalletAddress] = useState(null);
-  const [txStatus, setTxStatus] = useState("idle"); // idle, paying, success, error
-  const [walletError, setWalletError] = useState(null); // null, "no_provider", "connection_failed"
 
   // Farcaster states
   const [fid, setFid] = useState(null);
@@ -692,6 +707,55 @@ function TaroApp() {
     }
   }
 
+  // Sync wagmi state with local state
+  useEffect(() => {
+    setIsWalletConnected(isConnected);
+    setWalletAddress(address || null);
+  }, [isConnected, address]);
+
+  // Diagnostic logging for mobile Mini App
+  useEffect(() => {
+    console.log('🔍 [DIAGNOSTIC] App initialized:', {
+      location: window.location.href,
+      userAgent: navigator.userAgent,
+      isConnected,
+      address: address || 'not connected',
+      chainId: currentChainId || 'unknown',
+      connectors: connectors.length,
+      inMiniApp: window.isInMiniApp || false
+    });
+  }, [isConnected, address, currentChainId, connectors.length]);
+
+  // Handle transaction success/error
+  useEffect(() => {
+    if (txSuccess && txData) {
+      setTxStatus("success");
+      setTxHash(txData.hash);
+      console.log('[payment] ✅ Transaction successful:', txData.hash);
+      
+      // After successful payment, start the spread animation
+      if (selectedSpread === "THREE" || selectedSpread === "CUSTOM") {
+        // Log usage
+        if (selectedSpread === "THREE") {
+          usageLogger.increment("THREE");
+        } else if (selectedSpread === "CUSTOM") {
+          usageLogger.increment("CUSTOM");
+        }
+        
+        // Small delay to show success, then start animation
+        setTimeout(() => {
+          setTxStatus("idle");
+          startSpreadAnimation(selectedSpread);
+        }, 2000);
+      }
+    } else if (txError) {
+      setTxStatus("error");
+      const errorMsg = txError.shortMessage || txError.message;
+      console.error('[payment] ❌ Transaction failed:', errorMsg);
+      setWalletError('payment_failed');
+    }
+  }, [txSuccess, txError, txData, selectedSpread]);
+
   // Update daily streak on mount and track visit
   // Also restore lastReading from localStorage
   useEffect(() => {
@@ -720,7 +784,7 @@ function TaroApp() {
           setSharedFromCast(false);
         }, 5000);
       }
-    } catch (error) {
+              } catch (error) {
       console.warn('[cbTARO] Failed to check shared params:', error);
     }
     
@@ -884,44 +948,8 @@ function TaroApp() {
         }
       };
 
-      // Wallet and payment functions
-      const connectWallet = async () => {
-        // Clear previous error
-        setWalletError(null);
-
-        // Get EIP-1193 provider (Farcaster SDK or window.ethereum)
-        const eip1193Provider = await getEip1193Provider();
-        
-        if (!eip1193Provider) {
-          // No provider available - show UI message instead of alert
-          setWalletError('no_provider');
-          console.warn('[wallet] Wallet provider not found. Open in Farcaster/Base or install MetaMask.');
-          return null;
-        }
-
-        try {
-          const accounts = await eip1193Provider.request({ method: 'eth_requestAccounts' });
-          if (!accounts || accounts.length === 0) {
-            setWalletError('connection_failed');
-            return null;
-          }
-
-          // Create ethers provider from EIP-1193 provider
-          const provider = new ethers.providers.Web3Provider(eip1193Provider);
-          const signer = provider.getSigner();
-          const address = await signer.getAddress();
-
-          setIsWalletConnected(true);
-          setWalletAddress(address);
-          setWalletError(null); // Clear error on success
-
-          return { provider, signer, address };
-        } catch (error) {
-          console.error('Failed to connect wallet:', error);
-          setWalletError('connection_failed');
-          return null;
-        }
-      };
+      // Wallet connection is now handled by Wagmi hooks
+      // No need for manual connectWallet function - use handleConnect() instead
 
       /**
        * Resolve Farcaster identity from Mini App SDK context
@@ -978,124 +1006,77 @@ function TaroApp() {
         }
       };
 
-      // Handle connect button click
+      // Handle connect button click using Wagmi
       const handleConnect = async () => {
         playButtonSound();
-        const result = await connectWallet();
-        if (result?.address) {
-          await resolveFarcasterIdentity(result.address);
+        setWalletError(null);
+
+        // Wagmi connector automatically connects to Farcaster/Base wallet
+        // No wallet selection dialog needed - Farcaster handles it
+        if (connectors.length > 0) {
+          try {
+            connect({ connector: connectors[0] });
+            // After connection, resolve Farcaster identity
+            if (address) {
+              await resolveFarcasterIdentity(address);
+            }
+          } catch (error) {
+            console.error('[wallet] Connect failed:', error);
+            setWalletError('connection_failed');
+          }
+        } else {
+          setWalletError('no_provider');
         }
       };
 
-      // Auto-connect wallet in Mini App (Farcaster/Base) при загрузке
-      // В Mini App кошелек должен подключаться автоматически
+      // Auto-connect in Mini App using Wagmi
+      // According to docs: connector automatically connects if wallet already connected
       useEffect(() => {
-        const autoConnectWallet = async () => {
-          // Проверяем, что мы в Mini App
-          if (!isInMiniAppEnvironment()) {
-            console.log('[wallet] Not in Mini App - skipping auto-connect');
-            return;
-          }
+        // Wagmi connector handles auto-connect automatically
+        // Just resolve identity if already connected
+        if (isConnected && address) {
+          resolveFarcasterIdentity(address);
+        }
+      }, [isConnected, address]);
 
+      // Ensure we're on Base network using Wagmi
+      const ensureBase = async () => {
+        if (currentChainId !== BASE_CHAIN_ID) {
           try {
-            console.log('[wallet] 🔄 Auto-connecting wallet in Mini App...');
-            
-            // Получаем провайдер из SDK
-            const provider = await getEip1193Provider();
-            if (!provider) {
-              console.warn('[wallet] ⚠️ No provider available in Mini App');
-              setWalletError('no_provider');
-              return;
-            }
-
-            // Проверяем, подключен ли уже кошелек
-            try {
-              const accounts = await provider.request({ method: 'eth_accounts' });
-              
-              if (accounts && accounts.length > 0) {
-                // Кошелек уже подключен - используем его
-                console.log('[wallet] ✅ Wallet already connected, using it');
-                
-                const ethersProvider = new ethers.providers.Web3Provider(provider);
-                const signer = ethersProvider.getSigner();
-                const address = await signer.getAddress();
-
-                setIsWalletConnected(true);
-                setWalletAddress(address);
-                setWalletError(null);
-
-                // Получаем информацию о пользователе
-                await resolveFarcasterIdentity(address);
-                
-                console.log('[wallet] ✅ Auto-connected successfully:', address);
-              } else {
-                // Кошелек не подключен - пытаемся подключить
-                console.log('[wallet] 🔄 Requesting wallet connection...');
-                const requestedAccounts = await provider.request({ method: 'eth_requestAccounts' });
-                
-                if (requestedAccounts && requestedAccounts.length > 0) {
-                  const ethersProvider = new ethers.providers.Web3Provider(provider);
-                  const signer = ethersProvider.getSigner();
-                  const address = await signer.getAddress();
-
-                  setIsWalletConnected(true);
-                  setWalletAddress(address);
-                  setWalletError(null);
-
-                  await resolveFarcasterIdentity(address);
-                  
-                  console.log('[wallet] ✅ Wallet connected successfully:', address);
-                }
-              }
-            } catch (error) {
-              console.error('[wallet] ❌ Error during auto-connect:', error);
-              setWalletError('connection_failed');
+            if (switchChain) {
+              await switchChain({ chainId: BASE_CHAIN_ID });
+              console.log('[wallet] ✅ Switched to Base network');
+            } else {
+              throw new Error('Switch chain not available');
             }
           } catch (error) {
-            console.error('[wallet] ❌ Auto-connect failed:', error);
-            setWalletError('no_provider');
-          }
-        };
-
-        // Ждем немного для инициализации SDK
-        const timer = setTimeout(autoConnectWallet, 500);
-        return () => clearTimeout(timer);
-      }, []); // Запускается один раз при монтировании
-
-      const ensureBase = async (provider) => {
-        const network = await provider.getNetwork();
-        if (network.chainId !== 8453) {
-          try {
-            // Get EIP-1193 provider for network switching
-            const eip1193Provider = await getEip1193Provider();
-            if (!eip1193Provider) {
-              throw new Error('No wallet provider available for network switch');
-            }
-
-            await eip1193Provider.request({
-              method: 'wallet_switchEthereumChain',
-              params: [{ chainId: '0x2105' }],
-            });
-            // Reload provider after network switch
-            return new ethers.providers.Web3Provider(eip1193Provider);
-          } catch (error) {
-            console.error('Failed to switch to Base network:', error);
+            console.error('[wallet] ❌ Failed to switch to Base:', error);
+            setWalletError('wrong_chain');
             throw new Error('Please switch to Base network manually');
           }
         }
-        return provider;
       };
 
-      const payETH = async (signer, amountETH) => {
-        const TREASURY = '0xD4bF185c846F6CAbDaa34122d0ddA43765E754A6';
+      // Send payment using Wagmi
+      const payETH = async (amountETH) => {
+        try {
+          // Ensure we're on Base network
+          await ensureBase();
 
-        const tx = await signer.sendTransaction({
-          to: TREASURY,
-          value: ethers.utils.parseEther(amountETH.toString())
-        });
-        const receipt = await tx.wait();
+          // Send transaction using Wagmi
+          sendTransaction({
+            to: RECEIVER_ADDRESS,
+            value: parseEther(amountETH),
+          });
 
-        return { txHash: tx.hash, receipt };
+          setTxStatus("paying");
+          console.log('[payment] 💸 Sending payment:', amountETH, 'ETH to', RECEIVER_ADDRESS);
+        } catch (error) {
+          console.error('[payment] ❌ Payment failed:', error);
+          setTxStatus("error");
+          setWalletError('payment_failed');
+          throw error;
+        }
       };
 
 
@@ -1632,72 +1613,50 @@ Important: This must be a unique interpretation for this specific card spread. M
         } else if (spread === "THREE") {
           // Pay 0.0001 ETH each time for 3-card spread
           try {
-            setTxStatus("paying");
-            const wallet = await connectWallet();
-            if (!wallet) {
+            // Check if wallet is connected
+            if (!isConnected || !address) {
               setTxStatus("error");
+              setWalletError('not_connected');
               alert("Please connect your wallet first");
               return;
             }
 
-            const provider = await ensureBase(wallet.provider);
-            const signer = provider.getSigner();
-
-            const result = await payETH(signer, 0.0001);
-            setTxHash(result.txHash);
-            setTxStatus("success");
-
-            // Log usage and start animation
-            usageLogger.increment("THREE");
-
-            // Small delay to show success
-            setTimeout(() => {
-              setTxStatus("idle");
-              startSpreadAnimation(spread);
-            }, 2000);
+            // Ensure we're on Base network and send payment
+            await payETH("0.0001");
+            // Transaction status will be handled by useEffect when txSuccess/txError changes
           } catch (error) {
             console.error("Payment failed:", error);
             setTxStatus("error");
-            if (error.message.includes("user rejected")) {
+            const errorMsg = error?.shortMessage || error?.message || "Payment failed";
+            if (errorMsg.includes("user rejected") || errorMsg.includes("User rejected")) {
               alert("Payment cancelled. 3-card reading requires 0.0001 ETH payment.");
             } else {
-              alert(`Payment failed: ${error.message}`);
+              alert(`Payment failed: ${errorMsg}`);
             }
             return;
           }
         } else if (spread === "CUSTOM") {
           // Pay 0.0005 ETH for custom reading
           try {
-            setTxStatus("paying");
-            const wallet = await connectWallet();
-            if (!wallet) {
+            // Check if wallet is connected
+            if (!isConnected || !address) {
               setTxStatus("error");
+              setWalletError('not_connected');
               alert("Please connect your wallet first");
               return;
             }
 
-            const provider = await ensureBase(wallet.provider);
-            const signer = provider.getSigner();
-
-            const result = await payETH(signer, 0.0005);
-            setTxHash(result.txHash);
-            setTxStatus("success");
-
-            // Log usage and start animation
-            usageLogger.increment("CUSTOM");
-
-            // Small delay to show success
-            setTimeout(() => {
-              setTxStatus("idle");
-              startSpreadAnimation(spread);
-            }, 2000);
+            // Ensure we're on Base network and send payment
+            await payETH("0.0005");
+            // Transaction status will be handled by useEffect when txSuccess/txError changes
           } catch (error) {
             console.error("Payment failed:", error);
             setTxStatus("error");
-            if (error.message.includes("user rejected")) {
+            const errorMsg = error?.shortMessage || error?.message || "Payment failed";
+            if (errorMsg.includes("user rejected") || errorMsg.includes("User rejected")) {
               alert("Payment cancelled. Custom reading requires 0.0005 ETH payment.");
             } else {
-              alert(`Payment failed: ${error.message}`);
+              alert(`Payment failed: ${errorMsg}`);
             }
             return;
           }

@@ -1,5 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
+import { WagmiProvider } from 'wagmi'
+import { wagmiConfig } from './wagmi'
 import App from './App.jsx'
 
 // Mobile WebView fixes script
@@ -87,11 +89,13 @@ async function bootstrapMiniApp() {
   }
 }
 
-// Render React app first
+// Render React app with WagmiProvider
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <App />
+    <WagmiProvider config={wagmiConfig}>
+      <App />
+    </WagmiProvider>
   </React.StrictMode>
 );
 
