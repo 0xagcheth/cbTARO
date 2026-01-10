@@ -883,22 +883,29 @@
           }, 100);
         }, []);
 
-        // Auto-check wallet connection in browser mode (non-blocking)
+        // Auto-check wallet connection (works in both Farcaster and browser)
+        // According to: https://miniapps.farcaster.xyz/docs/guides/wallets
+        // "If a user already has a connected wallet the connector will automatically connect to it"
         useEffect(() => {
-          if (isMiniApp || authState === 'miniapp_authed') return;
+          // Skip if already authenticated via Mini App SDK context
+          if (authState === 'miniapp_authed') return;
 
           const checkWallet = async () => {
             const provider = await getEthereumProvider();
             if (!provider) {
+              console.log('[wallet] No provider found, user needs to connect');
               setAuthState('wallet_disconnected');
               return;
             }
 
             try {
+              console.log('[wallet] Checking for connected accounts...');
               const accounts = await provider.request({ method: 'eth_accounts' });
               if (accounts && accounts.length > 0) {
                 const address = accounts[0];
+                console.log('[wallet] ✅ Wallet already connected:', address);
                 setWalletAddress(address);
+                setIsWalletConnected(true);
                 
                 // Don't change state to fetching - keep showing cached avatar if available
                 // Only update state if we don't have a profile yet
@@ -922,6 +929,7 @@
                   setAuthState('wallet_connected_profile_ready'); // Error but keep showing cached
                 });
               } else {
+                console.log('[wallet] No connected accounts found');
                 setAuthState('wallet_disconnected');
               }
             } catch (error) {
@@ -931,7 +939,7 @@
           };
 
           checkWallet();
-        }, [isMiniApp, authState]);
+        }, [authState]); // Removed isMiniApp from deps - check wallet in all environments
 
         const connectWallet = async () => {
           const provider = await getEthereumProvider();
@@ -1099,25 +1107,26 @@
       
       // Get Ethereum provider (Farcaster SDK or browser)
       async function getEthereumProvider() {
-        // Check if in Farcaster Mini App
+        // Try Farcaster Mini App SDK first
+        // According to: https://miniapps.farcaster.xyz/docs/guides/wallets
         try {
           const { sdk } = await import('https://esm.sh/@farcaster/miniapp-sdk@latest');
-          if (sdk && sdk.context) {
-            // In Farcaster Mini App: use SDK provider
-            console.log('[wallet] Using Farcaster SDK provider');
-            return await sdk.wallet.getEthereumProvider();
+          const provider = await sdk.wallet.getEthereumProvider();
+          if (provider) {
+            console.log('[wallet] ✅ Using Farcaster SDK provider');
+            return provider;
           }
         } catch (error) {
-          console.log('[wallet] Not in Farcaster, using browser provider');
+          console.log('[wallet] Not in Farcaster Mini App, trying browser provider:', error.message);
         }
         
-        // In browser: use window.ethereum (MetaMask, Coinbase, etc.)
+        // Fallback to browser wallet (MetaMask, Coinbase, etc.)
         if (window.ethereum) {
-          console.log('[wallet] Using window.ethereum provider');
+          console.log('[wallet] ✅ Using window.ethereum provider');
           return window.ethereum;
         }
         
-        console.warn('[wallet] No wallet provider found');
+        console.warn('[wallet] ❌ No wallet provider found');
         return null;
       }
 
