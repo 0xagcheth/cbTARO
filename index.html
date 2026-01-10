@@ -1038,39 +1038,25 @@
       // According to: https://miniapps.farcaster.xyz/docs/guides/wallets
       // =====================================================
       
-      // Check if we're in Mini App context
-      // According to: https://miniapps.farcaster.xyz/docs/guides/wallets
-      async function isInMiniAppContext() {
+      // Get Ethereum provider (Farcaster SDK or browser)
+      // Simplified version that doesn't block app loading
+      async function getEthereumProvider() {
+        // Try Farcaster Mini App SDK first (non-blocking)
         try {
           const { sdk } = await import('https://esm.sh/@farcaster/miniapp-sdk@latest');
-          // Try to get provider - if it works, we're in Mini App
           const provider = await sdk.wallet.getEthereumProvider();
           if (provider) {
-            console.log('[wallet] ✅ Confirmed: In Mini App context');
-            return { sdk, provider, inMiniApp: true };
+            console.log('[wallet] ✅ Using Farcaster SDK provider');
+            return provider;
           }
         } catch (error) {
-          console.log('[wallet] Not in Mini App context:', error.message);
-        }
-        return { sdk: null, provider: null, inMiniApp: false };
-      }
-
-      // Get Ethereum provider (Farcaster SDK or browser)
-      // STEP 3: Provider must be from SDK, not window.ethereum in Mini App
-      // According to: https://miniapps.farcaster.xyz/docs/guides/wallets
-      async function getEthereumProvider() {
-        // STEP 3: Always try SDK first - this is the native Farcaster Wallet
-        const { sdk, provider, inMiniApp } = await isInMiniAppContext();
-        
-        if (inMiniApp && provider) {
-          console.log('[wallet] ✅ Using Farcaster SDK provider (native wallet)');
-          return provider;
+          // Not in Mini App or SDK not available - fallback to browser
+          console.log('[wallet] SDK not available, using browser provider');
         }
         
-        // STEP 3: Only use window.ethereum if NOT in Mini App
-        // This is critical - in Mini App we MUST use SDK provider
-        if (!inMiniApp && window.ethereum) {
-          console.log('[wallet] ✅ Using window.ethereum provider (browser)');
+        // Fallback to browser wallet (MetaMask, Coinbase, etc.)
+        if (window.ethereum) {
+          console.log('[wallet] ✅ Using window.ethereum provider');
           return window.ethereum;
         }
         
