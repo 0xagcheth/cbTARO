@@ -159,18 +159,41 @@
 
       // Get Ethereum provider exactly once and cache it
       async function fcProvider() {
-        if (window.__fc.provider) return window.__fc.provider;
-        if (window.__fc.providerPromise) return window.__fc.providerPromise;
+        console.log('[FC] fcProvider() called');
+        console.log('[FC] window.__fc.provider cached:', !!window.__fc.provider);
+        console.log('[FC] window.__fc.providerPromise exists:', !!window.__fc.providerPromise);
+        
+        if (window.__fc.provider) {
+          console.log('[FC] Returning cached provider');
+          return window.__fc.provider;
+        }
+        if (window.__fc.providerPromise) {
+          console.log('[FC] Returning existing providerPromise');
+          return window.__fc.providerPromise;
+        }
 
+        console.log('[FC] Creating new providerPromise...');
         window.__fc.providerPromise = (async () => {
           try {
+            console.log('[FC] Loading SDK for provider...');
             const sdk = await loadFcSdk();
+            console.log('[FC] SDK loaded, checking sdk.wallet:', !!sdk?.wallet);
+            console.log('[FC] sdk.wallet.getEthereumProvider available:', typeof sdk?.wallet?.getEthereumProvider === 'function');
+            
             const provider = await sdk.wallet.getEthereumProvider();
-            window.__fc.provider = provider;
             console.log('[FC] ✅ got ethereum provider from sdk:', !!provider);
+            console.log('[FC] Provider type:', typeof provider);
+            console.log('[FC] Provider has request method:', typeof provider?.request === 'function');
+            
+            window.__fc.provider = provider;
             return provider;
           } catch (e) {
-            console.log('[FC] ethereum provider not available:', e);
+            console.error('[FC] ❌ ethereum provider not available:', e);
+            console.error('[FC] Error details:', {
+              message: e.message,
+              stack: e.stack,
+              name: e.name
+            });
             return null;
           }
         })();
