@@ -1626,8 +1626,8 @@
             try {
               const ua = navigator.userAgent.toLowerCase();
               console.log('[payment] Using Base Pay for Base App, UA:', ua);
-              // Dynamic import for Base Pay SDK
-              const { pay, getPaymentStatus } = await import('https://esm.sh/@base-org/account@latest');
+              // Try importing @base-org/account using window.__SDK_URLS.baseAccount (pinned version)
+              const { pay, getPaymentStatus } = await import(window.__SDK_URLS.baseAccount);
               
               // Convert ETH amount to USD (approximate, 1 ETH = $3000 for now)
               // In production, you'd want to fetch real-time rate
