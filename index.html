@@ -1440,7 +1440,7 @@
         const payETH = async (signer, amountETH) => {
           const TREASURY = '0xD4bF185c846F6CAbDaa34122d0ddA43765E754A6';
 
-          // Check if in Base App - use Base Pay
+          // Check if in Base App - use Base Pay (no signer needed)
           if (isBaseApp()) {
             try {
               console.log('[payment] Using Base Pay for Base App');
@@ -1454,6 +1454,7 @@
               
               console.log(`[payment] Base Pay: ${amountUSD} USD to ${TREASURY}`);
               
+              // Base Pay doesn't require signer - it handles payment internally
               const payment = await pay({
                 amount: amountUSD,           // USD amount
                 to: TREASURY,                // recipient address
@@ -1484,7 +1485,11 @@
             }
           }
 
-          // Regular ETH transaction (Farcaster or browser)
+          // Regular ETH transaction (Farcaster or browser) - requires signer
+          if (!signer) {
+            throw new Error('Signer required for non-Base App payments');
+          }
+          
           console.log('[payment] Using regular ETH transaction');
           const tx = await signer.sendTransaction({
             to: TREASURY,
