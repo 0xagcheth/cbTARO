@@ -1215,12 +1215,18 @@ Got a real answer.
       function buildSharePayload(reading) {
         if (!reading) return null;
         
-        // Format text: card name + description + app link
-        // Ensure no trailing space after URL
-        const text = `🔮 cbTARO reading: ${reading.name}\n\n${reading.text}\n\nOpen the app: ${APP_URL.trim()}`;
+        const baseShare = "https://0xagcheth.github.io/cbTARO/share";
+        // Cache-bust parameter: v=Date.now() forces embed refresh (prevents caching)
+        // This ensures Farcaster always fetches fresh meta tags for embed preview
+        const shareUrl = `${baseShare}?v=${Date.now()}`;
         
-        // Embeds: first card image, then app URL (order matters)
-        const embeds = [reading.imageUrl, APP_URL];
+        // Format text: card name + description + share link
+        // shareUrl must be the last line with NO trailing whitespace
+        const text = `🔮 cbTARO reading: ${reading.name}\n\n${reading.text}\n\n${shareUrl}`;
+        
+        // Embeds: first card image, then share URL (order matters)
+        // shareUrl in embeds ensures embed card rendering
+        const embeds = [reading.imageUrl, shareUrl];
         
         return { text, embeds };
       }
@@ -1233,17 +1239,21 @@ Got a real answer.
        * IMPORTANT: appUrl must be in text (not only in embeds)
        */
       async function shareDailyTaro() {
-        const FRAME_URL = "https://0xagcheth.github.io/cbTARO/frame/";
-        const baseText = `🃏 Daily Taro
+        const baseShare = "https://0xagcheth.github.io/cbTARO/share";
+        // Cache-bust parameter: v=Date.now() forces embed refresh (prevents caching)
+        // This ensures Farcaster always fetches fresh meta tags for embed preview
+        const shareUrl = `${baseShare}?v=${Date.now()}`;
+        
+        const message = `🃏 Daily Taro
 
 Today's card gave me a clear signal.
 Sometimes one card is all you need.
 
 🔮 Pulled with cbTARO on Base`;
 
-        // IMPORTANT: FRAME_URL must be appended to text so Farcaster renders it as a Frame
-        // Ensure NO trailing whitespace after URL - URL must be the very last characters
-        const finalText = `${baseText}\n${FRAME_URL}`.trimEnd();
+        // IMPORTANT: shareUrl must be the last line with NO trailing whitespace/newlines
+        // This ensures Farcaster can properly detect and render the embed card
+        const castText = `${message}\n${shareUrl}`;
 
         try {
           // 1. Try Farcaster Mini App SDK first
@@ -1252,9 +1262,11 @@ Sometimes one card is all you need.
           
           if (isInMiniApp && sdk?.actions?.composeCast) {
             try {
-              // Do NOT include FRAME_URL in embeds - Farcaster will auto-detect it from text
+              // Pass shareUrl in embeds to force embed card rendering
+              // castText already contains shareUrl at the end, but embeds ensures preview
               await sdk.actions.composeCast({
-                text: finalText  // FRAME_URL in text will render as Frame preview
+                text: castText,
+                embeds: [shareUrl]  // Embed shareUrl to render embed card
               });
               if (import.meta.env.DEV) {
                 console.debug('[cbTARO] Shared via Farcaster Mini App SDK');
@@ -1267,9 +1279,9 @@ Sometimes one card is all you need.
           }
 
           // 2. Fallback: Farcaster compose URL
+          // castText already contains shareUrl at the end
           try {
-            const composeUrl = `https://farcaster.xyz/~/compose?text=${encodeURIComponent(finalText)}`;
-            window.open(composeUrl, '_blank', 'noopener,noreferrer');
+            window.open(`https://farcaster.xyz/~/compose?text=${encodeURIComponent(castText)}`, "_blank");
             return true;
           } catch (error) {
             console.error('[cbTARO] Failed to open Farcaster compose:', error);

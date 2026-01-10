@@ -1702,31 +1702,23 @@ Got a real answer.
             const sdk = window.farcaster || window.farcasterSDK || window.sdk || window.FarcasterSDK;
             
             if (!sdk || !sdk.actions || !sdk.actions.composeCast) {
-              // Fallback to Warpcast URL if SDK not available
+              // Fallback to Farcaster compose URL if SDK not available
               console.warn('Farcaster Mini App SDK not available, using fallback');
             const shareText = getShareText(selectedSpread);
-            // IMPORTANT: appUrl must be in text
-            const appUrl = "https://0xagcheth.github.io/cbTARO/";
-            // Ensure no trailing space after URL
-            const finalText = `${shareText.trim()}\n${appUrl.trim()}`;
-            const embeds = [];
-            embeds.push('https://0xagcheth.github.io/cbTARO/Assets/imagine/b.png');
-            if (selectedSpread === "CUSTOM" && aiInterpretation) {
-              embeds.push('https://0xagcheth.github.io/cbTARO/Assets/imagine/cr.png');
-            }
-            embeds.push(appUrl);
-            const baseUrl = 'https://warpcast.com/~/compose';
-              const params = new URLSearchParams({ text: finalText });
-            embeds.forEach((embed, index) => {
-              params.append(`embeds[${index}]`, embed);
-            });
-            const shareUrl = `${baseUrl}?${params.toString()}`;
-            window.open(shareUrl, '_blank', 'noopener,noreferrer');
+            const baseShare = "https://0xagcheth.github.io/cbTARO/share";
+            // Cache-bust parameter: v=Date.now() forces embed refresh (prevents caching)
+            const shareUrl = `${baseShare}?v=${Date.now()}`;
+            // shareUrl must be the last line with NO trailing whitespace
+            const finalText = `${shareText.trim()}\n${shareUrl}`;
+            // Fallback: open Farcaster compose with text (castText already contains shareUrl)
+            window.open(`https://farcaster.xyz/~/compose?text=${encodeURIComponent(finalText)}`, "_blank");
               return;
             }
 
             // Get card information
-            const appUrl = "https://0xagcheth.github.io/cbTARO/";
+            const baseShare = "https://0xagcheth.github.io/cbTARO/share";
+            // Cache-bust parameter: v=Date.now() forces embed refresh (prevents caching)
+            const shareUrl = `${baseShare}?v=${Date.now()}`;
             let cardImageUrl = null;
             let cardSlug = "";
 
@@ -1743,22 +1735,21 @@ Got a real answer.
               shareText = `🔮 Reveal Your Reading\nCard: ${cardSlug}\n\n${shareText}`;
             }
 
-            // IMPORTANT: appUrl must be appended to text so it appears as a visible line
-            // Ensure no trailing space after URL - trim both and join without any spaces
-            const cleanShareText = shareText.trim();
-            const cleanAppUrl = appUrl.trim();
-            const finalText = `${cleanShareText}\n${cleanAppUrl}`;
+            // IMPORTANT: shareUrl must be the last line with NO trailing whitespace/newlines
+            // This ensures Farcaster can properly detect and render the embed card
+            const castText = `${shareText.trim()}\n${shareUrl}`;
 
-            // Build embeds array
-            const embeds = [appUrl];
+            // Build embeds array - shareUrl in embeds ensures embed card rendering
+            const embeds = [shareUrl];
             if (cardImageUrl) {
               embeds.push(cardImageUrl);
             }
 
             // Use Farcaster Mini App SDK to compose cast
+            // castText already contains shareUrl at the end, but embeds ensures preview
             await sdk.actions.composeCast({
-              text: finalText,  // URL is in text
-              embeds: embeds    // Keep embeds for preview, but link must already be in text
+              text: castText,
+              embeds: embeds  // shareUrl in embeds ensures embed card rendering
             });
 
           } catch (error) {

@@ -3,84 +3,26 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>cbTARO Share</title>
-  <style>
-    body {
-      font-family: system-ui, -apple-system, sans-serif;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      margin: 0;
-      background: #0b1020;
-      color: #fff;
-      text-align: center;
-      padding: 20px;
-    }
-    .container {
-      max-width: 400px;
-    }
-    .spinner {
-      border: 3px solid rgba(255, 255, 255, 0.1);
-      border-top: 3px solid #fff;
-      border-radius: 50%;
-      width: 40px;
-      height: 40px;
-      animation: spin 1s linear infinite;
-      margin: 0 auto 20px;
-    }
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-  </style>
+  <title>cbTARO - Reveal Your Reading</title>
+  
+  <!-- Farcaster Mini App meta tag -->
+  <meta name="fc:miniapp" content='{"version":"1","imageUrl":"https://0xagcheth.github.io/cbTARO/f.png","iconUrl":"https://0xagcheth.github.io/cbTARO/i.png","button":{"title":"Reveal","action":{"type":"launch_miniapp","name":"cbTARO","url":"https://0xagcheth.github.io/cbTARO/","splashImageUrl":"https://0xagcheth.github.io/cbTARO/s.png","splashBackgroundColor":"#0b1020"}}}' />
+  
+  <!-- Farcaster Frame meta tag (for backward compatibility) -->
+  <meta name="fc:frame" content='{"version":"1","imageUrl":"https://0xagcheth.github.io/cbTARO/f.png","button":{"title":"Reveal","action":{"type":"launch_frame","name":"cbTARO","url":"https://0xagcheth.github.io/cbTARO/","splashImageUrl":"https://0xagcheth.github.io/cbTARO/s.png","splashBackgroundColor":"#0b1020"}}}' />
+  
+  <!-- Open Graph tags (optional) -->
+  <meta property="og:title" content="cbTARO - Mystical Tarot Reading on Base">
+  <meta property="og:description" content="Reveal your reading">
+  <meta property="og:image" content="https://0xagcheth.github.io/cbTARO/f.png">
+  <meta property="og:url" content="https://0xagcheth.github.io/cbTARO/share">
+  <meta property="og:type" content="website">
+  
+  <!-- Twitter Card tags (optional) -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://0xagcheth.github.io/cbTARO/f.png">
 </head>
 <body>
-  <div class="container">
-    <div class="spinner"></div>
-    <p>Redirecting...</p>
-  </div>
-
-  <script>
-    (function() {
-      try {
-        // Parse query parameters
-        const urlParams = new URLSearchParams(window.location.search);
-        const castHash = urlParams.get('castHash');
-        const castFid = urlParams.get('castFid');
-        const viewerFid = urlParams.get('viewerFid');
-
-        // Save to localStorage
-        if (castHash) {
-          localStorage.setItem('cbTARO_sharedCastHash', castHash);
-        }
-        if (castFid) {
-          localStorage.setItem('cbTARO_sharedCastFid', castFid);
-        }
-        if (viewerFid) {
-          localStorage.setItem('cbTARO_viewerFid', viewerFid);
-        }
-
-        // Build redirect URL with params
-        const homeUrl = 'https://0xagcheth.github.io/cbTARO/';
-        const redirectParams = new URLSearchParams();
-        
-        if (castHash) redirectParams.set('sharedCastHash', castHash);
-        if (castFid) redirectParams.set('sharedCastFid', castFid);
-        if (viewerFid) redirectParams.set('viewerFid', viewerFid);
-
-        const redirectUrl = redirectParams.toString() 
-          ? `${homeUrl}?${redirectParams.toString()}`
-          : homeUrl;
-
-        // Redirect to app
-        window.location.href = redirectUrl;
-      } catch (error) {
-        console.error('Share redirect error:', error);
-        // Fallback: redirect to home without params
-        window.location.href = 'https://0xagcheth.github.io/cbTARO/';
-      }
-    })();
-  </script>
+  <!-- Body can be empty - redirect not required -->
 </body>
 </html>

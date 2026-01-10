@@ -1,14 +1,15 @@
 /**
  * Share text utility
- * Guarantees that app link is always at the end of share text
+ * Guarantees that share URL is always at the end of share text
  */
 
 const APP_URL = "https://0xagcheth.github.io/cbTARO/";
+const BASE_SHARE = "https://0xagcheth.github.io/cbTARO/share";
 
 /**
- * Builds share text with app link guaranteed at the end
+ * Builds share text with share URL guaranteed at the end
  * @param {string} baseText - Base text to share
- * @returns {string} - Final text with app link at the end
+ * @returns {string} - Final text with share URL at the end (with cache-bust)
  */
 export function buildShareText(baseText) {
   // Trim whitespace
@@ -19,29 +20,33 @@ export function buildShareText(baseText) {
     text = "My Taro Reading ✨";
   }
   
-  // Remove app URL if it exists anywhere in the text
-  const urlPattern = new RegExp(APP_URL.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
-  text = text.replace(urlPattern, '').trim();
+  // Remove old URLs if they exist anywhere in the text
+  const appUrlPattern = new RegExp(APP_URL.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+  const shareUrlPattern = new RegExp(BASE_SHARE.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+  text = text.replace(appUrlPattern, '').replace(shareUrlPattern, '').trim();
   
   // Remove trailing newlines and whitespace
   text = text.replace(/\n+$/, '').trim();
   
-  // Ensure app link is at the end with proper formatting
+  // Ensure share link is at the end with proper formatting
   // Add empty line before link if text doesn't end with newline
   if (!text.endsWith('\n')) {
-    text += '\n\n';
+    text += '\n';
   } else {
-    // If ends with newline, ensure double newline before link
-    text = text.replace(/\n+$/, '\n\n');
+    // If ends with newline, ensure single newline before link
+    text = text.replace(/\n+$/, '\n');
   }
   
-  // Append URL without any trailing space - ensure clean concatenation
-  // IMPORTANT: URL must be the very last characters, no trailing whitespace
-  const cleanUrl = APP_URL.trim();
-  text += cleanUrl;
+  // Cache-bust parameter: v=Date.now() forces embed refresh (prevents caching)
+  // This ensures Farcaster always fetches fresh meta tags for embed preview
+  const shareUrl = `${BASE_SHARE}?v=${Date.now()}`;
+  
+  // Append shareUrl without any trailing space - ensure clean concatenation
+  // IMPORTANT: shareUrl must be the very last characters, no trailing whitespace
+  text += shareUrl;
   
   // Final trimEnd() to remove any accidental trailing spaces/newlines
-  // This ensures URL is the absolute last characters
+  // This ensures shareUrl is the absolute last characters
   return text.trimEnd();
 }
 
@@ -53,15 +58,21 @@ export function buildShareText(baseText) {
  * @returns {Promise<boolean>} - Success status
  */
 export async function shareCast({ text, embeds = [] }) {
-  // buildShareText ensures APP_URL is at the end of text
+  // buildShareText ensures share URL (with cache-bust) is at the end of text
   const finalText = buildShareText(text);
-  // Remove APP_URL from embeds if it's already in text to avoid duplication
-  // But keep other embeds (like card images)
-  const finalEmbeds = embeds.filter(embed => embed !== APP_URL);
-  // Add APP_URL as embed for preview, but it's already in text
-  if (finalEmbeds.length < 2) {
-    finalEmbeds.push(APP_URL);
-  }
+  
+  // Extract shareUrl from finalText (it's at the end)
+  // Cache-bust parameter ensures fresh embed fetch
+  const shareUrlMatch = finalText.match(/https:\/\/0xagcheth\.github\.io\/cbTARO\/share\?v=\d+/);
+  const shareUrl = shareUrlMatch ? shareUrlMatch[0] : `${BASE_SHARE}?v=${Date.now()}`;
+  
+  // Remove old URLs from embeds, but keep other embeds (like card images)
+  const finalEmbeds = embeds.filter(embed => 
+    !embed.includes(APP_URL) && !embed.includes(BASE_SHARE)
+  );
+  // Add shareUrl as embed to ensure embed card rendering
+  // finalText already contains shareUrl at the end, but embeds ensures preview
+  finalEmbeds.push(shareUrl);
   
   try {
     // Try Farcaster Mini App SDK first
@@ -71,8 +82,8 @@ export async function shareCast({ text, embeds = [] }) {
     if (isInMiniApp && sdk?.actions?.composeCast) {
       try {
         await sdk.actions.composeCast({
-          text: finalText,  // URL is already in text (from buildShareText)
-          embeds: finalEmbeds  // Keep embeds for preview, but link must already be in text
+          text: finalText,  // shareUrl is already in text (from buildShareText)
+          embeds: finalEmbeds  // shareUrl in embeds ensures embed card rendering
         });
         if (import.meta.env.DEV) {
           console.debug('Shared via Farcaster Mini App SDK');
