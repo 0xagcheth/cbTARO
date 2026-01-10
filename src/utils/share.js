@@ -35,10 +35,12 @@ export function buildShareText(baseText) {
     text = text.replace(/\n+$/, '\n\n');
   }
   
-  // Append URL without any trailing space
-  text += APP_URL.trim();
+  // Append URL without any trailing space - ensure clean concatenation
+  const cleanUrl = APP_URL.trim();
+  text += cleanUrl;
   
-  return text;
+  // Final trim to remove any accidental trailing spaces
+  return text.trimEnd();
 }
 
 /**

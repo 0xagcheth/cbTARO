@@ -1242,8 +1242,10 @@ Sometimes one card is all you need.
 🔮 Pulled with cbTARO on Base`;
         
         // IMPORTANT: appUrl must be appended to text so it appears as a visible line
-        // Ensure no trailing space after URL
-        const finalText = `${baseText.trim()}\n${appUrl.trim()}`;
+        // Ensure no trailing space after URL - trim both and join without any spaces
+        const cleanBaseText = baseText.trim();
+        const cleanAppUrl = appUrl.trim();
+        const finalText = `${cleanBaseText}\n${cleanAppUrl}`;
 
         try {
           // 1. Try Farcaster Mini App SDK first
@@ -1252,9 +1254,11 @@ Sometimes one card is all you need.
           
           if (isInMiniApp && sdk?.actions?.composeCast) {
             try {
+              // Ensure finalText has no trailing spaces - trim the entire string
+              const cleanFinalText = finalText.trimEnd();
               await sdk.actions.composeCast({
-                text: finalText,  // URL is in text
-                embeds: [appUrl]  // Keep embed preview, but link must already be in text
+                text: cleanFinalText,  // URL is in text, no trailing spaces
+                embeds: [cleanAppUrl]  // Use clean URL without spaces
               });
               if (import.meta.env.DEV) {
                 console.debug('[cbTARO] Shared via Farcaster Mini App SDK');
@@ -1268,7 +1272,9 @@ Sometimes one card is all you need.
 
           // 2. Fallback: Warpcast compose URL
           try {
-            const composeUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(finalText)}`;
+            // Ensure finalText has no trailing spaces before encoding
+            const cleanFinalText = finalText.trimEnd();
+            const composeUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(cleanFinalText)}`;
             window.open(composeUrl, '_blank', 'noopener,noreferrer');
             return true;
           } catch (error) {
