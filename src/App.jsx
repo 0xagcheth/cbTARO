@@ -617,6 +617,7 @@ function TaroApp() {
   const [isWalletConnected, setIsWalletConnected] = useState(false);
   const [walletAddress, setWalletAddress] = useState(null);
   const [txStatus, setTxStatus] = useState("idle"); // idle, paying, success, error
+  const [walletError, setWalletError] = useState(null); // null, "no_provider", "connection_failed"
 
   // Farcaster states
   const [fid, setFid] = useState(null);
@@ -808,25 +809,75 @@ function TaroApp() {
         audio.play().catch(e => console.log('Audio play failed:', e));
       };
 
+      /**
+       * Get EIP-1193 provider (Farcaster Mini App SDK or window.ethereum fallback)
+       * @returns {Promise<Object|null>} EIP-1193 provider or null if not available
+       */
+      const getEip1193Provider = async () => {
+        try {
+          // First, try Farcaster Mini App SDK provider
+          const sdk = window.miniAppSDK || window.farcaster?.sdk || window.farcaster || window.farcasterSDK || window.sdk || window.FarcasterSDK;
+          if (sdk?.wallet?.getEthereumProvider) {
+            try {
+              const provider = await sdk.wallet.getEthereumProvider();
+              if (provider) {
+                console.log('[wallet] Using Farcaster Mini App SDK provider');
+                return provider;
+              }
+            } catch (error) {
+              console.debug('[wallet] Farcaster SDK provider not available:', error);
+            }
+          }
+        } catch (error) {
+          console.debug('[wallet] Error accessing Farcaster SDK:', error);
+        }
+
+        // Fallback to window.ethereum (MetaMask, etc.)
+        if (window.ethereum) {
+          console.log('[wallet] Using window.ethereum provider');
+          return window.ethereum;
+        }
+
+        // No provider available
+        console.warn('[wallet] No EIP-1193 provider found');
+        return null;
+      };
+
       // Wallet and payment functions
       const connectWallet = async () => {
-        if (!window.ethereum) {
-          alert('MetaMask or compatible wallet not found!');
+        // Clear previous error
+        setWalletError(null);
+
+        // Get EIP-1193 provider (Farcaster SDK or window.ethereum)
+        const eip1193Provider = await getEip1193Provider();
+        
+        if (!eip1193Provider) {
+          // No provider available - show UI message instead of alert
+          setWalletError('no_provider');
+          console.warn('[wallet] Wallet provider not found. Open in Farcaster/Base or install MetaMask.');
           return null;
         }
 
         try {
-          const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-          const provider = new ethers.providers.Web3Provider(window.ethereum);
+          const accounts = await eip1193Provider.request({ method: 'eth_requestAccounts' });
+          if (!accounts || accounts.length === 0) {
+            setWalletError('connection_failed');
+            return null;
+          }
+
+          // Create ethers provider from EIP-1193 provider
+          const provider = new ethers.providers.Web3Provider(eip1193Provider);
           const signer = provider.getSigner();
           const address = await signer.getAddress();
 
           setIsWalletConnected(true);
           setWalletAddress(address);
+          setWalletError(null); // Clear error on success
 
           return { provider, signer, address };
         } catch (error) {
           console.error('Failed to connect wallet:', error);
+          setWalletError('connection_failed');
           return null;
         }
       };
@@ -868,12 +919,18 @@ function TaroApp() {
         const network = await provider.getNetwork();
         if (network.chainId !== 8453) {
           try {
-            await window.ethereum.request({
+            // Get EIP-1193 provider for network switching
+            const eip1193Provider = await getEip1193Provider();
+            if (!eip1193Provider) {
+              throw new Error('No wallet provider available for network switch');
+            }
+
+            await eip1193Provider.request({
               method: 'wallet_switchEthereumChain',
               params: [{ chainId: '0x2105' }],
             });
             // Reload provider after network switch
-            return new ethers.providers.Web3Provider(window.ethereum);
+            return new ethers.providers.Web3Provider(eip1193Provider);
           } catch (error) {
             console.error('Failed to switch to Base network:', error);
             throw new Error('Please switch to Base network manually');
@@ -1716,6 +1773,36 @@ Important: This must be a unique interpretation for this specific card spread. M
               </button>
             </div>
           </div>
+
+          {/* Wallet error message - shown instead of alert */}
+          {walletError === 'no_provider' && (
+            <div className="wallet-error-message" style={{
+              padding: '8px 12px',
+              margin: '8px 16px',
+              backgroundColor: 'rgba(255, 193, 7, 0.1)',
+              border: '1px solid rgba(255, 193, 7, 0.3)',
+              borderRadius: '4px',
+              fontSize: '12px',
+              color: '#ffc107',
+              textAlign: 'center'
+            }}>
+              Wallet provider not found. Open in Farcaster/Base or install MetaMask.
+            </div>
+          )}
+          {walletError === 'connection_failed' && (
+            <div className="wallet-error-message" style={{
+              padding: '8px 12px',
+              margin: '8px 16px',
+              backgroundColor: 'rgba(244, 67, 54, 0.1)',
+              border: '1px solid rgba(244, 67, 54, 0.3)',
+              borderRadius: '4px',
+              fontSize: '12px',
+              color: '#f44336',
+              textAlign: 'center'
+            }}>
+              Failed to connect wallet. Please try again.
+            </div>
+          )}
 
           <div className="taro-container">
 
