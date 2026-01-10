@@ -780,102 +780,22 @@
         const [walletAddress, setWalletAddress] = useState(null);
         const [isMiniApp, setIsMiniApp] = useState(false);
 
-        // Layer 2: Detect environment and load Mini App context (authoritative)
+        // Initialize auth: load cache and prepare for wallet connection
         useEffect(() => {
           const initAuth = async () => {
             try {
-              // Detect Mini App environment - check for Mini App SDK (not Frame SDK)
-              // Mini App SDK is typically available as window.farcaster with context API
-              const sdk = window.farcaster || window.farcasterSDK || window.sdk || window.FarcasterSDK;
-              
-              if (!sdk) {
-                if (DEV) console.log('📱 No Farcaster SDK - browser mode');
-                setIsMiniApp(false);
-                // If we have cached profile, keep it visible
-                const cached = getCachedProfile();
-                if (cached?.pfpUrl) {
-                  setProfile(cached);
-                  setAuthState('wallet_disconnected'); // Show cached avatar but allow wallet connect
-                } else {
-                  setAuthState('wallet_disconnected');
-                }
-                return;
-              }
-
-              // Call ready() if available (Mini App SDK)
-              // DISABLED: ready() is now called via ESM module at end of index.html
-              // if (sdk.actions && typeof sdk.actions.ready === 'function') {
-              //   try {
-              //     await sdk.actions.ready();
-              //     if (DEV) console.log('✅ Mini App SDK ready() called');
-              //   } catch (readyError) {
-              //     if (DEV) console.warn('⚠️ SDK ready() error (non-fatal):', readyError);
-              //   }
-              // }
-
-              // Try to get context - Mini App SDK provides viewer identity
-              let ctx = null;
-              try {
-                if (sdk.context) {
-                  ctx = sdk.context;
-                  if (ctx && typeof ctx.then === 'function') {
-                    ctx = await ctx;
-                  }
-                } else if (typeof sdk.getContext === 'function') {
-                  ctx = await sdk.getContext();
-                } else if (sdk.user) {
-                  ctx = { user: sdk.user };
-                } else if (sdk.viewer) {
-                  ctx = { viewer: sdk.viewer };
-                }
-              } catch (ctxError) {
-                if (DEV) console.warn('⚠️ Context access error:', ctxError);
-              }
-
-              if (ctx) {
-                const user = ctx.user || ctx.viewer || ctx;
-                if (user?.fid) {
-                  const normalized = {
-                    fid: user.fid || user.userFid || null,
-                    username: user.username || null,
-                    displayName: user.displayName || user.display_name || null,
-                    pfpUrl: user.pfpUrl || user.pfp_url || user.avatarUrl || user.avatar_url || null
-                  };
-                  
-                  if (normalized.fid) {
-                    if (DEV) console.log('✅ Mini App context loaded:', normalized);
-                    // Update profile from authoritative source
-                    setProfile(normalized);
-                    saveProfileCache(normalized); // Update cache
-                    setIsMiniApp(true);
-                    // DON'T set authState to 'miniapp_authed' yet - we still need to connect wallet!
-                    // Wallet connection will happen in the useEffect below
-                    setAuthState('wallet_disconnected'); // Allow wallet check to proceed
-                    return;
-                  }
-                }
-              }
-
-              // Not a Mini App or no context - fallback to wallet mode
-              setIsMiniApp(false);
-              // Keep cached profile visible if available
+              // Load cached profile (non-blocking)
               const cached = getCachedProfile();
               if (cached?.pfpUrl) {
                 setProfile(cached);
-                setAuthState('wallet_disconnected');
-              } else {
-                setAuthState('wallet_disconnected');
               }
+
+              console.log('[auth] Initialization: ready for wallet connection');
+              // Set initial state - wallet will be checked in useEffect below
+              setAuthState('wallet_disconnected');
             } catch (error) {
               if (DEV) console.warn('⚠️ Auth init error:', error);
-              // Keep cached profile visible on error
-              const cached = getCachedProfile();
-              if (cached?.pfpUrl) {
-                setProfile(cached);
-                setAuthState('wallet_disconnected');
-              } else {
-                setAuthState('error');
-              }
+              setAuthState('wallet_disconnected');
             }
           };
 
@@ -885,25 +805,27 @@
           }, 100);
         }, []);
 
-        // Auto-check wallet connection (works in both Farcaster and browser)
+        // Auto-check and connect wallet (ONLY wallet-based auth)
         // According to: https://miniapps.farcaster.xyz/docs/guides/wallets
-        // "If a user already has a connected wallet the connector will automatically connect to it"
+        // In Farcaster/Base app: sdk.wallet.getEthereumProvider() returns native wallet
+        // In browser: window.ethereum returns MetaMask/Coinbase
         useEffect(() => {
-          // IMPORTANT: In Farcaster Mini App, context (FID) and wallet (address) are separate!
-          // We need to check wallet even if we have Mini App context
-          // Skip only if wallet is already connected
+          // Skip if wallet is already connected
           if (authState === 'wallet_connected_profile_ready') return;
 
-          const checkWallet = async () => {
+          const checkAndConnectWallet = async () => {
+            console.log('[wallet] Starting wallet check...');
             const provider = await getEthereumProvider();
+            
             if (!provider) {
-              console.log('[wallet] No provider found, user needs to connect');
+              console.log('[wallet] ❌ No provider found');
               setAuthState('wallet_disconnected');
               return;
             }
 
             try {
-              console.log('[wallet] Checking for connected accounts...');
+              // Check if wallet is already connected (eth_accounts doesn't prompt)
+              console.log('[wallet] Checking eth_accounts...');
               const accounts = await provider.request({ method: 'eth_accounts' });
               if (accounts && accounts.length > 0) {
                 const address = accounts[0];
