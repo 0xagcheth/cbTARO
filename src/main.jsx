@@ -27,60 +27,87 @@ window.addEventListener('orientationchange', function() {
 /**
  * Bootstrap Mini App SDK
  * Checks if app is running in Farcaster/Base Mini App and calls ready()
+ * Uses @farcaster/miniapp-sdk from npm
  */
+let readyCalled = false; // Ensure ready() is called only once
+
 async function bootstrapMiniApp() {
+  // Prevent multiple calls
+  if (readyCalled) {
+    return;
+  }
+
   try {
-    // Try to get SDK from window (loaded via CDN in index.html)
-    const sdk = window.farcaster || window.farcasterSDK || window.sdk || window.FarcasterSDK;
+    // Import @farcaster/miniapp-sdk from npm
+    const mod = await import("@farcaster/miniapp-sdk");
+    const sdk = mod.default || mod.sdk || mod;
     
     if (!sdk) {
       if (import.meta.env.DEV) {
-        console.debug('Mini App SDK not found, running in regular browser');
+        console.debug('[miniapp] SDK not found, running in regular browser');
       }
       return { isInMiniApp: false, sdk: null };
     }
     
     // Check if we're in Mini App environment
-    const isInMiniApp = sdk.isInMiniApp && typeof sdk.isInMiniApp === 'function' 
+    const isInMiniApp = typeof sdk?.isInMiniApp === 'function' 
       ? sdk.isInMiniApp() 
-      : true; // Assume true if method doesn't exist (legacy SDK)
+      : false;
     
-    if (isInMiniApp && sdk.actions && typeof sdk.actions.ready === 'function') {
-      try {
-        await sdk.actions.ready();
-        if (import.meta.env.DEV) {
-          console.log('✅ Mini App SDK ready() called successfully');
-        }
-      } catch (error) {
-        console.warn('Failed to call SDK ready():', error);
+    if (!isInMiniApp) {
+      if (import.meta.env.DEV) {
+        console.debug('[miniapp] Not in Mini App environment, skipping ready()');
       }
+      return { isInMiniApp: false, sdk: null };
     }
     
-    // Store SDK globally for use in app
-    window.miniAppSDK = sdk;
-    window.isInMiniApp = isInMiniApp;
-    
-    return { isInMiniApp, sdk };
+    // Call ready() to hide splash screen
+    if (typeof sdk?.actions?.ready === 'function') {
+      try {
+        await sdk.actions.ready();
+        readyCalled = true;
+        console.log('[miniapp] ready() called');
+        
+        // Store SDK globally for use in app
+        window.miniAppSDK = sdk;
+        window.isInMiniApp = true;
+        
+        return { isInMiniApp: true, sdk };
+      } catch (error) {
+        console.warn('[miniapp] Failed to call ready():', error);
+        return { isInMiniApp: false, sdk: null };
+      }
+    } else {
+      console.warn('[miniapp] sdk.actions.ready is not a function');
+      return { isInMiniApp: false, sdk: null };
+    }
   } catch (error) {
-    console.warn('Error bootstrapping Mini App:', error);
+    console.warn('[miniapp] Error bootstrapping Mini App:', error);
     return { isInMiniApp: false, sdk: null };
   }
 }
 
-// Bootstrap Mini App on load
-if (document.readyState === 'complete') {
-  bootstrapMiniApp();
-} else {
-  document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(bootstrapMiniApp, 100);
-  });
-  window.addEventListener('load', function() {
-    setTimeout(bootstrapMiniApp, 50);
-  });
-}
-
-ReactDOM.createRoot(document.getElementById('root')).render(
+// Render React app first
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(
   <React.StrictMode>
     <App />
-  </React.StrictMode>,
-)
+  </React.StrictMode>
+);
+
+// Bootstrap Mini App after DOM is ready and React has rendered
+// Wait for DOMContentLoaded, then give React time to render
+function initMiniApp() {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+      // Small delay to ensure React has rendered
+      setTimeout(bootstrapMiniApp, 200);
+    });
+  } else {
+    // DOM already ready, wait for React to render
+    setTimeout(bootstrapMiniApp, 200);
+  }
+}
+
+// Start initialization
+initMiniApp();

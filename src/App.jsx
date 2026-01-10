@@ -622,8 +622,84 @@ function TaroApp() {
   const [fid, setFid] = useState(null);
   const [pfpUrl, setPfpUrl] = useState(null);
 
+  // Last reading state - "single source of truth" for share functionality
+  const [lastReading, setLastReading] = useState(null);
+
+  // Share helper constants and functions (defined early for use in useEffect)
+  const APP_URL = "https://0xagcheth.github.io/cbTARO/";
+  const LAST_READING_KEY = "cbtaro:lastReading";
+  
+  /**
+   * Convert relative path to absolute URL
+   * @param {string} maybeRelative - Relative or absolute path
+   * @returns {string} Absolute URL
+   */
+  function toAbsoluteUrl(maybeRelative) {
+    if (!maybeRelative) return null;
+    // If already absolute URL, return as is
+    if (maybeRelative.startsWith('http://') || maybeRelative.startsWith('https://')) {
+      return maybeRelative;
+    }
+    // Normalize relative path
+    let cleanPath = maybeRelative.replace(/^\.\//, '').replace(/^\//, '');
+    // Remove "public/" if present (GitHub Pages serves /public at root)
+    cleanPath = cleanPath.replace(/^public\//, '');
+    // Build absolute URL
+    return new URL(cleanPath, APP_URL).toString();
+  }
+  
+  /**
+   * Load last reading from localStorage
+   * @returns {Reading|null} Reading object or null
+   */
+  function loadLastReading() {
+    try {
+      const saved = localStorage.getItem(LAST_READING_KEY);
+      if (!saved) return null;
+      
+      const reading = JSON.parse(saved);
+      
+      // Validate reading structure
+      if (!reading || typeof reading !== 'object') {
+        console.warn('Invalid reading format in localStorage');
+        return null;
+      }
+      
+      // Check required fields
+      if (!reading.name || !reading.text || !reading.imageUrl) {
+        console.warn('Reading missing required fields:', reading);
+        return null;
+      }
+      
+      // Validate imageUrl is absolute https URL
+      if (!reading.imageUrl.startsWith('https://')) {
+        console.warn('Reading imageUrl is not absolute https URL:', reading.imageUrl);
+        // Try to fix it
+        reading.imageUrl = toAbsoluteUrl(reading.imagePath || reading.imageUrl);
+        if (!reading.imageUrl || !reading.imageUrl.startsWith('https://')) {
+          return null;
+        }
+      }
+      
+      return reading;
+    } catch (error) {
+      console.warn('Failed to load last reading:', error);
+      return null;
+    }
+  }
+
   // Update daily streak on mount and track visit
+  // Also restore lastReading from localStorage
   useEffect(() => {
+    // Restore lastReading from localStorage
+    const savedReading = loadLastReading();
+    if (savedReading) {
+      setLastReading(savedReading);
+      if (import.meta.env.DEV) {
+        console.debug('Restored lastReading from localStorage:', savedReading);
+      }
+    }
+    
     // Local streak (fallback) - update immediately for UI
     const streakValue = updateStreakOnVisit();
     const numericStreak = Number(streakValue) || 0;
@@ -643,7 +719,7 @@ function TaroApp() {
       if (row && row.streak) {
         setDailyStreak(row.streak);
       }
-    } catch (error) {
+              } catch (error) {
       // Ignore
     }
     
@@ -689,48 +765,8 @@ function TaroApp() {
     })();
   }, []);
 
-  // Farcaster Mini App SDK bootstrap - call ready() after first render
-  useEffect(() => {
-    let cancelled = false;
-    
-    (async () => {
-      try {
-        // Dynamic import of Farcaster Mini App SDK
-        const mod = await import("@farcaster/miniapp-sdk");
-        const sdk = mod.default || mod.sdk || mod;
-        
-        // Check if we're inside Mini App environment
-        const inMiniApp = typeof sdk?.isInMiniApp === "function" ? sdk.isInMiniApp() : false;
-        
-        if (!inMiniApp) {
-          if (import.meta.env.DEV) {
-            console.debug("[miniapp] Not in Mini App environment, skipping ready()");
-          }
-          return;
-        }
-
-        // Call ready() to hide splash screen
-        if (typeof sdk?.actions?.ready === "function") {
-          await sdk.actions.ready();
-          if (!cancelled && import.meta.env.DEV) {
-            console.debug("[miniapp] sdk.actions.ready() called successfully");
-          }
-        } else {
-          if (import.meta.env.DEV) {
-            console.debug("[miniapp] sdk.actions.ready is not a function");
-          }
-        }
-      } catch (e) {
-        if (!cancelled && import.meta.env.DEV) {
-          console.debug("[miniapp] ready call failed", e);
-        }
-      }
-    })();
-    
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  // Farcaster Mini App SDK ready() is called in src/main.jsx
+  // No need to duplicate here - main.jsx handles it after DOMContentLoaded and React render
 
 
       // Function to play button sound
@@ -1056,142 +1092,182 @@ Got a real answer.
         return canvas.toDataURL('image/png');
       };
 
-      // Share helper functions
-      const APP_URL = "https://0xagcheth.github.io/cbTARO/";
-      const LAST_DRAW_KEY = "cbTARO_lastDraw";
+      // Share helper functions (continued - functions that use state)
       
-      // Normalize path: remove leading "./" or "/"
-      function normalizePath(imagePath) {
-        if (!imagePath) return null;
-        // Remove leading "./" or "/"
-        let cleanPath = imagePath.replace(/^\.\//, '').replace(/^\//, '');
-        // Remove "public/" if present (GitHub Pages serves /public at root)
-        cleanPath = cleanPath.replace(/^public\//, '');
-        return cleanPath;
-      }
+      /**
+       * Reading type definition
+       * @typedef {Object} Reading
+       * @property {string} id - Stable card ID (e.g., "the_fool")
+       * @property {string} name - Visible card name
+       * @property {string} text - Short interpretation/description
+       * @property {string} imageUrl - Absolute https URL to card image (required)
+       * @property {number} createdAt - Date.now() timestamp
+       */
       
-      // Convert clean path to absolute GitHub Pages URL with encoding
-      function toAbsoluteGhPagesUrl(cleanPath) {
-        return `${APP_URL}${encodeURI(cleanPath)}`;
-      }
-      
-      // Get first drawn card
+      /**
+       * Get first drawn card from cards array
+       * @param {Array} cards - Array of card objects
+       * @returns {Object|null} First card or null
+       */
       function getFirstDrawnCard(cards) {
         return (cards && cards.length > 0) ? cards[0] : null;
       }
       
-      // Get first card image URL
-      function getFirstCardImageUrl(cards) {
+      /**
+       * Create Reading object from first card
+       * @param {Array} cards - Array of card objects
+       * @returns {Reading|null} Reading object or null
+       */
+      function createReadingFromCards(cards) {
         const firstCard = getFirstDrawnCard(cards);
-        if (firstCard?.imagePath) {
-          const normalized = normalizePath(firstCard.imagePath);
-          if (normalized) {
-            return toAbsoluteGhPagesUrl(normalized);
-          }
+        if (!firstCard) return null;
+        
+        // Generate stable ID from card name (lowercase, replace spaces with underscores)
+        const cardId = firstCard.name.toLowerCase().replace(/\s+/g, '_');
+        
+        // Get absolute image URL
+        const imageUrl = toAbsoluteUrl(firstCard.imagePath);
+        if (!imageUrl || !imageUrl.startsWith('https://')) {
+          console.warn('Invalid imageUrl for card:', firstCard.name);
+          return null;
         }
-        return null;
+        
+        return {
+          id: cardId,
+          name: firstCard.name,
+          text: firstCard.description || firstCard.keyword || '',
+          imageUrl: imageUrl,
+          createdAt: Date.now()
+        };
       }
       
-      // Save last drawn card to localStorage
-      function saveLastDraw(cards) {
-        const firstCard = getFirstDrawnCard(cards);
-        if (firstCard) {
-          const imageUrl = getFirstCardImageUrl(cards);
-          const drawData = {
-            name: firstCard.name,
-            imagePath: firstCard.imagePath,
-            imageUrl: imageUrl,
-            timestamp: Date.now()
-          };
-          try {
-            localStorage.setItem(LAST_DRAW_KEY, JSON.stringify(drawData));
-            console.log("Saved last draw:", drawData);
-          } catch (error) {
-            console.warn("Failed to save last draw:", error);
-          }
+      /**
+       * Save last reading to localStorage and state
+       * @param {Array} cards - Array of card objects
+       */
+      function saveLastReading(cards) {
+        const reading = createReadingFromCards(cards);
+        if (!reading) {
+          console.warn('Failed to create reading from cards');
+          return;
         }
-      }
-      
-      // Load last saved draw from localStorage
-      function loadLastDraw() {
+        
+        // Update state
+        setLastReading(reading);
+        
+        // Save to localStorage
         try {
-          const saved = localStorage.getItem(LAST_DRAW_KEY);
-          if (saved) {
-            const drawData = JSON.parse(saved);
-            // Check if data is not too old (24 hours)
-            const age = Date.now() - drawData.timestamp;
-            if (age < 24 * 60 * 60 * 1000) {
-              return drawData;
-            }
+          localStorage.setItem(LAST_READING_KEY, JSON.stringify(reading));
+          if (import.meta.env.DEV) {
+            console.debug('lastReading set:', reading);
           }
         } catch (error) {
-          console.warn("Failed to load last draw:", error);
+          console.warn('Failed to save last reading:', error);
+        }
+      }
+      
+      // Legacy functions for backward compatibility (kept for now)
+      function saveLastDraw(cards) {
+        saveLastReading(cards);
+      }
+      
+      function loadLastDraw() {
+        const reading = loadLastReading();
+        if (reading) {
+          return {
+            name: reading.name,
+            imagePath: reading.imageUrl, // Legacy compatibility
+            imageUrl: reading.imageUrl,
+            timestamp: reading.createdAt
+          };
         }
         return null;
+      }
+
+      /**
+       * Build share payload from reading
+       * @param {Reading} reading - Reading object
+       * @returns {Object} Share payload with text and embeds
+       */
+      function buildSharePayload(reading) {
+        if (!reading) return null;
+        
+        // Format text: card name + description + app link
+        const text = `🔮 cbTARO reading: ${reading.name}\n\n${reading.text}\n\nOpen the app: ${APP_URL}`;
+        
+        // Embeds: first card image, then app URL (order matters)
+        const embeds = [reading.imageUrl, APP_URL];
+        
+        return { text, embeds };
       }
 
       const handleShare = async () => {
         try {
           playButtonSound();
 
-          const APP_URL = "https://0xagcheth.github.io/cbTARO/";
-
-          // 1. Берём ПЕРВУЮ карту
-          const card = cards && cards.length > 0 ? cards[0] : null;
-
-          // 2. Абсолютный URL картинки
-          let cardImageUrl = "";
-          if (card?.imagePath) {
-            // Убираем "./" если есть
-            let cleanPath = card.imagePath.replace(/^\.\//, "");
-            // Добавляем "public/" если его нет (на GitHub Pages файлы доступны С /public/ в пути)
-            if (!cleanPath.startsWith("public/")) {
-              cleanPath = "public/" + cleanPath;
+          // Check if we have lastReading
+          if (!lastReading) {
+            alert('Draw a card first');
+            if (import.meta.env.DEV) {
+              console.debug('Share clicked but no lastReading available');
             }
-            cardImageUrl = APP_URL + encodeURI(cleanPath);
-          } else {
-            // Fallback на f.png если карты нет
-            cardImageUrl = APP_URL + encodeURI("f.png");
+            return;
           }
 
-          // 3. Формируем текст с гарантированной ссылкой в конце
-          let baseText = getShareText(selectedSpread);
-          if (card?.name) {
-            // Добавляем название карты в начало
-            baseText = `🔮 Reveal Your Reading\nCard: ${card.name}\n\n${baseText}`;
+          // Build share payload
+          const payload = buildSharePayload(lastReading);
+          if (!payload) {
+            alert('Failed to prepare share content. Please draw a card again.');
+            return;
           }
-          // Используем buildShareText для гарантированного добавления ссылки в конце
-          const text = buildShareText(baseText);
-          
+
           // Debug logging
-          const isDev = process.env.NODE_ENV === 'development' || window.location.search.includes('debug=1');
+          const isDev = import.meta.env.DEV || window.location.search.includes('debug=1');
           if (isDev) {
-            console.debug('SHARE text:', text);
-            console.debug('SHARE card:', card);
-            console.debug('SHARE cardImageUrl:', cardImageUrl);
+            console.debug('share clicked', payload);
           }
 
-          // 4. Build embeds array
-          const embeds = [APP_URL];
-          if (cardImageUrl) {
-            embeds.push(cardImageUrl);
+          // Try Farcaster Mini App SDK first
+          const sdk = window.miniAppSDK || window.farcaster || window.farcasterSDK || window.sdk || window.FarcasterSDK;
+          const isInMiniApp = window.isInMiniApp || (sdk && sdk.isInMiniApp && sdk.isInMiniApp());
+          
+          if (isInMiniApp && sdk?.actions?.composeCast) {
+            try {
+              await sdk.actions.composeCast({
+                text: payload.text,
+                embeds: payload.embeds
+              });
+              if (isDev) {
+                console.debug('Shared via Farcaster Mini App SDK');
+              }
+              return;
+            } catch (error) {
+              console.warn('Failed to share via SDK, trying fallback:', error);
+            }
+          } else {
+            if (isDev) {
+              console.debug('miniapp sdk unavailable, using fallback');
+            }
           }
 
-          // 5. Use shareCast helper (handles SDK, navigator.share, clipboard)
-          const shared = await shareCast({ text: baseText, embeds: [cardImageUrl].filter(Boolean) });
+          // Fallback: Use shareCast helper (handles navigator.share, clipboard)
+          const shared = await shareCast({ 
+            text: payload.text.replace(`\n\nOpen the app: ${APP_URL}`, ''), // shareCast will add it
+            embeds: payload.embeds 
+          });
           
           if (!shared) {
-            // Fallback: Use Farcaster compose intent URL if shareCast failed
+            // Final fallback: Farcaster compose intent URL
             if (isDev) {
               console.debug('SHARE using fallback compose URL');
             }
             
             const baseUrl = 'https://farcaster.xyz/~/compose';
             const params = new URLSearchParams();
-            params.set("text", text);
+            params.set("text", payload.text);
             
             // Use embeds[] format (repeated parameters)
-            embeds.forEach((embed) => {
+            payload.embeds.forEach((embed) => {
               params.append("embeds[]", embed);
             });
             
@@ -1444,8 +1520,8 @@ Important: This must be a unique interpretation for this specific card spread. M
             }
 
             setCards(finalCards);
-            // Save drawn cards to localStorage so they persist
-            saveLastDraw(finalCards);
+            // Save last reading to localStorage and state
+            saveLastReading(finalCards);
 
             // Track reading event (locally and on server)
             const readingTypeMap = {
@@ -1710,7 +1786,6 @@ Important: This must be a unique interpretation for this specific card spread. M
                     </div>
                   )}
                 </div>
-              </div>
                       </div>
                     </div>
 
@@ -1981,7 +2056,12 @@ Important: This must be a unique interpretation for this specific card spread. M
                       )}
                     </>
                   )}
-                  <button className="taro-button" onClick={() => { playButtonSound(); handleShare(); }}>
+                  <button 
+                    className="taro-button" 
+                    onClick={() => { playButtonSound(); handleShare(); }}
+                    disabled={!lastReading}
+                    title={!lastReading ? "Draw a card first" : "Share last reading"}
+                  >
                     🔁 Share reading
                   </button>
                   <button className="taro-button secondary" onClick={() => { playButtonSound(); handleNewSpread(); }}>
