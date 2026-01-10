@@ -25,13 +25,13 @@
     <link rel="preconnect" href="https://warpcast.com" />
     <link rel="preconnect" href="https://i.imgur.com" />
     <link rel="preconnect" href="https://res.cloudinary.com" />
+    <script type="module" crossorigin src="/cbTARO/assets/index-D2h4b0pQ.js"></script>
   </head>
   <body>
     <div id="root"></div>
     <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 
-    <!-- Farcaster Mini Apps SDK -->
-    <script src="https://cdn.jsdelivr.net/npm/@farcaster/miniapp-sdk@latest/dist/index.umd.js"></script>
+    <!-- Farcaster Mini Apps SDK - loaded via ESM module at end of index.html -->
 
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -771,14 +771,15 @@
               }
 
               // Call ready() if available (Mini App SDK)
-              if (sdk.actions && typeof sdk.actions.ready === 'function') {
-                try {
-                  await sdk.actions.ready();
-                  if (DEV) console.log('✅ Mini App SDK ready() called');
-                } catch (readyError) {
-                  if (DEV) console.warn('⚠️ SDK ready() error (non-fatal):', readyError);
-                }
-              }
+              // DISABLED: ready() is now called via ESM module at end of index.html
+              // if (sdk.actions && typeof sdk.actions.ready === 'function') {
+              //   try {
+              //     await sdk.actions.ready();
+              //     if (DEV) console.log('✅ Mini App SDK ready() called');
+              //   } catch (readyError) {
+              //     if (DEV) console.warn('⚠️ SDK ready() error (non-fatal):', readyError);
+              //   }
+              // }
 
               // Try to get context - Mini App SDK provides viewer identity
               let ctx = null;
@@ -1114,15 +1115,16 @@
             // Legacy code removed - SDK initialization is in main.jsx
             console.log('🔄 Component mounted');
 
-              const sdk = window.farcaster || window.farcasterSDK || window.sdk || window.FarcasterSDK;
-              if (sdk && sdk.actions && typeof sdk.actions.ready === 'function') {
-                try {
-                  sdk.actions.ready();
-                  console.log('✅ Fallback: farcaster.actions.ready() called');
-                } catch (error) {
-                  console.error('❌ Fallback SDK error:', error);
-                }
-              } else if (window.parent !== window) {
+              // DISABLED: ready() is now called via ESM module at end of index.html
+              // const sdk = window.farcaster || window.farcasterSDK || window.sdk || window.FarcasterSDK;
+              // if (sdk && sdk.actions && typeof sdk.actions.ready === 'function') {
+              //   try {
+              //     sdk.actions.ready();
+              //     console.log('✅ Fallback: farcaster.actions.ready() called');
+              //   } catch (error) {
+              //     console.error('❌ Fallback SDK error:', error);
+              //   }
+              // } else if (window.parent !== window) {
                 console.log('📱 Fallback: iframe detected, sending ready message');
                 window.parent.postMessage({ type: 'ready' }, '*');
               }
@@ -1146,14 +1148,15 @@
               }
 
               // Call ready() if available
-              if (sdk.actions && typeof sdk.actions.ready === 'function') {
-                try {
-                  await sdk.actions.ready();
-                  console.log('✅ Farcaster SDK ready() called');
-                } catch (readyError) {
-                  console.warn('⚠️ SDK ready() error (non-fatal):', readyError);
-                }
-              }
+              // DISABLED: ready() is now called via ESM module at end of index.html
+              // if (sdk.actions && typeof sdk.actions.ready === 'function') {
+              //   try {
+              //     await sdk.actions.ready();
+              //     console.log('✅ Farcaster SDK ready() called');
+              //   } catch (readyError) {
+              //     console.warn('⚠️ SDK ready() error (non-fatal):', readyError);
+              //   }
+              // }
 
               // Get context - try different methods
               let ctx = null;
@@ -5762,76 +5765,5 @@ Important: This must be a unique interpretation for this specific card spread. M
   </style>
 
   <!-- Farcaster Mini App: signal ready() to dismiss splash -->
-  <script>
-    (function () {
-      let readyCalled = false; // Ensure ready() is called only once
-      
-      function callReady() {
-        if (readyCalled) return;
-        
-        try {
-          // Try different possible SDK global names for miniapp-sdk UMD
-          // UMD typically exports as window.farcaster or window.FarcasterMiniAppSDK
-          const sdk = window.farcaster?.sdk || window.sdk || window.FarcasterMiniAppSDK || window.farcaster || window.FarcasterSDK;
-          
-          // Check if SDK exists and has actions.ready
-          if (!sdk) {
-            // SDK not loaded yet, will retry
-            return;
-          }
-          
-          // Check if we're in miniapp environment
-          const isInMiniApp = sdk?.isInMiniApp && typeof sdk.isInMiniApp === 'function' ? sdk.isInMiniApp() : false;
-          
-          if (!isInMiniApp) {
-            // Not in miniapp environment, no need to call ready()
-            return;
-          }
-          
-          // Main variant for miniapp-sdk UMD:
-          if (window.farcaster?.sdk?.actions?.ready) {
-            window.farcaster.sdk.actions.ready();
-            readyCalled = true;
-            console.log('[miniapp] ready() called via window.farcaster.sdk');
-            return;
-          }
-          
-          // Reserve variants (if export differs):
-          if (sdk?.actions?.ready) {
-            sdk.actions.ready();
-            readyCalled = true;
-            console.log('[miniapp] ready() called via sdk.actions');
-            return;
-          }
-          
-          console.warn("[miniapp] SDK found but ready() method not available");
-        } catch (e) {
-          console.warn("[miniapp] ready() failed", e);
-        }
-      }
-
-      // Call ready() after page and all resources are loaded
-      // Small delay ensures React has rendered
-      function initReady() {
-        if (document.readyState === "complete") {
-          setTimeout(callReady, 200);
-        } else {
-          window.addEventListener("load", function() {
-            setTimeout(callReady, 200);
-          }, { once: true });
-        }
-      }
-      
-      // Start initialization
-      initReady();
-      
-      // Also try after a short delay in case SDK loads asynchronously
-      setTimeout(function() {
-        if (!readyCalled) {
-          callReady();
-        }
-      }, 500);
-    })();
-  </script>
 </body>
 </html>
