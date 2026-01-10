@@ -867,7 +867,7 @@
             }
           };
 
-          checkWallet();
+          checkAndConnectWallet();
         }, [authState]); // Check wallet on mount and when authState changes
 
         // STEP 5: Connect wallet - only called on button click, uses eth_requestAccounts
