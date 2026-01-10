@@ -816,7 +816,11 @@
           // Skip if wallet is already connected
           if (authState === 'wallet_connected_profile_ready') return;
 
+          // Delay wallet check to ensure app renders first (non-blocking)
           const checkAndConnectWallet = async () => {
+            // Small delay to ensure UI is rendered first
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
             console.log('[wallet] Starting wallet check...');
             const provider = await getEthereumProvider();
             
