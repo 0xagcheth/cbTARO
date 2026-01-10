@@ -61,6 +61,47 @@
 
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
+    <!-- Wagmi, Viem, React Query - loaded via ESM for proper module support -->
+    <script type="module">
+      // Load wagmi config and make it available globally
+      import { http, createConfig } from 'https://esm.sh/wagmi@2.12.0';
+      import { base } from 'https://esm.sh/wagmi@2.12.0/chains';
+      import { farcasterMiniApp as miniAppConnector } from 'https://esm.sh/@farcaster/miniapp-wagmi-connector@1.1.0';
+      import { injected } from 'https://esm.sh/wagmi@2.12.0/connectors';
+
+      window.wagmiConfig = createConfig({
+        chains: [base],
+        transports: {
+          [base.id]: http(),
+        },
+        connectors: [
+          miniAppConnector(), // Primary: Farcaster & Base apps
+          injected() // Fallback: Browser (MetaMask, Coinbase Wallet, etc.)
+        ],
+      });
+
+      console.log('[BOOT] Wagmi config loaded');
+    </script>
+
+    <!-- React Query - loaded via ESM -->
+    <script type="module">
+      import { QueryClient } from 'https://esm.sh/@tanstack/react-query@5.28.0';
+
+      window.queryClient = new QueryClient({
+        defaultOptions: {
+          queries: {
+            queryKeyHashFn: (queryKey) => {
+              return JSON.stringify(queryKey, (_, value) =>
+                typeof value === "bigint" ? value.toString() : value
+              );
+            },
+          },
+        },
+      });
+
+      console.log('[BOOT] QueryClient created');
+    </script>
+
     <!-- Mobile WebView fixes script -->
     <script>
       // Set dynamic viewport height for mobile WebView compatibility
@@ -1013,68 +1054,49 @@
           checkAndConnectWallet();
         }, [authState]); // Check wallet on mount and when authState changes
 
-        // ===== STEP 5: Connect Wallet Flow for Mobile WebView =====
+        // ===== Connect Wallet using Wagmi (like in example) =====
         // Wallet connects ONLY on explicit user action (button click)
-        // This is more reliable in Farcaster Mini App mobile WebViews
+        // Uses Wagmi connector.connect() directly (like in example)
         const connectWallet = async () => {
           console.log('[wallet] ===== CONNECT WALLET (BUTTON CLICK) =====');
-          console.log('[wallet] connectWallet() called - user explicitly requested connection');
+          console.log('[wallet] connectWallet() called - using Wagmi connector');
           
           // Set loading state
           setAuthState('wallet_connected_fetching_profile');
           
-          const ethProvider = await getEthereumProvider();
-          if (!ethProvider) {
+          if (!window.wagmiConfig) {
             setAuthState('error');
-            console.warn('[wallet] ❌ No wallet provider found. Open in Farcaster/Base app or install MetaMask.');
+            console.warn('[wallet] ❌ Wagmi config not loaded yet');
             return null;
           }
 
-          // Log provider type
-          const isMiniAppProvider = window.__fc?.provider === ethProvider;
-          console.log('[wallet] provider type:', isMiniAppProvider ? 'miniapp' : 'window.ethereum');
-          console.log('[wallet] provider object:', ethProvider);
-          console.log('[wallet] provider has request:', typeof ethProvider.request === 'function');
-
           try {
-            // Create ethers provider
-            const provider = new ethers.providers.Web3Provider(ethProvider, 'any');
+            // Use Wagmi connector to connect (like in example)
+            const { getConnectors } = await import('https://esm.sh/wagmi@2.12.0');
+            const connectors = getConnectors(window.wagmiConfig);
             
-            // Always call eth_requestAccounts on button click (explicit user action)
-            // This ensures wallet prompt appears in Farcaster Mini App
-            console.log('[wallet] calling eth_requestAccounts (user requested connection)...');
-            let accounts;
-            try {
-              accounts = await ethProvider.request({ method: 'eth_requestAccounts' });
-              console.log('[wallet] eth_requestAccounts result:', accounts?.length || 0, 'accounts');
-              console.log('[wallet] eth_requestAccounts accounts:', accounts);
-              
-              if (!accounts || accounts.length === 0) {
-                console.log('[wallet] User rejected connection or no accounts returned');
-                setAuthState('wallet_disconnected');
-                return null;
-              }
-            } catch (requestError) {
-              console.error('[wallet] eth_requestAccounts error:', requestError);
-              console.error('[wallet] Request error details:', {
-                message: requestError.message,
-                code: requestError.code,
-                stack: requestError.stack
-              });
-              setAuthState('wallet_disconnected');
-              throw requestError;
+            if (!connectors || connectors.length === 0) {
+              setAuthState('error');
+              console.warn('[wallet] ❌ No connectors available');
+              return null;
             }
 
-            const signer = provider.getSigner();
-            const address = accounts?.[0] || await signer.getAddress();
+            // Use first connector (miniAppConnector for Farcaster/Base)
+            const connector = connectors[0];
+            console.log('[wallet] Connecting with connector:', connector.name);
+
+            // Connect using connector.connect() directly (like in example)
+            const result = await connector.connect();
+            console.log('[wallet] Wagmi connect result:', result);
             
+            const address = result.accounts[0];
             console.log('[wallet] ✅ Wallet connected successfully');
             console.log('[wallet] Address:', address);
 
             setIsWalletConnected(true);
             setWalletAddress(address);
             
-            // Resolve profile (non-blocking - do not block wallet connection if fails)
+            // Resolve profile (non-blocking)
             resolveFarcasterProfileByAddress(address).then((resolvedProfile) => {
               if (resolvedProfile?.fid) {
                 setProfile(resolvedProfile);
@@ -1089,7 +1111,7 @@
 
             console.log('[wallet] ===== CONNECT WALLET END =====');
             
-            return { provider, signer, address };
+            return { address };
           } catch (e) {
             console.error('[wallet] ❌ Failed to connect wallet:', e);
             console.error('[wallet] Error details:', {
@@ -1661,36 +1683,31 @@
           return isBase;
         };
 
-        // Pay using Base Pay (for Base App) or regular ETH transaction (for Farcaster/browser)
-        // According to: https://docs.base.org/mini-apps/technical-guides/accept-payments
-        const payETH = async (signer, amountETH) => {
+        // Pay using Base Pay (for Base App) or Wagmi sendTransaction (for Farcaster/browser)
+        // Like in example: use wagmi config directly for transactions
+        const payETH = async (address, amountETH) => {
           const TREASURY = '0xD4bF185c846F6CAbDaa34122d0ddA43765E754A6';
 
-          // Check if in Base App - use Base Pay (no signer needed)
+          // Check if in Base App - use Base Pay (no address needed)
           if (isBaseApp()) {
             try {
               const ua = navigator.userAgent.toLowerCase();
               console.log('[payment] Using Base Pay for Base App, UA:', ua);
-              // Try importing @base-org/account using window.__SDK_URLS.baseAccount (pinned version)
               const { pay, getPaymentStatus } = await import(window.__SDK_URLS.baseAccount);
               
-              // Convert ETH amount to USD (approximate, 1 ETH = $3000 for now)
-              // In production, you'd want to fetch real-time rate
               const ETH_TO_USD = 3000;
               const amountUSD = (parseFloat(amountETH) * ETH_TO_USD).toFixed(2);
               
               console.log(`[payment] Base Pay: ${amountUSD} USD to ${TREASURY}`);
               
-              // Base Pay doesn't require signer - it handles payment internally
               const payment = await pay({
-                amount: amountUSD,           // USD amount
-                to: TREASURY,                // recipient address
-                testnet: false               // mainnet (set true for testnet)
+                amount: amountUSD,
+            to: TREASURY,
+                testnet: false
               });
               
               console.log(`[payment] ✅ Base Pay sent! ID: ${payment.id}`);
               
-              // Check payment status
               const { status } = await getPaymentStatus({ 
                 id: payment.id,
                 testnet: false 
@@ -1698,9 +1715,8 @@
               
               if (status === 'completed') {
                 console.log('[payment] ✅ Base Pay confirmed!');
-                // Return in same format as regular transaction
                 return { 
-                  txHash: payment.id,  // Base Pay ID as txHash
+                  txHash: payment.id,
                   receipt: { status: 'completed' }
                 };
               } else {
@@ -1708,24 +1724,36 @@
               }
             } catch (error) {
               console.error('[payment] Base Pay failed, falling back to regular transaction:', error);
-              console.log('[payment] Base Pay error details:', error.message);
               // Fallback to regular transaction if Base Pay fails
             }
           }
 
-          // Regular ETH transaction (Farcaster or browser) - requires signer
-          if (!signer) {
-            throw new Error('Signer required for non-Base App payments');
+          // Regular ETH transaction using Wagmi sendTransaction (like in example)
+          if (!address || !window.wagmiConfig) {
+            throw new Error('Address and wagmi config required for payments');
           }
           
-          console.log('[payment] Using regular ETH transaction');
-          const tx = await signer.sendTransaction({
+          console.log('[payment] Using Wagmi sendTransaction');
+          
+          // Use Wagmi sendTransaction (like in example)
+          const { sendTransaction, waitForTransactionReceipt } = await import('https://esm.sh/wagmi@2.12.0');
+          const { parseEther } = await import('https://esm.sh/viem@2.21.0');
+          
+          const hash = await sendTransaction(window.wagmiConfig, {
             to: TREASURY,
-            value: ethers.utils.parseEther(amountETH.toString())
+            value: parseEther(amountETH.toString()),
+            account: address
           });
-          const receipt = await tx.wait();
+          
+          console.log('[payment] Transaction sent, hash:', hash);
+          
+          // Wait for transaction receipt (like in example)
+          const receipt = await waitForTransactionReceipt(window.wagmiConfig, { 
+            hash,
+            confirmations: 2 
+          });
 
-          return { txHash: tx.hash, receipt };
+          return { txHash: hash, receipt };
         };
 
 
@@ -2140,19 +2168,31 @@ Important: This must be a unique interpretation for this specific card spread. M
             // Pay 0.0001 ETH each time for 3-card spread
             try {
               setTxStatus("paying");
-              const wallet = await connectWallet();
-              if (!wallet) {
-                setTxStatus("error");
-                console.warn('[wallet] Please connect your wallet first');
-                return;
+              
+              // Check if wallet is connected (like in example: useAccount)
+              const { getAccount } = await import('https://esm.sh/wagmi@2.12.0');
+              let account = getAccount(window.wagmiConfig);
+              
+              // If not connected, connect first
+              if (!account.isConnected || !account.address) {
+                const wallet = await connectWallet();
+                if (!wallet || !wallet.address) {
+                  setTxStatus("error");
+                  console.warn('[wallet] Please connect your wallet first');
+                  return;
+                }
+                account = { address: wallet.address, isConnected: true };
               }
 
-              // Get ethProvider for ensureBase
-              const ethProvider = await getEthereumProvider();
-              const provider = await ensureBase(wallet.provider, ethProvider);
-              const signer = provider.getSigner();
+              // Ensure we're on Base network
+              const { getChainId, switchChain } = await import('https://esm.sh/wagmi@2.12.0');
+              const chainId = getChainId(window.wagmiConfig);
+              if (chainId !== 8453) {
+                console.log('[wallet] Switching to Base network...');
+                await switchChain(window.wagmiConfig, { chainId: 8453 });
+              }
 
-              const result = await payETH(signer, 0.0001);
+              const result = await payETH(account.address, 0.0001);
               setTxHash(result.txHash);
               setTxStatus("success");
 
@@ -2179,21 +2219,32 @@ Important: This must be a unique interpretation for this specific card spread. M
             try {
               setTxStatus("paying");
               console.log('[payment] Starting custom spread payment...');
-              const wallet = await connectWallet();
-              if (!wallet) {
-                setTxStatus("error");
-                console.warn('[wallet] Please connect your wallet first');
-                return;
+              
+              // Check if wallet is connected (like in example: useAccount)
+              const { getAccount } = await import('https://esm.sh/wagmi@2.12.0');
+              let account = getAccount(window.wagmiConfig);
+              
+              // If not connected, connect first
+              if (!account.isConnected || !account.address) {
+                const wallet = await connectWallet();
+                if (!wallet || !wallet.address) {
+                  setTxStatus("error");
+                  console.warn('[wallet] Please connect your wallet first');
+                  return;
+                }
+                account = { address: wallet.address, isConnected: true };
               }
 
-              console.log('[payment] Ensuring Base network...');
-              // Get ethProvider for ensureBase
-              const ethProvider = await getEthereumProvider();
-              const provider = await ensureBase(wallet.provider, ethProvider);
-              const signer = provider.getSigner();
+              // Ensure we're on Base network
+              const { getChainId, switchChain } = await import('https://esm.sh/wagmi@2.12.0');
+              const chainId = getChainId(window.wagmiConfig);
+              if (chainId !== 8453) {
+                console.log('[wallet] Switching to Base network...');
+                await switchChain(window.wagmiConfig, { chainId: 8453 });
+              }
 
               console.log('[payment] Calling payETH(0.001 ETH)...');
-              const result = await payETH(signer, 0.001);
+              const result = await payETH(account.address, 0.001);
               setTxHash(result.txHash);
               setTxStatus("success");
 
@@ -2928,6 +2979,61 @@ Important: This must be a unique interpretation for this specific card spread. M
       );
     }
 
+    // Wagmi Provider Component (like in example)
+    const WagmiProvider = ({ children }) => {
+      const [WagmiWagmiProvider, setWagmiWagmiProvider] = useState(null);
+      const [config, setConfig] = useState(null);
+
+      useEffect(() => {
+        // Dynamically import WagmiProvider from wagmi
+        import('https://esm.sh/wagmi@2.12.0').then((wagmi) => {
+          setWagmiWagmiProvider(() => wagmi.WagmiProvider);
+          setConfig(window.wagmiConfig);
+          console.log('[wagmi] WagmiProvider loaded');
+        }).catch((e) => {
+          console.error('[wagmi] Failed to load WagmiProvider:', e);
+        });
+      }, []);
+
+      if (!WagmiWagmiProvider || !config) {
+        return children; // Render children while loading
+      }
+
+      return React.createElement(WagmiWagmiProvider, { config }, children);
+    };
+
+    // QueryClient Provider Component (like in example)
+    const QueryClientProvider = ({ children }) => {
+      const [TanstackQueryClientProvider, setTanstackQueryClientProvider] = useState(null);
+
+      useEffect(() => {
+        // Dynamically import QueryClientProvider from @tanstack/react-query
+        import('https://esm.sh/@tanstack/react-query@5.28.0').then((reactQuery) => {
+          setTanstackQueryClientProvider(() => reactQuery.QueryClientProvider);
+          console.log('[wagmi] QueryClientProvider loaded');
+        }).catch((e) => {
+          console.error('[wagmi] Failed to load QueryClientProvider:', e);
+        });
+      }, []);
+
+      if (!TanstackQueryClientProvider || !window.queryClient) {
+        return children; // Render children while loading
+      }
+
+      return React.createElement(TanstackQueryClientProvider, { client: window.queryClient }, children);
+    };
+
+    // App Wrapper with Providers (like in example)
+    const AppWithProviders = () => {
+      return (
+        <QueryClientProvider>
+          <WagmiProvider>
+            <TaroApp />
+          </WagmiProvider>
+        </QueryClientProvider>
+      );
+    };
+
     // Render the app
     const root = ReactDOM.createRoot(document.getElementById('root'));
     // Debug mode viewport updater
@@ -2943,7 +3049,7 @@ Important: This must be a unique interpretation for this specific card spread. M
     window.addEventListener('resize', updateViewportInfo);
     updateViewportInfo();
 
-    root.render(<TaroApp />);
+    root.render(<AppWithProviders />);
   </script>
 
   <style>
