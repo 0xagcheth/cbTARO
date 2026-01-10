@@ -1745,8 +1745,10 @@ Got a real answer.
             }
 
             // IMPORTANT: appUrl must be appended to text so it appears as a visible line
-            // Ensure no trailing space after URL
-            const finalText = `${shareText.trim()}\n${appUrl.trim()}`;
+            // Ensure no trailing space after URL - trim both and join without any spaces
+            const cleanShareText = shareText.trim();
+            const cleanAppUrl = appUrl.trim();
+            const finalText = `${cleanShareText}\n${cleanAppUrl}`;
 
             // Build embeds array
             const embeds = [appUrl];
