@@ -1455,27 +1455,33 @@
           }
         };
 
+        // Ensure we're on Base network (8453)
+        // Uses getEthereumProvider() to get correct provider (SDK in Mini App, window.ethereum in browser)
         const ensureBase = async (provider) => {
           const network = await provider.getNetwork();
           if (network.chainId !== 8453) {
             try {
-              // Get the correct provider (Farcaster or browser)
+              console.log('[wallet] ⚠️ Not on Base network, switching...');
+              // Get the correct provider (Farcaster SDK or browser)
               const ethProvider = await getEthereumProvider();
               if (!ethProvider) {
                 throw new Error('No wallet provider found');
               }
               
+              console.log('[wallet] Requesting wallet_switchEthereumChain to Base...');
               await ethProvider.request({
                 method: 'wallet_switchEthereumChain',
-                params: [{ chainId: '0x2105' }],
+                params: [{ chainId: '0x2105' }], // Base mainnet
               });
               // Reload provider after network switch
+              console.log('[wallet] ✅ Switched to Base network');
               return new ethers.providers.Web3Provider(ethProvider);
             } catch (error) {
-              console.error('Failed to switch to Base network:', error);
+              console.error('[wallet] ❌ Failed to switch to Base network:', error);
               throw new Error('Please switch to Base network manually');
             }
           }
+          console.log('[wallet] ✅ Already on Base network');
           return provider;
         };
 
@@ -1995,6 +2001,7 @@ Important: This must be a unique interpretation for this specific card spread. M
             // Pay 0.001 ETH for custom reading
             try {
               setTxStatus("paying");
+              console.log('[payment] Starting custom spread payment...');
               const wallet = await connectWallet();
               if (!wallet) {
                 setTxStatus("error");
@@ -2002,9 +2009,11 @@ Important: This must be a unique interpretation for this specific card spread. M
                 return;
               }
 
+              console.log('[payment] Ensuring Base network...');
               const provider = await ensureBase(wallet.provider);
               const signer = provider.getSigner();
-
+              
+              console.log('[payment] Calling payETH(0.001 ETH)...');
               const result = await payETH(signer, 0.001);
               setTxHash(result.txHash);
               setTxStatus("success");
