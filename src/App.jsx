@@ -772,7 +772,7 @@ function TaroApp() {
               await trackVisit(userContext.fid, address);
             }
           }
-        } catch (error) {
+              } catch (error) {
           console.error('[miniapp] Failed to get user context:', error);
         }
       }
@@ -998,7 +998,7 @@ function TaroApp() {
             }
             console.warn('[wallet] ⚠️ Mini App SDK provider not available');
             return null;
-          } catch (error) {
+        } catch (error) {
             console.error('[wallet] ❌ Error getting Mini App SDK provider:', error);
             return null;
           }
@@ -1696,7 +1696,7 @@ Important: This must be a unique interpretation for this specific card spread. M
             // Check if already paid in this session
             if (paidSpreads.THREE) {
               console.log('[payment] Already paid for THREE spread in this session, starting animation directly');
-              usageLogger.increment("THREE");
+            usageLogger.increment("THREE");
               await startSpreadAnimation(spread);
               return;
             }
@@ -1729,7 +1729,7 @@ Important: This must be a unique interpretation for this specific card spread. M
             // Check if already paid in this session
             if (paidSpreads.CUSTOM) {
               console.log('[payment] Already paid for CUSTOM spread in this session, starting animation directly');
-              usageLogger.increment("CUSTOM");
+            usageLogger.increment("CUSTOM");
               await startSpreadAnimation(spread);
               return;
             }
@@ -1948,14 +1948,27 @@ Important: This must be a unique interpretation for this specific card spread. M
                 {soundEnabled ? "🔊" : "🔇"}
               </button>
 
+              {/* Wallet Connect Button - according to Farcaster docs */}
+              {/* If connected: show address/avatar, if not: show Connect button */}
+              {isConnected && address ? (
+                <button
+                  className="icon-btn avatar-btn"
+                  onClick={() => {}} // Connected - no action needed
+                  aria-label="Wallet connected"
+                  title={`Connected: ${shortAddress(address)}`}
+                >
+                  {pfpUrl ? <img className="avatar-img" src={pfpUrl} alt="pfp" /> : <span className="avatar-fallback">🌐</span>}
+                </button>
+              ) : (
               <button
                 className="icon-btn avatar-btn"
                 onClick={handleConnect}
                 aria-label="Connect wallet"
-                title={isWalletConnected ? `Connected: ${shortAddress(walletAddress)}` : "Connect Wallet"}
+                  title="Connect Wallet"
               >
-                {pfpUrl ? <img className="avatar-img" src={pfpUrl} alt="pfp" /> : <span className="avatar-fallback">🌐</span>}
+                  <span className="avatar-fallback">🔗</span>
               </button>
+              )}
 
               <button
                 className="icon-btn"
