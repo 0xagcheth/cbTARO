@@ -1108,6 +1108,35 @@
         );
       };
 
+      // =====================================================
+      // WALLET PROVIDER HELPER (GLOBAL)
+      // According to: https://miniapps.farcaster.xyz/docs/guides/wallets
+      // =====================================================
+      
+      // Get Ethereum provider (Farcaster SDK or browser)
+      async function getEthereumProvider() {
+        // Check if in Farcaster Mini App
+        try {
+          const { sdk } = await import('https://esm.sh/@farcaster/miniapp-sdk@latest');
+          if (sdk && sdk.context) {
+            // In Farcaster Mini App: use SDK provider
+            console.log('[wallet] Using Farcaster SDK provider');
+            return await sdk.wallet.getEthereumProvider();
+          }
+        } catch (error) {
+          console.log('[wallet] Not in Farcaster, using browser provider');
+        }
+        
+        // In browser: use window.ethereum (MetaMask, Coinbase, etc.)
+        if (window.ethereum) {
+          console.log('[wallet] Using window.ethereum provider');
+          return window.ethereum;
+        }
+        
+        console.warn('[wallet] No wallet provider found');
+        return null;
+      }
+
       function TaroApp() {
         const [gameStage, setGameStage] = useState("idle");
         const [selectedSpread, setSelectedSpread] = useState(null);
@@ -1453,7 +1482,7 @@
             return { provider, signer, address };
           } catch (error) {
             console.error('Failed to connect wallet:', error);
-            alert('Failed to connect wallet. Please try again.');
+            console.warn('[wallet] Failed to connect. Please try again.');
             return null;
           }
         };
@@ -1462,12 +1491,18 @@
           const network = await provider.getNetwork();
           if (network.chainId !== 8453) {
             try {
-              await window.ethereum.request({
+              // Get the correct provider (Farcaster or browser)
+              const ethProvider = await getEthereumProvider();
+              if (!ethProvider) {
+                throw new Error('No wallet provider found');
+              }
+              
+              await ethProvider.request({
                 method: 'wallet_switchEthereumChain',
                 params: [{ chainId: '0x2105' }],
               });
               // Reload provider after network switch
-              return new ethers.providers.Web3Provider(window.ethereum);
+              return new ethers.providers.Web3Provider(ethProvider);
             } catch (error) {
               console.error('Failed to switch to Base network:', error);
               throw new Error('Please switch to Base network manually');
@@ -1900,7 +1935,7 @@ Important: This must be a unique interpretation for this specific card spread. M
               const wallet = await connectWallet();
               if (!wallet) {
                 setTxStatus("error");
-                alert("Please connect your wallet first");
+                console.warn('[wallet] Please connect your wallet first');
                 return;
               }
 
@@ -1936,7 +1971,7 @@ Important: This must be a unique interpretation for this specific card spread. M
               const wallet = await connectWallet();
               if (!wallet) {
                 setTxStatus("error");
-                alert("Please connect your wallet first");
+                console.warn('[wallet] Please connect your wallet first');
                 return;
               }
 
