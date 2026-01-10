@@ -882,23 +882,6 @@
           }, 100);
         }, []);
 
-        // Get Ethereum provider (Farcaster or browser)
-        // According to: https://miniapps.farcaster.xyz/docs/guides/wallets
-        const getEthereumProvider = async () => {
-          if (isMiniApp) {
-            try {
-              // In Farcaster Mini App: use SDK provider
-              const { sdk } = await import('https://esm.sh/@farcaster/miniapp-sdk@latest');
-              return await sdk.wallet.getEthereumProvider();
-            } catch (error) {
-              console.warn('[wallet] Failed to get Farcaster provider:', error);
-              return null;
-            }
-          }
-          // In browser: use window.ethereum (MetaMask, Coinbase, etc.)
-          return window.ethereum || null;
-        };
-
         // Auto-check wallet connection in browser mode (non-blocking)
         useEffect(() => {
           if (isMiniApp || authState === 'miniapp_authed') return;
