@@ -30,8 +30,7 @@
     <div id="root"></div>
     <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 
-    <!-- Farcaster Mini Apps SDK -->
-    <script src="https://cdn.jsdelivr.net/npm/@farcaster/frame-sdk@0.0.32/dist/index.umd.js"></script>
+    <!-- Farcaster Mini Apps SDK - loaded via npm import in main.jsx -->
 
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -70,59 +69,7 @@
       });
     </script>
 
-    <!-- Farcaster SDK ready check script -->
-    <script>
-      // Global function to check and call Farcaster SDK ready
-      window.checkFarcasterReady = function() {
-        console.log('🔍 Checking Farcaster SDK readiness...');
-
-        // Check different possible SDK global names
-        const sdk = window.farcaster || window.farcasterSDK || window.sdk || window.FarcasterSDK;
-
-        if (sdk && sdk.actions && typeof sdk.actions.ready === 'function') {
-          console.log('✅ Farcaster SDK is ready, calling actions.ready()');
-          try {
-            sdk.actions.ready();
-            console.log('✅ Successfully called farcaster.actions.ready()');
-            return true;
-          } catch (error) {
-            console.error('❌ Error in farcaster.actions.ready():', error);
-            return false;
-          }
-        } else {
-          console.log('⏳ Farcaster SDK not ready yet, will retry...');
-          return false;
-        }
-      };
-
-      // Try to initialize immediately
-      if (document.readyState === 'complete') {
-        window.checkFarcasterReady();
-      } else {
-        // Wait for DOM and then check
-        document.addEventListener('DOMContentLoaded', function() {
-          // Small delay to ensure all scripts are loaded
-          setTimeout(window.checkFarcasterReady, 100);
-        });
-
-        // Also check on window load
-        window.addEventListener('load', function() {
-          setTimeout(window.checkFarcasterReady, 50);
-        });
-      }
-
-      // Periodic check for SDK (in case it loads asynchronously)
-      let sdkCheckInterval = setInterval(function() {
-        if (window.checkFarcasterReady()) {
-          clearInterval(sdkCheckInterval);
-        }
-      }, 500);
-
-      // Clear interval after 10 seconds to avoid infinite checking
-      setTimeout(function() {
-        clearInterval(sdkCheckInterval);
-      }, 10000);
-    </script>
+    <!-- Farcaster SDK ready - handled in src/main.jsx via @farcaster/miniapp-sdk -->
 
     <script type="text/babel">
       const { useState, useEffect } = React;
@@ -1160,11 +1107,11 @@
         useEffect(() => {
           console.log('🎯 React component mounted, checking Farcaster SDK...');
 
-          // Small delay to ensure global script has run
+          // Farcaster SDK ready() is handled in src/main.jsx
+          // No fallback needed - main.jsx handles it properly
           const timer = setTimeout(() => {
-            if (!window.checkFarcasterReady || !window.checkFarcasterReady()) {
-              // Fallback if global script failed
-              console.log('🔄 Fallback SDK check from React component');
+            // Legacy code removed - SDK initialization is in main.jsx
+            console.log('🔄 Component mounted');
 
               const sdk = window.farcaster || window.farcasterSDK || window.sdk || window.FarcasterSDK;
               if (sdk && sdk.actions && typeof sdk.actions.ready === 'function') {
