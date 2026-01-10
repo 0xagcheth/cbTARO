@@ -1222,8 +1222,16 @@
         useEffect(() => {
           const loadFarcasterContext = async () => {
             try {
-              // Try different SDK access patterns
-              const sdk = window.farcaster || window.farcasterSDK || window.sdk || window.FarcasterSDK;
+              // Use singleton SDK - stable and reliable
+              let sdk = null;
+              try {
+                sdk = await window.getFcSdk();
+              } catch (e) {
+                // Not in Mini App context or SDK import failed
+                console.log('📱 No Farcaster SDK found - running in regular browser');
+                setFcReady(true); // Mark as ready even if no SDK
+                return;
+              }
               
               if (!sdk) {
                 console.log('📱 No Farcaster SDK found - running in regular browser');
