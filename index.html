@@ -1375,10 +1375,18 @@
         };
 
         const connectWallet = async () => {
+          // Get Ethereum provider (Farcaster or browser)
+          const ethProvider = await getEthereumProvider();
+          
+          if (!ethProvider) {
+            console.warn('[wallet] No wallet provider found');
+            return null;
+          }
+
           // If already connected via authIdentity, use that
           if (authIdentity.walletAddress && authIdentity.authState === 'wallet_connected_profile_ready') {
             try {
-              const provider = new ethers.providers.Web3Provider(window.ethereum);
+              const provider = new ethers.providers.Web3Provider(ethProvider);
               const signer = provider.getSigner();
               return { provider, signer, address: authIdentity.walletAddress };
             } catch (error) {
@@ -1386,14 +1394,9 @@
             }
           }
 
-          if (!window.ethereum) {
-            alert('MetaMask or compatible wallet not found!');
-            return null;
-          }
-
           try {
-            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-            const provider = new ethers.providers.Web3Provider(window.ethereum);
+            const accounts = await ethProvider.request({ method: 'eth_requestAccounts' });
+            const provider = new ethers.providers.Web3Provider(ethProvider);
             const signer = provider.getSigner();
             const address = await signer.getAddress();
 
