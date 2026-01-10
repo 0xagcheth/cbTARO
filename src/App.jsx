@@ -682,7 +682,7 @@ function TaroApp() {
       }
       
       return reading;
-    } catch (error) {
+              } catch (error) {
       console.warn('Failed to load last reading:', error);
       return null;
     }
@@ -763,7 +763,7 @@ function TaroApp() {
         }
       }
     })();
-  }, []);
+      }, []);
 
   // Farcaster Mini App SDK ready() is called in src/main.jsx
   // No need to duplicate here - main.jsx handles it after DOMContentLoaded and React render
@@ -1201,85 +1201,78 @@ Got a real answer.
         return { text, embeds };
       }
 
+      /**
+       * Share app link - always shares the app URL
+       * Strategy:
+       * 1. navigator.share if available
+       * 2. clipboard copy with feedback
+       * 3. window.prompt as final fallback
+       */
+      async function shareAppLink() {
+        const url = "https://0xagcheth.github.io/cbTARO/";
+        const text = "🔮 cbTARO — tarot mini app\n" + url;
+
+        try {
+          // 1. Try navigator.share first
+          if (navigator.share) {
+            try {
+              await navigator.share({
+                title: "cbTARO",
+                text: text,
+                url: url
+              });
+              return true;
+            } catch (error) {
+              // User cancelled or share failed, continue to fallback
+              if (error.name === 'AbortError') {
+                return false; // User cancelled, don't try other methods
+              }
+              // Continue to clipboard fallback
+            }
+          }
+
+          // 2. Try clipboard copy
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            try {
+              await navigator.clipboard.writeText(text);
+              alert("Link copied ✅");
+              return true;
+            } catch (error) {
+              // Clipboard failed, continue to prompt fallback
+              console.warn('Clipboard copy failed:', error);
+            }
+          }
+
+          // 3. Final fallback: window.prompt
+          const promptText = `Copy this link:\n\n${text}`;
+          const copied = window.prompt(promptText, text);
+          if (copied) {
+            alert("Link copied ✅");
+            return true;
+          }
+          return false;
+        } catch (error) {
+          console.error('shareAppLink failed:', error);
+          // Last resort: try prompt
+          try {
+            window.prompt("Copy this link:", text);
+            return true;
+          } catch (e) {
+            console.error('Prompt also failed:', e);
+            return false;
+          }
+        }
+      }
+
       const handleShare = async () => {
         try {
           playButtonSound();
 
-          // Check if we have lastReading
-          if (!lastReading) {
-            alert('Draw a card first');
-            if (import.meta.env.DEV) {
-              console.debug('Share clicked but no lastReading available');
-            }
-            return;
-          }
-
-          // Build share payload
-          const payload = buildSharePayload(lastReading);
-          if (!payload) {
-            alert('Failed to prepare share content. Please draw a card again.');
-            return;
-          }
-
-          // Debug logging
-          const isDev = import.meta.env.DEV || window.location.search.includes('debug=1');
-          if (isDev) {
-            console.debug('share clicked', payload);
-          }
-
-          // Try Farcaster Mini App SDK first
-          const sdk = window.miniAppSDK || window.farcaster || window.farcasterSDK || window.sdk || window.FarcasterSDK;
-          const isInMiniApp = window.isInMiniApp || (sdk && sdk.isInMiniApp && sdk.isInMiniApp());
-          
-          if (isInMiniApp && sdk?.actions?.composeCast) {
-            try {
-              await sdk.actions.composeCast({
-                text: payload.text,
-                embeds: payload.embeds
-              });
-              if (isDev) {
-                console.debug('Shared via Farcaster Mini App SDK');
-              }
-              return;
-            } catch (error) {
-              console.warn('Failed to share via SDK, trying fallback:', error);
-            }
-          } else {
-            if (isDev) {
-              console.debug('miniapp sdk unavailable, using fallback');
-            }
-          }
-
-          // Fallback: Use shareCast helper (handles navigator.share, clipboard)
-          const shared = await shareCast({ 
-            text: payload.text.replace(`\n\nOpen the app: ${APP_URL}`, ''), // shareCast will add it
-            embeds: payload.embeds 
-          });
-          
-          if (!shared) {
-            // Final fallback: Farcaster compose intent URL
-            if (isDev) {
-              console.debug('SHARE using fallback compose URL');
-            }
-            
-            const baseUrl = 'https://farcaster.xyz/~/compose';
-            const params = new URLSearchParams();
-            params.set("text", payload.text);
-            
-            // Use embeds[] format (repeated parameters)
-            payload.embeds.forEach((embed) => {
-              params.append("embeds[]", embed);
-            });
-            
-            const url = `${baseUrl}?${params.toString()}`;
-            if (isDev) {
-              console.debug('SHARE URL:', url);
-            }
-            window.open(url, '_blank', 'noopener,noreferrer');
-          }
+          // Always share app link using shareAppLink function
+          await shareAppLink();
         } catch (error) {
           console.error('Share failed:', error);
-          alert('Failed to share reading. Please try again.');
+          alert('Failed to share. Please try again.');
         }
       };
 
