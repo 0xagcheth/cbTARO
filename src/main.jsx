@@ -33,40 +33,18 @@ window.addEventListener('orientationchange', function() {
 
 /**
  * Bootstrap Mini App SDK
- * Uses utility module for complete SDK integration
+ * CRITICAL: Call ready() immediately to hide splash screen
+ * According to: https://miniapps.farcaster.xyz/docs/getting-started#making-your-app-display
  */
-import { initMiniApp, isInMiniApp as checkIsInMiniApp, getMiniAppSDK } from './utils/miniapp';
+import { sdk } from '@farcaster/miniapp-sdk';
 
-async function bootstrapMiniApp() {
-  try {
-    const inMiniApp = await checkIsInMiniApp();
-    
-    if (!inMiniApp) {
-      if (import.meta.env.DEV) {
-        console.debug('[miniapp] Not in Mini App environment');
-      }
-      return { isInMiniApp: false };
-    }
-
-    // Initialize Mini App (calls ready())
-    const success = await initMiniApp();
-    
-    if (success) {
-      // Store SDK globally for backwards compatibility
-      const sdk = await getMiniAppSDK();
-      window.miniAppSDK = sdk;
-      window.isInMiniApp = true;
-      
-      console.log('[miniapp] ✅ Mini App initialized successfully');
-      return { isInMiniApp: true, sdk };
-    } else {
-      console.warn('[miniapp] Failed to initialize Mini App');
-      return { isInMiniApp: false };
-    }
-  } catch (error) {
-    console.warn('[miniapp] Error bootstrapping Mini App:', error);
-    return { isInMiniApp: false };
-  }
+// Call ready() IMMEDIATELY - no conditions, no delays
+// This is the FIRST thing that must happen
+try {
+  sdk.actions.ready();
+  console.log('[miniapp] ✅ ready() called');
+} catch (error) {
+  console.warn('[miniapp] ready() failed (not in Mini App):', error);
 }
 
 // Render React app with QueryClientProvider + WagmiProvider
@@ -81,19 +59,4 @@ root.render(
   </React.StrictMode>
 );
 
-// Bootstrap Mini App after DOM is ready and React has rendered
-// Wait for DOMContentLoaded, then give React time to render
-function startMiniAppInit() {
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function() {
-      // Small delay to ensure React has rendered
-      setTimeout(bootstrapMiniApp, 200);
-    });
-  } else {
-    // DOM already ready, wait for React to render
-    setTimeout(bootstrapMiniApp, 200);
-  }
-}
-
-// Start initialization
-startMiniAppInit();
+// No additional initialization needed - ready() already called above
