@@ -863,7 +863,7 @@
             }
           };
 
-          checkWallet();
+          checkAndConnectWallet();
         }, [authState]); // Removed isMiniApp from deps - check wallet in all environments
 
         const connectWallet = async () => {
