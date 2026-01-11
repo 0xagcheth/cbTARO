@@ -60,44 +60,6 @@
 
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-    <!-- Wagmi, Viem, React Query - loaded via ESM for proper module support -->
-    <script type="module">
-      // Load wagmi config and make it available globally
-      import { http, createConfig } from 'https://esm.sh/wagmi@2.12.0';
-      import { base } from 'https://esm.sh/wagmi@2.12.0/chains';
-      import { farcasterMiniApp as miniAppConnector } from 'https://esm.sh/@farcaster/miniapp-wagmi-connector@1.1.0';
-
-      window.wagmiConfig = createConfig({
-        chains: [base],
-        transports: {
-          [base.id]: http(),
-        },
-        connectors: [
-          miniAppConnector() // Only connector: Farcaster Mini App
-        ],
-      });
-
-      console.log('[BOOT] Wagmi config loaded');
-    </script>
-
-    <!-- React Query - loaded via ESM -->
-    <script type="module">
-      import { QueryClient } from 'https://esm.sh/@tanstack/react-query@5.28.0';
-
-      window.queryClient = new QueryClient({
-        defaultOptions: {
-          queries: {
-            queryKeyHashFn: (queryKey) => {
-              return JSON.stringify(queryKey, (_, value) =>
-                typeof value === "bigint" ? value.toString() : value
-              );
-            },
-          },
-        },
-      });
-
-      console.log('[BOOT] QueryClient created');
-    </script>
 
     <!-- Mobile WebView fixes script -->
     <script>
@@ -146,8 +108,6 @@
       window.__fc = {
         sdk: null,
         sdkPromise: null,
-        provider: null,
-        providerPromise: null,
         readyCalled: false
       };
 
@@ -194,54 +154,9 @@
         }
       }
 
-      // Get Ethereum provider exactly once and cache it
-      async function fcProvider() {
-        console.log('[FC] fcProvider() called');
-        console.log('[FC] window.__fc.provider cached:', !!window.__fc.provider);
-        console.log('[FC] window.__fc.providerPromise exists:', !!window.__fc.providerPromise);
-        
-        if (window.__fc.provider) {
-          console.log('[FC] Returning cached provider');
-          return window.__fc.provider;
-        }
-        if (window.__fc.providerPromise) {
-          console.log('[FC] Returning existing providerPromise');
-          return window.__fc.providerPromise;
-        }
-
-        console.log('[FC] Creating new providerPromise...');
-        window.__fc.providerPromise = (async () => {
-          try {
-            console.log('[FC] Loading SDK for provider...');
-            const sdk = await loadFcSdk();
-            console.log('[FC] SDK loaded, checking sdk.wallet:', !!sdk?.wallet);
-            console.log('[FC] sdk.wallet.getEthereumProvider available:', typeof sdk?.wallet?.getEthereumProvider === 'function');
-            
-            const provider = await sdk.wallet.getEthereumProvider();
-            console.log('[FC] ✅ got ethereum provider from sdk:', !!provider);
-            console.log('[FC] Provider type:', typeof provider);
-            console.log('[FC] Provider has request method:', typeof provider?.request === 'function');
-            
-            window.__fc.provider = provider;
-            return provider;
-          } catch (e) {
-            console.error('[FC] ❌ ethereum provider not available:', e);
-            console.error('[FC] Error details:', {
-              message: e.message,
-              stack: e.stack,
-              name: e.name
-            });
-            return null;
-          }
-        })();
-
-        return window.__fc.providerPromise;
-      }
-
       // Make functions globally available
       window.loadFcSdk = loadFcSdk;
       window.fcReadyOnce = fcReadyOnce;
-      window.fcProvider = fcProvider;
 
       // Call ready() early (fire-and-forget)
       fcReadyOnce();
@@ -904,9 +819,8 @@
         // Layer 1: Load cached profile immediately for instant rendering
         const cachedProfile = getCachedProfile();
         
-        const [authState, setAuthState] = useState(cachedProfile?.pfpUrl ? 'wallet_disconnected' : 'loading'); // Start with cached if available
+        const [authState, setAuthState] = useState(cachedProfile?.pfpUrl ? 'ready' : 'loading');
         const [profile, setProfile] = useState(cachedProfile); // {fid, username, displayName, pfpUrl} - start with cache
-        const [walletAddress, setWalletAddress] = useState(null);
         const [isMiniApp, setIsMiniApp] = useState(false);
 
         // Initialize auth: load SDK context and cache
@@ -966,9 +880,8 @@
                 }
               }
 
-              console.log('[auth] Initialization: ready for wallet connection');
-              // Set initial state - wallet will be checked in useEffect below
-              setAuthState('wallet_disconnected');
+              console.log('[auth] Initialization complete');
+              setAuthState('ready');
             } catch (error) {
               if (DEV) console.warn('⚠️ Auth init error:', error);
               setAuthState('not_miniapp');
@@ -981,150 +894,17 @@
           }, 100);
         }, []);
 
-        // Auto-check and connect wallet (ONLY wallet-based auth)
-        // According to: https://miniapps.farcaster.xyz/docs/guides/wallets
-        // In Farcaster/Base app: sdk.wallet.getEthereumProvider() returns native wallet
-        // In browser: window.ethereum returns MetaMask/Coinbase
-        useEffect(() => {
-          // Skip if wallet is already connected
-          if (authState === 'wallet_connected_profile_ready') return;
-
-          // Delay wallet check to ensure app renders first (non-blocking)
-          const checkAndConnectWallet = async () => {
-            // Small delay to ensure UI is rendered first
-            await new Promise(resolve => setTimeout(resolve, 100));
-            
-            console.log('[wallet] Starting wallet check...');
-            
-            if (!window.wagmiConfig) {
-              console.log('[wallet] ❌ Wagmi config not loaded yet');
-              setAuthState('wallet_disconnected');
-              return;
-            }
-
-            try {
-              // Check if wallet is already connected using wagmi getAccount
-              const { getAccount } = await import('https://esm.sh/wagmi@2.12.0');
-              const account = getAccount(window.wagmiConfig);
-              
-              if (account.isConnected && account.address) {
-                const address = account.address;
-                console.log('[wallet] ✅ Wallet already connected:', address);
-                setWalletAddress(address);
-                setIsWalletConnected(true);
-                
-                // Don't change state to fetching - keep showing cached avatar if available
-                // Only update state if we don't have a profile yet
-                if (!profile?.pfpUrl) {
-                  setAuthState('wallet_connected_fetching_profile');
-                }
-                
-                // Profile comes from SDK context only, no network resolution
-                    setAuthState('wallet_connected_profile_ready');
-              } else {
-                console.log('[wallet] No connected accounts found');
-                setAuthState('wallet_disconnected');
-              }
-            } catch (error) {
-              if (DEV) console.warn('⚠️ Wallet check error:', error);
-              setAuthState('wallet_disconnected');
-            }
-          };
-
-          checkAndConnectWallet();
-        }, [authState]); // Check wallet on mount and when authState changes
-
-        // ===== Connect Wallet using Wagmi (like in example) =====
-        // Wallet connects ONLY on explicit user action (button click)
-        // Uses Wagmi connector.connect() directly (like in example)
-        const connectWallet = async () => {
-          console.log('[wallet] ===== CONNECT WALLET (BUTTON CLICK) =====');
-          console.log('[wallet] connectWallet() called - using Wagmi connector');
-          
-          // Set loading state
-          setAuthState('wallet_connected_fetching_profile');
-          
-          if (!window.wagmiConfig) {
-            setAuthState('error');
-            console.warn('[wallet] ❌ Wagmi config not loaded yet');
-            return null;
-          }
-
-          try {
-            // Use Wagmi connector to connect (like in example)
-            const { getConnectors } = await import('https://esm.sh/wagmi@2.12.0');
-            const connectors = getConnectors(window.wagmiConfig);
-            
-            if (!connectors || connectors.length === 0) {
-              setAuthState('error');
-              console.warn('[wallet] ❌ No connectors available');
-              return null;
-            }
-
-            // Choose Farcaster Mini App connector explicitly
-            const connectorNames = connectors.map(c => c.name || c.id || 'unknown').join(', ');
-            console.log('[wallet] Available connectors:', connectorNames);
-            
-            // Find miniapp connector by name/id/type
-            const connector = connectors.find(c => 
-              (c?.name || '').toLowerCase().includes('farcaster') || 
-              (c?.id || '').toLowerCase().includes('farcaster') || 
-              (c?.type || '').toLowerCase().includes('farcaster') || 
-              (c?.name || '').toLowerCase().includes('mini')
-            ) || connectors[0]; // Fallback to first if not found (should be miniapp connector)
-            
-            if (!connector) {
-              setAuthState('error');
-              console.warn('[wallet] ❌ No connector found');
-              return null;
-            }
-            
-            console.log('[wallet] Selected connector:', connector.name || connector.id);
-
-            // Connect using connector.connect() directly (like in example)
-            const result = await connector.connect();
-            console.log('[wallet] Wagmi connect result:', result);
-            
-            const address = result.accounts[0];
-            console.log('[wallet] ✅ Wallet connected successfully');
-            console.log('[wallet] connector connect ok address=', address);
-
-            setIsWalletConnected(true);
-            setWalletAddress(address);
-            
-            // Profile comes from SDK context only, no network resolution
-                setAuthState('wallet_connected_profile_ready');
-
-            console.log('[wallet] ===== CONNECT WALLET END =====');
-            
-            return { address };
-          } catch (e) {
-            console.error('[wallet] ❌ Failed to connect wallet:', e);
-            console.error('[wallet] Error details:', {
-              message: e.message,
-              stack: e.stack,
-              name: e.name,
-              code: e.code
-            });
-            setAuthState('wallet_disconnected');
-            console.log('[wallet] ===== CONNECT WALLET END (ERROR) =====');
-            return null;
-          }
-        };
-
         return {
           authState,
           profile,
-          walletAddress,
-          isMiniApp,
-          connectWallet
+          isMiniApp
         };
       };
 
       // Unified Identity Button Component
       const UnifiedIdentityButton = ({ playButtonSound }) => {
         const DEV = window.location.search.includes('debug=1');
-        const { authState, profile, walletAddress, isMiniApp, connectWallet } = useAuthIdentity();
+        const { authState, profile, isMiniApp } = useAuthIdentity();
         const [showProfileModal, setShowProfileModal] = useState(false);
         const [avatarFailed, setAvatarFailed] = useState(false);
 
@@ -1138,14 +918,13 @@
         const handleClick = async (e) => {
           e.stopPropagation();
           
-          if (authState === 'miniapp_authed' || authState === 'wallet_connected_profile_ready') {
+          if (authState === 'miniapp_authed' || authState === 'ready') {
             // Open profile modal
             if (playButtonSound) playButtonSound();
             setShowProfileModal(true);
-          } else if (authState === 'wallet_disconnected' || authState === 'error') {
-            // Connect wallet
+          } else {
+            // Show profile if available
             if (playButtonSound) playButtonSound();
-            await connectWallet();
           }
         };
 
@@ -1169,7 +948,7 @@
           }
 
           // Priority 2: Show spinner only if we're actively fetching AND no cached avatar
-          if (authState === 'loading' || (authState === 'wallet_connected_fetching_profile' && !profile?.pfpUrl)) {
+          if (authState === 'loading') {
             return <span className="spinner orbSpinner">⏳</span>;
           }
 
@@ -1181,21 +960,18 @@
           if (authState === 'miniapp_authed' && profile) {
             return profile.displayName || profile.username || `FID: ${profile.fid}`;
           }
-          if (authState === 'wallet_connected_profile_ready' && walletAddress) {
             return profile ? 
               (profile.displayName || profile.username || `FID: ${profile.fid}`) :
-              `Connected: ${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`;
-          }
-          return "Connect Wallet (Click to connect)";
+            "Profile";
         };
 
         return (
           <>
             <button
-              className="wallet-connect-btn orbFrame"
+              className="orbFrame"
               onClick={handleClick}
               title={getTitle()}
-              disabled={authState === 'loading' || authState === 'wallet_connected_fetching_profile'}
+              disabled={authState === 'loading'}
             >
               {renderButtonContent()}
             </button>
@@ -1224,12 +1000,6 @@
       };
 
       // =====================================================
-      // WALLET PROVIDER HELPER (GLOBAL)
-      // According to: https://miniapps.farcaster.xyz/docs/guides/wallets
-      // =====================================================
-      
-      // getEthereumProvider removed - using only wagmi connector
-
       function TaroApp() {
         const [gameStage, setGameStage] = useState("idle");
         const [selectedSpread, setSelectedSpread] = useState(null);
@@ -1237,7 +1007,6 @@
         const [revealedIds, setRevealedIds] = useState([]);
         const [activeCard, setActiveCard] = useState(null);
         const [isLoading, setIsLoading] = useState(false);
-        const [txHash, setTxHash] = useState(null);
         const [userQuestion, setUserQuestion] = useState("");
         const [aiInterpretation, setAiInterpretation] = useState(null);
         const [isGeneratingAI, setIsGeneratingAI] = useState(false);
@@ -1246,12 +1015,9 @@
         const [readingSource, setReadingSource] = useState(null); // 'gallery' | 'spread' | 'ai' | null
         const [soundEnabled, setSoundEnabled] = useState(true);
 
-        // Wallet and payment states (kept for backward compatibility with payment logic)
-        const [isWalletConnected, setIsWalletConnected] = useState(false);
-        const [walletAddress, setWalletAddress] = useState(null);
+        // Farcaster user states
         const [userFid, setUserFid] = useState(null);
         const [userAvatar, setUserAvatar] = useState(null);
-        const [txStatus, setTxStatus] = useState("idle"); // idle, paying, success, error
 
         // Farcaster Mini App context states (kept for backward compatibility)
         const [fcUser, setFcUser] = useState(null); // {fid, username, displayName, pfpUrl}
@@ -1273,11 +1039,7 @@
               setFcUser(authIdentity.profile);
             }
           }
-          if (authIdentity.walletAddress) {
-            setWalletAddress(authIdentity.walletAddress);
-            setIsWalletConnected(true);
-          }
-        }, [authIdentity.profile, authIdentity.walletAddress]);
+        }, [authIdentity.profile]);
 
         // Farcaster Mini App SDK initialization (backup check)
         useEffect(() => {
@@ -1454,57 +1216,7 @@
           });
         };
 
-        // Wallet connection is handled by useAuthIdentity().connectWallet()
-        // Payment functions use wagmi sendTransaction (payETH handles connection internally)
-
-        // Pay using only Wagmi sendTransaction
-        const payETH = async (amountETH) => {
-          const TREASURY = '0xD4bF185c846F6CAbDaa34122d0ddA43765E754A6';
-
-          if (!window.wagmiConfig) {
-            throw new Error('Wagmi config required for payments');
-          }
-
-          // Get account from wagmi
-          const { getAccount, getChainId, switchChain, sendTransaction, waitForTransactionReceipt } = await import('https://esm.sh/wagmi@2.12.0');
-          const { parseEther } = await import('https://esm.sh/viem@2.21.0');
-          
-          let account = getAccount(window.wagmiConfig);
-          
-          // Ensure connected
-          if (!account.isConnected || !account.address) {
-            throw new Error('Wallet not connected');
-          }
-
-          // Ensure Base chain
-          const chainId = getChainId(window.wagmiConfig);
-          if (chainId !== 8453) {
-            console.log('[wallet] Switching to Base network...');
-            await switchChain(window.wagmiConfig, { chainId: 8453 });
-            // Re-read account after chain switch
-            account = getAccount(window.wagmiConfig);
-          }
-
-          console.log('[pay] sending tx to TREASURY amount=', amountETH);
-          console.log('[pay] From address:', account.address);
-          
-          const hash = await sendTransaction(window.wagmiConfig, {
-            to: TREASURY,
-            value: parseEther(String(amountETH)),
-            account: account.address
-          });
-          
-          console.log('[pay] Transaction sent, hash:', hash);
-          
-          // Wait for transaction receipt
-          const receipt = await waitForTransactionReceipt(window.wagmiConfig, { 
-            hash,
-            confirmations: 2 
-          });
-
-          console.log('[pay] confirmed hash=', hash);
-          return { hash, receipt };
-        };
+        // All spreads are free
 
 
         // Usage Logger Module
@@ -1513,20 +1225,19 @@
           getIdentity() {
             // First check Farcaster context state
             let fid = fcUser?.fid || userFid || '';
-            let currentWalletAddress = walletAddress || '';
 
             // Fallback: Try to get FID from Farcaster context (legacy check)
             if (!fid && window.farcaster && window.farcaster.user) {
               fid = window.farcaster.user.fid || '';
             }
 
-            return { fid, walletAddress: currentWalletAddress };
+            return { fid };
           },
 
           // Generate storage key for identity
           getStorageKey() {
-            const { fid, walletAddress } = this.getIdentity();
-            return `cbtaro_usage_${fid || 'unknown'}_${walletAddress || 'unknown'}`;
+            const { fid } = this.getIdentity();
+            return `cbtaro_usage_${fid || 'unknown'}`;
           },
 
           // Load counts from localStorage
@@ -1560,13 +1271,13 @@
 
           // Export data as CSV
           exportCsv() {
-            const { fid, walletAddress } = this.getIdentity();
+            const { fid } = this.getIdentity();
             const counts = this.loadCounts();
 
             // Create CSV content
             const csvContent = [
-              'fid,walletAddress,oneCardCount,threeCardCount,customCount',
-              `${fid},${walletAddress},${counts.oneCardCount},${counts.threeCardCount},${counts.customCount}`
+              'fid,oneCardCount,threeCardCount,customCount',
+              `${fid},${counts.oneCardCount},${counts.threeCardCount},${counts.customCount}`
             ].join('\n');
 
             // Create and download file
@@ -1909,67 +1620,16 @@ Important: This must be a unique interpretation for this specific card spread. M
           setSelectedSpread(spread);
           setAiInterpretation(null);
 
-          // Handle different payment requirements
+          // All spreads are free
           if (spread === "ONE") {
-            // Free - log usage and start animation
             usageLogger.increment("ONE");
             await startSpreadAnimation(spread);
           } else if (spread === "THREE") {
-            // Pay 0.0001 ETH each time for 3-card spread
-            try {
-              setTxStatus("paying");
-              
-              const result = await payETH(0.0001);
-              setTxHash(result.hash);
-              setTxStatus("success");
-
-              // Log usage and start animation
               usageLogger.increment("THREE");
-
-              // Small delay to show success
-              setTimeout(() => {
-                setTxStatus("idle");
-                startSpreadAnimation(spread);
-              }, 2000);
-            } catch (error) {
-              console.error("Payment failed:", error);
-              setTxStatus("error");
-              if (error.message.includes("user rejected")) {
-                alert("Payment cancelled. 3-card reading requires 0.0001 ETH payment.");
-              } else {
-                alert(`Payment failed: ${error.message}`);
-              }
-              return;
-            }
+            await startSpreadAnimation(spread);
           } else if (spread === "CUSTOM") {
-            // Pay 0.001 ETH for custom reading
-            try {
-              setTxStatus("paying");
-              console.log('[payment] Starting custom spread payment...');
-
-              console.log('[payment] Calling payETH(0.001 ETH)...');
-              const result = await payETH(0.001);
-              setTxHash(result.hash);
-              setTxStatus("success");
-
-              // Log usage and start animation
               usageLogger.increment("CUSTOM");
-
-              // Small delay to show success
-              setTimeout(() => {
-                setTxStatus("idle");
-                startSpreadAnimation(spread);
-              }, 2000);
-            } catch (error) {
-              console.error("Payment failed:", error);
-              setTxStatus("error");
-              if (error.message.includes("user rejected")) {
-                alert("Payment cancelled. Custom reading requires 0.001 ETH payment.");
-              } else {
-                alert(`Payment failed: ${error.message}`);
-              }
-              return;
-            }
+            await startSpreadAnimation(spread);
           }
         };
 
@@ -2134,7 +1794,6 @@ Important: This must be a unique interpretation for this specific card spread. M
           setCards([]);
           setRevealedIds([]);
           setActiveCard(null);
-          setTxHash(null);
           setUserQuestion("");
           setAiInterpretation(null);
         };
@@ -2169,16 +1828,6 @@ Important: This must be a unique interpretation for this specific card spread. M
               {/* Header / greeting */}
               <header className="taro-header">
                 <h1>cbTaro</h1>
-
-                {/* Transaction status - moved below title */}
-                {txStatus !== 'idle' && (
-                  <div className="tx-status">
-                    {txStatus === 'paying' && <span>🔄 Confirm in wallet...</span>}
-                    {txStatus === 'success' && <span>✅ Payment successful!</span>}
-                    {txStatus === 'error' && <span>❌ Payment failed</span>}
-                    {txHash && <div className="tx-hash">TX: {txHash.slice(0, 10)}...{txHash.slice(-8)}</div>}
-                  </div>
-                )}
               </header>
 
 
@@ -2447,7 +2096,7 @@ Important: This must be a unique interpretation for this specific card spread. M
 
                     {/* Interaction panel at bottom - positioned inside table oval */}
                     <footer className="taro-footer">
-                      {isAllRevealed && gameStage !== "paying" && (
+                      {isAllRevealed && (
                         <>
                           {selectedSpread === "CUSTOM" && (
                             <>
@@ -2497,13 +2146,6 @@ Important: This must be a unique interpretation for this specific card spread. M
                   </div>
                 </div>
 
-                {/* Payment state (not used, as payment is disabled) */}
-                {gameStage === "paying" && (
-                  <div className="taro-modal">
-                    <h2>Processing Transaction…</h2>
-                    <p>Please confirm payment in your wallet.</p>
-                  </div>
-                )}
 
                 {/* Animation before spread */}
                 {gameStage === "animating" && (
@@ -2683,60 +2325,6 @@ Important: This must be a unique interpretation for this specific card spread. M
       );
     }
 
-    // Wagmi Provider Component (like in example)
-    const WagmiProvider = ({ children }) => {
-      const [WagmiWagmiProvider, setWagmiWagmiProvider] = useState(null);
-      const [config, setConfig] = useState(null);
-
-      useEffect(() => {
-        // Dynamically import WagmiProvider from wagmi
-        import('https://esm.sh/wagmi@2.12.0').then((wagmi) => {
-          setWagmiWagmiProvider(() => wagmi.WagmiProvider);
-          setConfig(window.wagmiConfig);
-          console.log('[wagmi] WagmiProvider loaded');
-        }).catch((e) => {
-          console.error('[wagmi] Failed to load WagmiProvider:', e);
-        });
-      }, []);
-
-      if (!WagmiWagmiProvider || !config) {
-        return children; // Render children while loading
-      }
-
-      return React.createElement(WagmiWagmiProvider, { config }, children);
-    };
-
-    // QueryClient Provider Component (like in example)
-    const QueryClientProvider = ({ children }) => {
-      const [TanstackQueryClientProvider, setTanstackQueryClientProvider] = useState(null);
-
-      useEffect(() => {
-        // Dynamically import QueryClientProvider from @tanstack/react-query
-        import('https://esm.sh/@tanstack/react-query@5.28.0').then((reactQuery) => {
-          setTanstackQueryClientProvider(() => reactQuery.QueryClientProvider);
-          console.log('[wagmi] QueryClientProvider loaded');
-        }).catch((e) => {
-          console.error('[wagmi] Failed to load QueryClientProvider:', e);
-        });
-      }, []);
-
-      if (!TanstackQueryClientProvider || !window.queryClient) {
-        return children; // Render children while loading
-      }
-
-      return React.createElement(TanstackQueryClientProvider, { client: window.queryClient }, children);
-    };
-
-    // App Wrapper with Providers (like in example)
-    const AppWithProviders = () => {
-      return (
-        <QueryClientProvider>
-          <WagmiProvider>
-            <TaroApp />
-          </WagmiProvider>
-        </QueryClientProvider>
-      );
-    };
 
     // Render the app
     const root = ReactDOM.createRoot(document.getElementById('root'));
@@ -2753,7 +2341,7 @@ Important: This must be a unique interpretation for this specific card spread. M
     window.addEventListener('resize', updateViewportInfo);
     updateViewportInfo();
 
-    root.render(<AppWithProviders />);
+    root.render(<TaroApp />);
   </script>
 
   <style>
@@ -3009,54 +2597,7 @@ Important: This must be a unique interpretation for this specific card spread. M
       margin: 0;
     }
 
-    /* Payment info */
-    .payment-info {
-      display: flex;
-      justify-content: center;
-      gap: 1rem;
-      margin-top: 0.5rem;
-      flex-wrap: wrap;
-    }
 
-    .payment-item {
-      display: flex;
-      align-items: center;
-      gap: 0.25rem;
-      font-size: 0.9rem;
-      color: rgba(255, 255, 255, 0.9);
-    }
-
-    .payment-label {
-      opacity: 0.8;
-    }
-
-    .payment-price {
-      font-weight: 600;
-      color: #4ade80;
-    }
-
-    .payment-price[data-unlocked="true"] {
-      color: #fbbf24;
-    }
-
-    /* Transaction status */
-    .tx-status {
-      margin-top: 0.5rem;
-      padding: 0.5rem 1rem;
-      background: rgba(0, 123, 255, 0.1);
-      border: 1px solid rgba(0, 123, 255, 0.3);
-      border-radius: 8px;
-      text-align: center;
-      font-size: 0.9rem;
-      color: rgba(255, 255, 255, 0.9);
-    }
-
-    .tx-hash {
-      margin-top: 0.25rem;
-      font-family: monospace;
-      font-size: 0.8rem;
-      opacity: 0.8;
-    }
 
     .taro-hash {
       text-align: center;
@@ -3396,7 +2937,7 @@ Important: This must be a unique interpretation for this specific card spread. M
       overflow: hidden;
     }
 
-    /* Modals outside table (e.g., payment, reading panel) keep default positioning */
+    /* Modals outside table (e.g., reading panel) keep default positioning */
     .taro-main > .taro-modal {
       position: fixed;
       top: 50%;
@@ -3546,7 +3087,7 @@ Important: This must be a unique interpretation for this specific card spread. M
       pointer-events: auto; /* Восстанавливаем клики на кнопках */
     }
 
-    /* Sound toggle button positioned under wallet button */
+    /* Sound toggle button */
     .sound-toggle-btn-left {
       position: relative !important; /* Теперь относительно контейнера */
       top: auto !important;
@@ -3571,131 +3112,11 @@ Important: This must be a unique interpretation for this specific card spread. M
       border-color: rgba(255, 255, 255, 0.3);
     }
 
-    /* Wallet connect button - same style as sound button */
-    .wallet-connect-btn {
-      position: relative; /* Теперь относительно контейнера */
-      top: auto;
-      left: auto;
-      background: linear-gradient(135deg,
-        rgba(0, 123, 255, 0.2),
-        rgba(0, 50, 150, 0.2),
-        rgba(0, 123, 255, 0.1)
-      );
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 12px;
-      color: #fff;
-      padding: 12px 16px;
-      font-size: 28px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      box-shadow:
-        0 2px 12px rgba(0, 123, 255, 0.3),
-        inset 0 1px 0 rgba(255, 255, 255, 0.1),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.1);
-      margin-right: 0;
-      min-width: 64px;
-      min-height: 64px;
-      text-align: center;
-      z-index: auto;
-      pointer-events: auto;
-    }
 
-    /* Контейнер-рамка для шара/аватарки - same style as sound button */
-    .orbFrame {
-      position: relative;
-      width: 64px;
-      height: 64px;
-      min-width: 64px;
-      min-height: 64px;
-      max-width: 64px;
-      max-height: 64px;
-      padding: 0;
-      border-radius: 12px; /* Такая же форма, как у кнопки звука */
-      overflow: hidden;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      /* Ensure fixed size for avatar clipping */
-      box-sizing: border-box;
-    }
-
-    /* Аватарка внутри рамки - точно под размер орба */
-    .orbAvatar {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-      border-radius: 12px; /* Такая же форма, как у кнопки звука */
-      /* Ensure avatar fills orb exactly */
-      min-width: 100%;
-      min-height: 100%;
-      max-width: 100%;
-      max-height: 100%;
-    }
-
-    /* Fallback шар */
-    .orbFallback {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 32px;
-      line-height: 1;
-    }
-
-    /* Спиннер внутри рамки */
-    .orbSpinner {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 24px;
-    }
-
-    .wallet-connect-btn:hover {
-      background: linear-gradient(135deg,
-        rgba(0, 123, 255, 0.3),
-        rgba(0, 50, 150, 0.3),
-        rgba(0, 123, 255, 0.2)
-      );
-      backdrop-filter: blur(25px);
-      -webkit-backdrop-filter: blur(25px);
-      transform: scale(1.1);
-      box-shadow:
-        0 12px 40px rgba(0, 123, 255, 0.4),
-        inset 0 1px 0 rgba(255, 255, 255, 0.2),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.05);
-      border-color: rgba(255, 255, 255, 0.3);
-    }
-
-    .wallet-avatar {
-      width: 48px;
-      height: 48px;
-      border-radius: 50%;
-      object-fit: cover;
-      border: 2px solid rgba(255, 255, 255, 0.3);
-    }
-
-    .wallet-connect-btn .spinner {
-      display: inline-block;
-      animation: spin 1s linear infinite;
-      font-size: 24px;
-    }
 
     @keyframes spin {
       from { transform: rotate(0deg); }
       to { transform: rotate(360deg); }
-    }
-
-    .wallet-connect-btn:disabled {
-      opacity: 0.7;
-      cursor: not-allowed;
     }
 
     .modal-header h2 {
@@ -3993,11 +3414,6 @@ Important: This must be a unique interpretation for this specific card spread. M
 
     .admin-stats-table tbody tr:hover {
       background: rgba(255, 165, 0, 0.1);
-    }
-
-    .admin-stats-table .wallet-cell {
-      font-family: monospace;
-      font-size: 12px;
     }
 
     .admin-close-btn {
@@ -5025,19 +4441,7 @@ Important: This must be a unique interpretation for this specific card spread. M
         margin-top: 0.1rem;
       }
 
-      .payment-info {
-        gap: 0.5rem;
-        margin-top: 0.25rem;
-      }
 
-      .payment-item {
-        font-size: 0.8rem;
-      }
-
-      .tx-status {
-        padding: 0.25rem 0.5rem;
-        font-size: 0.8rem;
-      }
 
       .taro-main {
         justify-content: center !important;
@@ -5224,43 +4628,6 @@ Important: This must be a unique interpretation for this specific card spread. M
         min-height: 80px !important;
       }
 
-      .wallet-connect-btn {
-        position: relative;
-        top: auto;
-        left: auto;
-        padding: 16px 20px;
-        font-size: 32px;
-        min-width: 80px;
-        min-height: 80px;
-        border-radius: 12px;
-      }
-
-      .orbFrame {
-        width: 80px;
-        height: 80px;
-        min-width: 80px;
-        min-height: 80px;
-        padding: 0;
-        border-radius: 12px;
-      }
-
-      .orbAvatar {
-        border-radius: 12px;
-      }
-
-      .orbFallback {
-        font-size: 28px;
-      }
-
-      .orbSpinner {
-        font-size: 20px;
-      }
-
-      .wallet-avatar {
-        width: 40px;
-        height: 40px;
-        border: 1px solid rgba(255, 255, 255, 0.3);
-      }
 
       .custom-reading-overlay-button {
         width: 80px;
@@ -5317,37 +4684,6 @@ Important: This must be a unique interpretation for this specific card spread. M
           display: none !important;
         }
 
-        .wallet-connect-btn {
-          position: relative !important;
-          top: auto !important;
-          left: auto !important;
-          padding: 8px 12px !important;
-          font-size: 24px !important;
-          min-width: 56px !important;
-          min-height: 56px !important;
-          border-radius: 12px !important;
-        }
-
-        .orbFrame {
-          width: 56px !important;
-          height: 56px !important;
-          min-width: 56px !important;
-          min-height: 56px !important;
-          padding: 0 !important;
-          border-radius: 12px !important;
-        }
-
-        .orbAvatar {
-          border-radius: 12px !important;
-        }
-
-        .orbFallback {
-          font-size: 24px !important;
-        }
-
-        .orbSpinner {
-          font-size: 18px !important;
-        }
 
         .taro-header h1 {
           font-size: 1.8rem !important;
@@ -5391,12 +4727,6 @@ Important: This must be a unique interpretation for this specific card spread. M
         .taro-table {
           margin: calc(var(--pad) * 0.05) 0 !important;
         }
-
-        .wallet-avatar {
-          width: 18px !important;
-          height: 18px !important;
-          border: 1px solid rgba(255, 255, 255, 0.3) !important;
-        }
       }
 
       /* Landscape orientation optimizations */
@@ -5405,10 +4735,6 @@ Important: This must be a unique interpretation for this specific card spread. M
           top: calc(5px + var(--safe-area-inset-top, 0)) !important;
         }
 
-        .wallet-connect-btn {
-          top: calc(8px + var(--safe-area-inset-top, 0)) !important;
-          left: calc(8px + var(--safe-area-inset-left, 0)) !important;
-        }
 
         .taro-header h1 {
           font-size: 1.6rem !important;
@@ -5609,7 +4935,6 @@ Important: This must be a unique interpretation for this specific card spread. M
 
     /* Mobile-specific fixes */
     .sound-toggle-btn,
-    .wallet-connect-btn,
     .gallery-button,
     .export-csv-btn {
       padding: clamp(6px, 1.6vw, 10px) !important;

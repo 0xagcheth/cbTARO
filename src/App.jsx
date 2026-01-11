@@ -1,15 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useAccount, useConnect, useSendTransaction, useChainId, useSwitchChain } from 'wagmi';
-import { parseEther } from 'viem';
 import { buildShareText, shareCast } from './utils/share';
 import { updateStreakOnVisit } from './utils/streak';
 import { 
   trackEvent, 
   getUserStats, 
-  isAdminWallet, 
-  getAdminStats, 
-  exportAdminCSV, 
-  ADMIN_WALLET,
   getUserIdentity,
   trackVisit,
   trackReading,
@@ -590,11 +584,6 @@ function TaroApp() {
   // Base path for GitHub Pages deployment
   const basePath = '/cbTARO';
 
-  // Helper function for short address display
-  function shortAddress(addr) {
-    if (!addr || addr.length < 10) return addr || "";
-    return addr.slice(0, 6) + "…" + addr.slice(-4);
-  }
 
   const [gameStage, setGameStage] = useState("idle");
   const [selectedSpread, setSelectedSpread] = useState(null);
@@ -602,7 +591,6 @@ function TaroApp() {
   const [revealedIds, setRevealedIds] = useState([]);
   const [activeCard, setActiveCard] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [txHash, setTxHash] = useState(null);
   const [userQuestion, setUserQuestion] = useState("");
   const [aiInterpretation, setAiInterpretation] = useState(null);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
@@ -612,35 +600,6 @@ function TaroApp() {
   const [dailyStreak, setDailyStreak] = useState(0);
   const [streak, setStreak] = useState(0); // Simple streak state for UI
   const [userStats, setUserStats] = useState(null);
-  const [showAdminStats, setShowAdminStats] = useState(false);
-  const [adminStats, setAdminStats] = useState([]);
-  const [isLoadingAdminStats, setIsLoadingAdminStats] = useState(false);
-
-  // Wagmi hooks for wallet connection
-  const { address, isConnected, chainId } = useAccount();
-  const { connect, connectors, error: connectError } = useConnect();
-  const { sendTransaction, isPending: isSendingTx, isSuccess: txSuccess, error: txError, data: txData } = useSendTransaction();
-  const currentChainId = useChainId();
-  const { switchChain } = useSwitchChain();
-
-  // Payment receiver address (TREASURY)
-  const RECEIVER_ADDRESS = '0xD4bF185c846F6CAbDaa34122d0ddA43765E754A6';
-  const BASE_CHAIN_ID = 8453;
-
-  // Payment states
-  const [txStatus, setTxStatus] = useState("idle"); // idle, paying, success, error
-  const [walletError, setWalletError] = useState(null); // null, "no_provider", "connection_failed", "wrong_chain", "payment_failed", "not_connected"
-  
-  // Session-based paid tracking to prevent double-charging
-  // Tracks which spreads have been paid for in this session
-  const [paidSpreads, setPaidSpreads] = useState({
-    THREE: false,
-    CUSTOM: false
-  });
-  
-  // Legacy state for compatibility (synced with wagmi)
-  const [isWalletConnected, setIsWalletConnected] = useState(false);
-  const [walletAddress, setWalletAddress] = useState(null);
 
   // Farcaster states
   const [fid, setFid] = useState(null);
@@ -715,12 +674,6 @@ function TaroApp() {
     }
   }
 
-  // Sync wagmi state with local state
-  useEffect(() => {
-    setIsWalletConnected(isConnected);
-    setWalletAddress(address || null);
-  }, [isConnected, address]);
-
   // Check if we're in Farcaster Mini App environment
   const isInMiniApp = window.isInMiniApp || false;
   
@@ -734,10 +687,6 @@ function TaroApp() {
         location: window.location.href,
         userAgent: navigator.userAgent,
         environment: isFarcasterApp ? 'Farcaster' : isBaseApp ? 'Base' : 'Browser',
-        isConnected,
-        address: address || 'not connected',
-        chainId: currentChainId || 'unknown',
-        connectors: connectors.map(c => c.name),
         inMiniApp: isInMiniApp
       });
 
@@ -762,8 +711,8 @@ function TaroApp() {
             }
 
             // Auto-track visit with FID
-            if (userContext.fid && address) {
-              await trackVisit(userContext.fid, address);
+            if (userContext.fid) {
+              await trackVisit(userContext.fid, null);
             }
           }
               } catch (error) {
@@ -773,43 +722,7 @@ function TaroApp() {
     }
 
     initializeApp();
-  }, [isConnected, address, currentChainId, connectors.length, isInMiniApp]);
-
-  // Handle transaction success/error
-  useEffect(() => {
-    if (txSuccess && txData) {
-      setTxStatus("success");
-      setTxHash(txData.hash);
-      console.log('[payment] ✅ Transaction successful:', txData.hash);
-      
-      // After successful payment, mark spread as paid and start the spread animation
-      if (selectedSpread === "THREE" || selectedSpread === "CUSTOM") {
-        // Mark spread as paid for this session (prevents double-charging)
-        setPaidSpreads(prev => ({
-          ...prev,
-          [selectedSpread]: true
-        }));
-        
-        // Log usage
-        if (selectedSpread === "THREE") {
-          usageLogger.increment("THREE");
-        } else if (selectedSpread === "CUSTOM") {
-          usageLogger.increment("CUSTOM");
-        }
-        
-        // Small delay to show success, then start animation
-        setTimeout(() => {
-          setTxStatus("idle");
-          startSpreadAnimation(selectedSpread);
-        }, 2000);
-      }
-    } else if (txError) {
-      setTxStatus("error");
-      const errorMsg = txError.shortMessage || txError.message;
-      console.error('[payment] ❌ Transaction failed:', errorMsg);
-      setWalletError('payment_failed');
-    }
-  }, [txSuccess, txError, txData, selectedSpread]);
+  }, [isInMiniApp]);
 
   // Update daily streak on mount and track visit
   // Also restore lastReading from localStorage
@@ -856,8 +769,8 @@ function TaroApp() {
     // Also load streak from localStorage stats if available
     try {
       const stats = loadStats();
-      const identity = { fid: null, wallet: walletAddress || null };
-      const key = getStatsKey(identity.fid, identity.wallet);
+      const identity = { fid: null };
+      const key = getStatsKey(identity.fid, null);
       const row = stats.rows[key];
       if (row && row.streak) {
         setDailyStreak(row.streak);
@@ -869,17 +782,16 @@ function TaroApp() {
     // Track visit locally and on server
     (async () => {
       try {
-        // Get user identity (fid, wallet)
+        // Get user identity (fid)
         const identity = await getUserIdentity();
         const fid = identity.fid;
-        const wallet = walletAddress || identity.wallet;
         
         // Track visit locally
-        trackVisit({ fid, wallet });
+        trackVisit({ fid });
         
         // Update streak from local stats after tracking
         const stats = loadStats();
-        const key = getStatsKey(fid, wallet);
+        const key = getStatsKey(fid);
         const row = stats.rows[key];
         if (row && row.streak) {
           const updatedStreak = Number(row.streak) || 0;
@@ -888,7 +800,7 @@ function TaroApp() {
         }
         
         // Track visit on server (if API configured)
-        const serverStats = await trackEvent('visit', null, wallet);
+        const serverStats = await trackEvent('visit', null, null);
         if (serverStats) {
           setDailyStreak(serverStats.streak || streak); // Use server streak if available
           setUserStats(serverStats);
@@ -960,190 +872,11 @@ function TaroApp() {
           return sdk.isInMiniApp();
         }
         
-        // Check if SDK has wallet.getEthereumProvider (indicates Mini App)
-        if (sdk?.wallet?.getEthereumProvider) {
-          return true;
-        }
         
         // Check window flags
         return window.isInMiniApp === true;
       };
 
-      /**
-       * Get EIP-1193 provider
-       * In Mini App (Farcaster/Base): uses SDK wallet provider ONLY
-       * In browser: uses window.ethereum (MetaMask) ONLY
-       * According to Farcaster docs: https://miniapps.farcaster.xyz/docs/guides/wallets
-       * @returns {Promise<Object|null>} EIP-1193 provider or null if not available
-       */
-      const getEip1193Provider = async () => {
-        const inMiniApp = isInMiniAppEnvironment();
-        
-        if (inMiniApp) {
-          // В Mini App - ТОЛЬКО SDK провайдер, БЕЗ fallback на window.ethereum
-          try {
-            const sdk = getFarcasterSDK();
-            if (sdk?.wallet?.getEthereumProvider) {
-              const provider = await sdk.wallet.getEthereumProvider();
-              if (provider) {
-                console.log('[wallet] ✅ Using Mini App SDK provider (Farcaster/Base)');
-                return provider;
-              }
-            }
-            console.warn('[wallet] ⚠️ Mini App SDK provider not available');
-            return null;
-        } catch (error) {
-            console.error('[wallet] ❌ Error getting Mini App SDK provider:', error);
-            return null;
-          }
-        } else {
-          // В браузере - ТОЛЬКО window.ethereum (MetaMask)
-          if (window.ethereum) {
-            console.log('[wallet] Using window.ethereum provider (browser)');
-            return window.ethereum;
-          }
-          console.warn('[wallet] ⚠️ No wallet provider found (not in Mini App, no MetaMask)');
-          return null;
-        }
-      };
-
-      // Wallet connection is now handled by Wagmi hooks
-      // No need for manual connectWallet function - use handleConnect() instead
-
-      /**
-       * Resolve Farcaster identity from Mini App SDK context
-       * According to Farcaster docs: context.user contains user info
-       */
-      const resolveFarcasterIdentity = async (address) => {
-        try {
-          const sdk = getFarcasterSDK();
-          if (!sdk) {
-            console.debug('[identity] No Farcaster SDK found');
-            return;
-          }
-
-          // Try to get context (may be async)
-          let context = null;
-          if (typeof sdk.context === 'function') {
-            context = await sdk.context();
-          } else if (sdk.context && typeof sdk.context.then === 'function') {
-            context = await sdk.context;
-          } else if (sdk.context) {
-            context = sdk.context;
-          } else if (typeof sdk.getContext === 'function') {
-            context = await sdk.getContext();
-          }
-
-          // Extract user from context
-          const user = context?.user || context?.viewer || sdk.user || null;
-
-          if (user) {
-            const fid = user.fid || user.userFid || null;
-            const pfpUrl = user.pfpUrl || user.pfp_url || user.avatarUrl || user.avatar_url || null;
-            const wallet = user.walletAddress || user.wallet || address || null;
-
-            if (fid) {
-              setFid(fid);
-              console.log('[identity] ✅ Farcaster FID loaded:', fid);
-            }
-            if (pfpUrl) {
-              setPfpUrl(pfpUrl);
-              console.log('[identity] ✅ Farcaster avatar loaded');
-            }
-            if (wallet && wallet !== walletAddress) {
-              setWalletAddress(wallet);
-              setIsWalletConnected(true);
-              console.log('[identity] ✅ Farcaster wallet loaded:', wallet);
-            }
-
-            console.log('[identity] ✅ Farcaster identity resolved:', { fid, hasPfp: !!pfpUrl, hasWallet: !!wallet });
-          } else {
-            console.debug('[identity] No user data in Farcaster context');
-          }
-        } catch (error) {
-          console.warn('[identity] Error resolving Farcaster identity:', error);
-        }
-      };
-
-      // Handle connect button click using Wagmi
-      const handleConnect = async () => {
-        playButtonSound();
-        setWalletError(null);
-
-        if (connectors.length === 0) {
-          setWalletError('no_provider');
-          return;
-        }
-
-        try {
-          // Auto-select connector based on environment:
-          // - In Farcaster/Base app: miniAppConnector (connectors[0])
-          // - In browser: injected (connectors[1] or first available)
-          const inMiniApp = await checkIsInMiniApp();
-          const connector = inMiniApp ? connectors[0] : (connectors[1] || connectors[0]);
-          
-          console.log('[wallet] Connecting with:', connector.name, '(Mini App:', inMiniApp, ')');
-          connect({ connector });
-          
-          // After connection, resolve Farcaster identity
-          if (address) {
-            await resolveFarcasterIdentity(address);
-          }
-        } catch (error) {
-          console.error('[wallet] Connect failed:', error);
-          setWalletError('connection_failed');
-        }
-      };
-
-      // Auto-connect in Mini App using Wagmi
-      // According to docs: connector automatically connects if wallet already connected
-      useEffect(() => {
-        // Wagmi connector handles auto-connect automatically
-        // Just resolve identity if already connected
-        if (isConnected && address) {
-          resolveFarcasterIdentity(address);
-        }
-      }, [isConnected, address]);
-
-      // Ensure we're on Base network using Wagmi
-      const ensureBase = async () => {
-        if (currentChainId !== BASE_CHAIN_ID) {
-          try {
-            if (switchChain) {
-              await switchChain({ chainId: BASE_CHAIN_ID });
-              console.log('[wallet] ✅ Switched to Base network');
-            } else {
-              throw new Error('Switch chain not available');
-            }
-          } catch (error) {
-            console.error('[wallet] ❌ Failed to switch to Base:', error);
-            setWalletError('wrong_chain');
-            throw new Error('Please switch to Base network manually');
-          }
-        }
-      };
-
-      // Send payment using Wagmi
-      const payETH = async (amountETH) => {
-        try {
-          // Ensure we're on Base network
-          await ensureBase();
-
-          // Send transaction using Wagmi
-          sendTransaction({
-            to: RECEIVER_ADDRESS,
-            value: parseEther(amountETH),
-          });
-
-          setTxStatus("paying");
-          console.log('[payment] 💸 Sending payment:', amountETH, 'ETH to', RECEIVER_ADDRESS);
-        } catch (error) {
-          console.error('[payment] ❌ Payment failed:', error);
-          setTxStatus("error");
-          setWalletError('payment_failed');
-          throw error;
-        }
-      };
 
 
       // Usage Logger Module
@@ -1151,20 +884,19 @@ function TaroApp() {
         // Get identity from Mini App context
         getIdentity() {
           let fid = '';
-          let currentWalletAddress = walletAddress || '';
 
           // Try to get FID from Farcaster context (if available in Mini App)
           if (window.farcaster && window.farcaster.user) {
             fid = window.farcaster.user.fid || '';
           }
 
-          return { fid, walletAddress: currentWalletAddress };
+          return { fid };
         },
 
         // Generate storage key for identity
         getStorageKey() {
-          const { fid, walletAddress } = this.getIdentity();
-          return `cbtaro_usage_${fid || 'unknown'}_${walletAddress || 'unknown'}`;
+          const { fid } = this.getIdentity();
+          return `cbtaro_usage_${fid || 'unknown'}`;
         },
 
         // Load counts from localStorage
@@ -1196,16 +928,16 @@ function TaroApp() {
           this.saveCounts(counts);
         },
 
-        // Export data as CSV
-        exportCsv() {
-          const { fid, walletAddress } = this.getIdentity();
-          const counts = this.loadCounts();
+          // Export data as CSV
+          exportCsv() {
+            const { fid } = this.getIdentity();
+            const counts = this.loadCounts();
 
-          // Create CSV content
-          const csvContent = [
-            'fid,walletAddress,oneCardCount,threeCardCount,customCount',
-            `${fid},${walletAddress},${counts.oneCardCount},${counts.threeCardCount},${counts.customCount}`
-          ].join('\n');
+            // Create CSV content
+            const csvContent = [
+              'fid,oneCardCount,threeCardCount,customCount',
+              `${fid},${counts.oneCardCount},${counts.threeCardCount},${counts.customCount}`
+            ].join('\n');
 
           // Create and download file
           const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -1671,77 +1403,16 @@ Important: This must be a unique interpretation for this specific card spread. M
         setSelectedSpread(spread);
         setAiInterpretation(null);
 
-        // Handle different payment requirements
+        // All spreads are free
         if (spread === "ONE") {
-          // Free - log usage and start animation
           usageLogger.increment("ONE");
           await startSpreadAnimation(spread);
         } else if (spread === "THREE") {
-          // Pay 0.0001 ETH for 3-card spread
-          try {
-            // Check if wallet is connected
-            if (!isConnected || !address) {
-              setTxStatus("error");
-              setWalletError('not_connected');
-              alert("Please connect your wallet first");
-              return;
-            }
-
-            // Check if already paid in this session
-            if (paidSpreads.THREE) {
-              console.log('[payment] Already paid for THREE spread in this session, starting animation directly');
-            usageLogger.increment("THREE");
-              await startSpreadAnimation(spread);
-              return;
-            }
-
-            // Ensure we're on Base network and send payment
-            await payETH("0.0001");
-            // Transaction status will be handled by useEffect when txSuccess/txError changes
-          } catch (error) {
-            console.error("Payment failed:", error);
-            setTxStatus("error");
-            const errorMsg = error?.shortMessage || error?.message || "Payment failed";
-            if (errorMsg.includes("user rejected") || errorMsg.includes("User rejected")) {
-              alert("Payment cancelled. 3-card reading requires 0.0001 ETH payment.");
-            } else {
-              alert(`Payment failed: ${errorMsg}`);
-            }
-            return;
-          }
+          usageLogger.increment("THREE");
+          await startSpreadAnimation(spread);
         } else if (spread === "CUSTOM") {
-          // Pay 0.001 ETH for custom reading
-          try {
-            // Check if wallet is connected
-            if (!isConnected || !address) {
-              setTxStatus("error");
-              setWalletError('not_connected');
-              alert("Please connect your wallet first");
-              return;
-            }
-
-            // Check if already paid in this session
-            if (paidSpreads.CUSTOM) {
-              console.log('[payment] Already paid for CUSTOM spread in this session, starting animation directly');
-            usageLogger.increment("CUSTOM");
-              await startSpreadAnimation(spread);
-              return;
-            }
-
-            // Ensure we're on Base network and send payment
-            await payETH("0.001");
-            // Transaction status will be handled by useEffect when txSuccess/txError changes
-          } catch (error) {
-            console.error("Payment failed:", error);
-            setTxStatus("error");
-            const errorMsg = error?.shortMessage || error?.message || "Payment failed";
-            if (errorMsg.includes("user rejected") || errorMsg.includes("User rejected")) {
-              alert("Payment cancelled. Custom reading requires 0.001 ETH payment.");
-            } else {
-              alert(`Payment failed: ${errorMsg}`);
-            }
-            return;
-          }
+          usageLogger.increment("CUSTOM");
+          await startSpreadAnimation(spread);
         }
       };
 
@@ -1811,8 +1482,7 @@ Important: This must be a unique interpretation for this specific card spread. M
               try {
                 const identity = await getUserIdentity();
                 const fid = identity.fid;
-                const wallet = walletAddress || identity.wallet;
-                trackReading({ fid, wallet, type: readingType });
+                trackReading({ fid, type: readingType });
               } catch (error) {
                 if (import.meta.env.DEV) {
                   console.debug('Failed to track reading locally:', error);
@@ -1821,7 +1491,7 @@ Important: This must be a unique interpretation for this specific card spread. M
             })();
             
             // Track on server (if API configured)
-            trackEvent('reading', readingType, walletAddress).then((stats) => {
+            trackEvent('reading', readingType, null).then((stats) => {
               if (stats) {
                 setUserStats(stats);
                 // Update streak from server if available
@@ -1907,7 +1577,6 @@ Important: This must be a unique interpretation for this specific card spread. M
         setCards([]);
         setRevealedIds([]);
         setActiveCard(null);
-        setTxHash(null);
         setUserQuestion("");
         setAiInterpretation(null);
       };
@@ -1942,26 +1611,11 @@ Important: This must be a unique interpretation for this specific card spread. M
                 {soundEnabled ? "🔊" : "🔇"}
               </button>
 
-              {/* Wallet Connect Button - according to Farcaster docs */}
-              {/* If connected: show address/avatar, if not: show Connect button */}
-              {isConnected && address ? (
-                <button
-                  className="icon-btn avatar-btn"
-                  onClick={() => {}} // Connected - no action needed
-                  aria-label="Wallet connected"
-                  title={`Connected: ${shortAddress(address)}`}
-                >
-                  {pfpUrl ? <img className="avatar-img" src={pfpUrl} alt="pfp" /> : <span className="avatar-fallback">🌐</span>}
-                </button>
-              ) : (
-              <button
-                className="icon-btn avatar-btn"
-                onClick={handleConnect}
-                aria-label="Connect wallet"
-                  title="Connect Wallet"
-              >
-                  <span className="avatar-fallback">🔗</span>
-              </button>
+              {/* Avatar display */}
+              {pfpUrl && (
+                <div className="icon-btn avatar-btn" title="Profile">
+                  <img className="avatar-img" src={pfpUrl} alt="pfp" />
+                </div>
               )}
 
               <button
@@ -1975,59 +1629,7 @@ Important: This must be a unique interpretation for this specific card spread. M
             </div>
           </div>
 
-          {/* Wallet error message - shown instead of alert */}
-          {walletError === 'no_provider' && (
-            <div className="wallet-error-message" style={{
-              padding: '8px 12px',
-              margin: '8px 16px',
-              backgroundColor: 'rgba(255, 193, 7, 0.1)',
-              border: '1px solid rgba(255, 193, 7, 0.3)',
-              borderRadius: '4px',
-              fontSize: '12px',
-              color: '#ffc107',
-              textAlign: 'center'
-            }}>
-              Wallet provider not found. Open in Farcaster/Base or install MetaMask.
-            </div>
-          )}
-          {walletError === 'connection_failed' && (
-            <div className="wallet-error-message" style={{
-              padding: '8px 12px',
-              margin: '8px 16px',
-              backgroundColor: 'rgba(244, 67, 54, 0.1)',
-              border: '1px solid rgba(244, 67, 54, 0.3)',
-              borderRadius: '4px',
-              fontSize: '12px',
-              color: '#f44336',
-              textAlign: 'center'
-            }}>
-              Failed to connect wallet. Please try again.
-            </div>
-          )}
-          {!isInMiniApp && !isConnected && (
-            <div className="wallet-error-message" style={{
-              padding: '8px 12px',
-              margin: '8px 16px',
-              backgroundColor: 'rgba(33, 150, 243, 0.1)',
-              border: '1px solid rgba(33, 150, 243, 0.3)',
-              borderRadius: '4px',
-              fontSize: '12px',
-              color: '#2196f3',
-              textAlign: 'center'
-            }}>
-              💡 For best experience, open in Farcaster or Base app. Free tarot reading works everywhere!
-            </div>
-          )}
-
           <div className="taro-container">
-
-            {/* Small block with hash after "payment" (hidden, as payment is disabled) */}
-            {txHash && (
-              <div className="taro-hash">
-                <span>Your reading is recorded:</span>
-                <code>{txHash}</code>
-              </div>
-            )}
 
             {/* Main area with table and deck/cards */}
             <main className="taro-main">
@@ -2086,47 +1688,6 @@ Important: This must be a unique interpretation for this specific card spread. M
                       <div className="streak-badge">
                         🔥 {streak}
                 </div>
-                      {/* Admin buttons - only visible for admin wallet */}
-                      {isAdminWallet(walletAddress) && (
-                        <>
-            <button
-                            className="admin-button"
-                            onClick={async () => {
-                playButtonSound();
-                              setShowAdminStats(true);
-                              setIsLoadingAdminStats(true);
-                try {
-                                const stats = await getAdminStats(walletAddress);
-                                setAdminStats(stats || []);
-                } catch (error) {
-                                console.error('Failed to load admin stats:', error);
-                                alert('Failed to load admin stats. Make sure you are connected with the admin wallet.');
-                                setShowAdminStats(false);
-                              } finally {
-                                setIsLoadingAdminStats(false);
-                              }
-                            }}
-                            title="Admin Statistics"
-            >
-              📊
-            </button>
-                    <button
-                            className="admin-download-button"
-                          onClick={() => {
-                            playButtonSound();
-                              try {
-                                downloadStatsCsv();
-                              } catch (error) {
-                                console.error('Failed to download stats:', error);
-                                alert('Failed to download stats CSV');
-                              }
-                            }}
-                            title="Download stats CSV"
-                          >
-                            📥
-                        </button>
-                    </>
-                  )}
                       {/* Reading stats (dev mode or if stats available) */}
                       {(import.meta.env.DEV || userStats) && userStats && userStats.total_readings > 0 && (
                         <div className="stats-badge">
@@ -2142,24 +1703,6 @@ Important: This must be a unique interpretation for this specific card spread. M
                       </div>
                     </div>
 
-          {/* Export CSV button - only visible for admin wallet */}
-          {isAdminWallet(walletAddress) && (
-            <button
-              className="export-csv-btn"
-              onClick={() => {
-                playButtonSound();
-                try {
-                  usageLogger.exportCsv();
-                } catch (error) {
-                  console.error('Export failed:', error);
-                  alert('Failed to export CSV');
-                }
-              }}
-              title="Export usage statistics"
-            >
-              📊
-            </button>
-          )}
 
                 {/* Spread selection modal */}
                 {gameStage === "choosing" && (
@@ -2301,13 +1844,6 @@ Important: This must be a unique interpretation for this specific card spread. M
                   </div>
                 )}
 
-                {/* Payment state (not used, as payment is disabled) */}
-                {gameStage === "paying" && (
-                  <div className="taro-modal">
-                    <h2>Processing Transaction…</h2>
-                    <p>Please confirm payment in your wallet.</p>
-                  </div>
-                )}
 
                 {/* Animation before spread */}
                 {gameStage === "animating" && (
@@ -2377,7 +1913,7 @@ Important: This must be a unique interpretation for this specific card spread. M
 
             {/* Interaction panel at bottom */}
             <footer className="taro-footer">
-              {isAllRevealed && gameStage !== "paying" && (
+              {isAllRevealed && (
                 <>
                   {selectedSpread === "CUSTOM" && (
                     <>
@@ -2565,89 +2101,6 @@ Important: This must be a unique interpretation for this specific card spread. M
               </div>
             )}
 
-            {/* Admin Stats modal */}
-            {showAdminStats && (
-              <div className="taro-reading-overlay" onClick={() => setShowAdminStats(false)}>
-                <div className="admin-stats-modal" onClick={(e) => e.stopPropagation()}>
-                  <div className="admin-stats-content">
-                    <h2>📊 Admin Statistics</h2>
-                    {isLoadingAdminStats ? (
-                      <div className="admin-stats-loading">Loading statistics...</div>
-                    ) : (
-                      <>
-                        <div className="admin-stats-actions">
-                          <button
-                            className="admin-export-btn"
-                            onClick={async () => {
-                              try {
-                                playButtonSound();
-                                const blob = await exportAdminCSV(walletAddress);
-                                const url = window.URL.createObjectURL(blob);
-                                const a = document.createElement('a');
-                                a.href = url;
-                                a.download = `cbtaro_stats_${Date.now()}.csv`;
-                                document.body.appendChild(a);
-                                a.click();
-                                document.body.removeChild(a);
-                                window.URL.revokeObjectURL(url);
-                              } catch (error) {
-                                console.error('Failed to export CSV:', error);
-                                alert('Failed to export CSV. Make sure you are connected with the admin wallet.');
-                              }
-                            }}
-                          >
-                            Download CSV
-                          </button>
-                        </div>
-                        <div className="admin-stats-table-container">
-                          <table className="admin-stats-table">
-                            <thead>
-                              <tr>
-                                <th>FID</th>
-                                <th>Wallet</th>
-                                <th>Total Readings</th>
-                                <th>One Card</th>
-                                <th>Three Card</th>
-                                <th>Custom</th>
-                                <th>Streak</th>
-                                <th>Last Visit</th>
-                                <th>Last Seen</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {adminStats.length === 0 ? (
-                                <tr>
-                                  <td colSpan="9" style={{ textAlign: 'center', padding: '20px' }}>
-                                    No statistics available yet.
-                                  </td>
-                                </tr>
-                              ) : (
-                                adminStats.map((stat) => (
-                                  <tr key={stat.fid}>
-                                    <td>{stat.fid}</td>
-                                    <td className="wallet-cell">{stat.wallet ? shortAddress(stat.wallet) : '-'}</td>
-                                    <td>{stat.total_readings}</td>
-                                    <td>{stat.one_card_count}</td>
-                                    <td>{stat.three_card_count}</td>
-                                    <td>{stat.custom_count}</td>
-                                    <td>{stat.streak}</td>
-                                    <td>{stat.last_visit_day_key || '-'}</td>
-                                    <td>{stat.last_seen_ts ? new Date(stat.last_seen_ts).toLocaleString() : '-'}</td>
-                                  </tr>
-                                ))
-                              )}
-                            </tbody>
-                          </table>
-                        </div>
-                      </>
-                    )}
-                    <button className="admin-close-btn" onClick={() => { playButtonSound(); setShowAdminStats(false); }}>
-                      Close
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
 
             {/* AI Interpretation panel for custom reading */}
             {selectedSpread === "CUSTOM" && isAllRevealed && aiInterpretation && (

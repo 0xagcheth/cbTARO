@@ -250,54 +250,7 @@
       margin: 0;
     }
 
-    /* Payment info */
-    .payment-info {
-      display: flex;
-      justify-content: center;
-      gap: 1rem;
-      margin-top: 0.5rem;
-      flex-wrap: wrap;
-    }
 
-    .payment-item {
-      display: flex;
-      align-items: center;
-      gap: 0.25rem;
-      font-size: 0.9rem;
-      color: rgba(255, 255, 255, 0.9);
-    }
-
-    .payment-label {
-      opacity: 0.8;
-    }
-
-    .payment-price {
-      font-weight: 600;
-      color: #4ade80;
-    }
-
-    .payment-price[data-unlocked="true"] {
-      color: #fbbf24;
-    }
-
-    /* Transaction status */
-    .tx-status {
-      margin-top: 0.5rem;
-      padding: 0.5rem 1rem;
-      background: rgba(0, 123, 255, 0.1);
-      border: 1px solid rgba(0, 123, 255, 0.3);
-      border-radius: 8px;
-      text-align: center;
-      font-size: 0.9rem;
-      color: rgba(255, 255, 255, 0.9);
-    }
-
-    .tx-hash {
-      margin-top: 0.25rem;
-      font-family: monospace;
-      font-size: 0.8rem;
-      opacity: 0.8;
-    }
 
     .taro-hash {
       text-align: center;
@@ -637,7 +590,7 @@
       overflow: hidden;
     }
 
-    /* Modals outside table (e.g., payment, reading panel) keep default positioning */
+    /* Modals outside table (e.g., reading panel) keep default positioning */
     .taro-main > .taro-modal {
       position: fixed;
       top: 50%;
@@ -787,7 +740,7 @@
       pointer-events: auto; /* Восстанавливаем клики на кнопках */
     }
 
-    /* Sound toggle button positioned under wallet button */
+    /* Sound toggle button */
     .sound-toggle-btn-left {
       position: relative !important; /* Теперь относительно контейнера */
       top: auto !important;
@@ -812,132 +765,6 @@
       border-color: rgba(255, 255, 255, 0.3);
     }
 
-    /* Wallet connect button - same style as sound button */
-    .wallet-connect-btn {
-      position: relative; /* Теперь относительно контейнера */
-      top: auto;
-      left: auto;
-      background: linear-gradient(135deg,
-        rgba(0, 123, 255, 0.2),
-        rgba(0, 50, 150, 0.2),
-        rgba(0, 123, 255, 0.1)
-      );
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 12px;
-      color: #fff;
-      padding: 12px 16px;
-      font-size: 28px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      box-shadow:
-        0 2px 12px rgba(0, 123, 255, 0.3),
-        inset 0 1px 0 rgba(255, 255, 255, 0.1),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.1);
-      margin-right: 0;
-      min-width: 64px;
-      min-height: 64px;
-      text-align: center;
-      z-index: auto;
-      pointer-events: auto;
-    }
-
-    /* Контейнер-рамка для шара/аватарки - same style as sound button */
-    .orbFrame {
-      position: relative;
-      width: 64px;
-      height: 64px;
-      min-width: 64px;
-      min-height: 64px;
-      max-width: 64px;
-      max-height: 64px;
-      padding: 0;
-      border-radius: 12px; /* Такая же форма, как у кнопки звука */
-      overflow: hidden;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      /* Ensure fixed size for avatar clipping */
-      box-sizing: border-box;
-    }
-
-    /* Аватарка внутри рамки - точно под размер орба */
-    .orbAvatar {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-      border-radius: 12px; /* Такая же форма, как у кнопки звука */
-      /* Ensure avatar fills orb exactly */
-      min-width: 100%;
-      min-height: 100%;
-      max-width: 100%;
-      max-height: 100%;
-    }
-
-    /* Fallback шар */
-    .orbFallback {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 32px;
-      line-height: 1;
-    }
-
-    /* Спиннер внутри рамки */
-    .orbSpinner {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 24px;
-    }
-
-    .wallet-connect-btn:hover {
-      background: linear-gradient(135deg,
-        rgba(0, 123, 255, 0.3),
-        rgba(0, 50, 150, 0.3),
-        rgba(0, 123, 255, 0.2)
-      );
-      backdrop-filter: blur(25px);
-      -webkit-backdrop-filter: blur(25px);
-      transform: scale(1.1);
-      box-shadow:
-        0 12px 40px rgba(0, 123, 255, 0.4),
-        inset 0 1px 0 rgba(255, 255, 255, 0.2),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.05);
-      border-color: rgba(255, 255, 255, 0.3);
-    }
-
-    .wallet-avatar {
-      width: 48px;
-      height: 48px;
-      border-radius: 50%;
-      object-fit: cover;
-      border: 2px solid rgba(255, 255, 255, 0.3);
-    }
-
-    .wallet-connect-btn .spinner {
-      display: inline-block;
-      animation: spin 1s linear infinite;
-      font-size: 24px;
-    }
-
-    @keyframes spin {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
-    }
-
-    .wallet-connect-btn:disabled {
-      opacity: 0.7;
-      cursor: not-allowed;
-    }
 
     .modal-header h2 {
       margin: 0;
@@ -1236,10 +1063,6 @@
       background: rgba(255, 165, 0, 0.1);
     }
 
-    .admin-stats-table .wallet-cell {
-      font-family: monospace;
-      font-size: 12px;
-    }
 
     .admin-close-btn {
       display: block;
@@ -2266,19 +2089,6 @@
         margin-top: 0.1rem;
       }
 
-      .payment-info {
-        gap: 0.5rem;
-        margin-top: 0.25rem;
-      }
-
-      .payment-item {
-        font-size: 0.8rem;
-      }
-
-      .tx-status {
-        padding: 0.25rem 0.5rem;
-        font-size: 0.8rem;
-      }
 
       .taro-main {
         justify-content: center !important;
@@ -2465,43 +2275,6 @@
         min-height: 80px !important;
       }
 
-      .wallet-connect-btn {
-        position: relative;
-        top: auto;
-        left: auto;
-        padding: 16px 20px;
-        font-size: 32px;
-        min-width: 80px;
-        min-height: 80px;
-        border-radius: 12px;
-      }
-
-      .orbFrame {
-        width: 80px;
-        height: 80px;
-        min-width: 80px;
-        min-height: 80px;
-        padding: 0;
-        border-radius: 12px;
-      }
-
-      .orbAvatar {
-        border-radius: 12px;
-      }
-
-      .orbFallback {
-        font-size: 28px;
-      }
-
-      .orbSpinner {
-        font-size: 20px;
-      }
-
-      .wallet-avatar {
-        width: 40px;
-        height: 40px;
-        border: 1px solid rgba(255, 255, 255, 0.3);
-      }
 
       .custom-reading-overlay-button {
         width: 80px;
@@ -2558,37 +2331,6 @@
           display: none !important;
         }
 
-        .wallet-connect-btn {
-          position: relative !important;
-          top: auto !important;
-          left: auto !important;
-          padding: 8px 12px !important;
-          font-size: 24px !important;
-          min-width: 56px !important;
-          min-height: 56px !important;
-          border-radius: 12px !important;
-        }
-
-        .orbFrame {
-          width: 56px !important;
-          height: 56px !important;
-          min-width: 56px !important;
-          min-height: 56px !important;
-          padding: 0 !important;
-          border-radius: 12px !important;
-        }
-
-        .orbAvatar {
-          border-radius: 12px !important;
-        }
-
-        .orbFallback {
-          font-size: 24px !important;
-        }
-
-        .orbSpinner {
-          font-size: 18px !important;
-        }
 
         .taro-header h1 {
           font-size: 1.8rem !important;
@@ -2633,11 +2375,6 @@
           margin: calc(var(--pad) * 0.05) 0 !important;
         }
 
-        .wallet-avatar {
-          width: 18px !important;
-          height: 18px !important;
-          border: 1px solid rgba(255, 255, 255, 0.3) !important;
-        }
       }
 
       /* Landscape orientation optimizations */
@@ -2646,10 +2383,6 @@
           top: calc(5px + var(--safe-area-inset-top, 0)) !important;
         }
 
-        .wallet-connect-btn {
-          top: calc(8px + var(--safe-area-inset-top, 0)) !important;
-          left: calc(8px + var(--safe-area-inset-left, 0)) !important;
-        }
 
         .taro-header h1 {
           font-size: 1.6rem !important;
@@ -2850,7 +2583,6 @@
 
     /* Mobile-specific fixes */
     .sound-toggle-btn,
-    .wallet-connect-btn,
     .gallery-button,
     .export-csv-btn {
       padding: clamp(6px, 1.6vw, 10px) !important;

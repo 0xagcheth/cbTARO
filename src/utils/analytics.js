@@ -5,14 +5,13 @@
 import { updateStreakOnVisit, getDayKeyWithCutoff } from './streak.js';
 
 const API_BASE = import.meta.env.VITE_ANALYTICS_API_BASE || '';
-export const ADMIN_WALLET = '0x35895ba5c7646A0599419F0339b9C4355b5FF736';
 
 // Local storage key for stats
 const STATS_STORAGE_KEY = 'cbTARO_stats_v1';
 
 /**
  * Get user identity from Farcaster Mini App context
- * @returns {Promise<{fid: number|null, wallet: string|null}>}
+ * @returns {Promise<{fid: number|null}>}
  */
 export async function getUserIdentity() {
   try {
@@ -25,8 +24,7 @@ export async function getUserIdentity() {
       
       if (user?.fid || user?.userFid) {
         return {
-          fid: user.fid || user.userFid,
-          wallet: user.walletAddress || user.wallet || null
+          fid: user.fid || user.userFid
         };
       }
     }
@@ -38,8 +36,7 @@ export async function getUserIdentity() {
       
       if (user?.fid || user?.userFid) {
         return {
-          fid: user.fid || user.userFid,
-          wallet: user.walletAddress || user.wallet || null
+          fid: user.fid || user.userFid
         };
       }
     }
@@ -49,20 +46,19 @@ export async function getUserIdentity() {
       const user = sdk.user;
       if (user?.fid || user?.userFid) {
         return {
-          fid: user.fid || user.userFid,
-          wallet: user.walletAddress || user.wallet || null
+          fid: user.fid || user.userFid
         };
       }
     }
     
     // Fallback: check if we have FID from other sources (e.g., from auth hook)
     // This is a fallback - ideally FID should come from SDK
-    return { fid: null, wallet: null };
+    return { fid: null };
   } catch (error) {
     if (import.meta.env.DEV) {
       console.debug('Failed to get user identity:', error);
     }
-    return { fid: null, wallet: null };
+    return { fid: null };
   }
 }
 
@@ -70,9 +66,8 @@ export async function getUserIdentity() {
  * Track event
  * @param {string} event - 'visit' | 'reading'
  * @param {string|null} readingType - 'one' | 'three' | 'custom' | null
- * @param {string|null} wallet - Wallet address (optional, will try to get from identity)
  */
-export async function trackEvent(event, readingType = null, wallet = null) {
+export async function trackEvent(event, readingType = null) {
   if (!API_BASE) {
     if (import.meta.env.DEV) {
       console.debug('Analytics API not configured, skipping track');
@@ -91,9 +86,6 @@ export async function trackEvent(event, readingType = null, wallet = null) {
       return null;
     }
     
-    // Use provided wallet or identity wallet
-    const finalWallet = wallet || identity.wallet;
-    
     const response = await fetch(`${API_BASE}/api/track`, {
       method: 'POST',
       headers: {
@@ -101,7 +93,6 @@ export async function trackEvent(event, readingType = null, wallet = null) {
       },
       body: JSON.stringify({
         fid: identity.fid,
-        wallet: finalWallet,
         event,
         readingType,
         clientTs: Date.now()
@@ -159,81 +150,6 @@ export async function getUserStats() {
   }
 }
 
-/**
- * Check if wallet is admin
- * @param {string|null} wallet - Wallet address
- * @returns {boolean}
- */
-export function isAdminWallet(wallet) {
-  if (!wallet) return false;
-  return wallet.toLowerCase() === ADMIN_WALLET.toLowerCase();
-}
-
-/**
- * Get all admin stats (requires admin wallet)
- * @param {string} wallet - Admin wallet address
- * @returns {Promise<Array|null>}
- */
-export async function getAdminStats(wallet) {
-  if (!API_BASE) {
-    return null;
-  }
-  
-  if (!isAdminWallet(wallet)) {
-    throw new Error('Unauthorized: Admin wallet required');
-  }
-  
-  try {
-    const response = await fetch(`${API_BASE}/api/admin/stats?wallet=${encodeURIComponent(wallet)}`);
-    
-    if (!response.ok) {
-      if (response.status === 403) {
-        throw new Error('Unauthorized: Admin wallet required');
-      }
-      throw new Error(`Admin stats API error: ${response.status}`);
-    }
-    
-    return await response.json();
-  } catch (error) {
-    if (import.meta.env.DEV) {
-      console.error('Failed to get admin stats:', error);
-    }
-    throw error;
-  }
-}
-
-/**
- * Export admin stats as CSV (requires admin wallet)
- * @param {string} wallet - Admin wallet address
- * @returns {Promise<Blob|null>}
- */
-export async function exportAdminCSV(wallet) {
-  if (!API_BASE) {
-    return null;
-  }
-  
-  if (!isAdminWallet(wallet)) {
-    throw new Error('Unauthorized: Admin wallet required');
-  }
-  
-  try {
-    const response = await fetch(`${API_BASE}/api/admin/export.csv?wallet=${encodeURIComponent(wallet)}`);
-    
-    if (!response.ok) {
-      if (response.status === 403) {
-        throw new Error('Unauthorized: Admin wallet required');
-      }
-      throw new Error(`Export CSV API error: ${response.status}`);
-    }
-    
-    return await response.blob();
-  } catch (error) {
-    if (import.meta.env.DEV) {
-      console.error('Failed to export admin CSV:', error);
-    }
-    throw error;
-  }
-}
 
 // ============================================================================
 // Local Storage Statistics (for offline tracking and CSV export)
@@ -242,15 +158,11 @@ export async function exportAdminCSV(wallet) {
 /**
  * Get stats key for a user
  * @param {number|null} fid - Farcaster ID
- * @param {string|null} wallet - Wallet address
  * @returns {string} - Storage key
  */
-export function getStatsKey(fid, wallet) {
+export function getStatsKey(fid) {
   if (fid) {
     return `fid:${fid}`;
-  }
-  if (wallet) {
-    return `wallet:${wallet.toLowerCase()}`;
   }
   return 'anon:default';
 }
@@ -292,12 +204,11 @@ export function saveStats(stats) {
  * Track visit event (local storage)
  * @param {Object} options - Visit options
  * @param {number|null} options.fid - Farcaster ID
- * @param {string|null} options.wallet - Wallet address
  */
-export function trackVisit({ fid = null, wallet = null }) {
+export function trackVisit({ fid = null }) {
   try {
     const stats = loadStats();
-    const key = getStatsKey(fid, wallet);
+    const key = getStatsKey(fid);
     const now = Date.now();
     const dayKey = getDayKeyWithCutoff();
     
@@ -307,7 +218,6 @@ export function trackVisit({ fid = null, wallet = null }) {
     // Get or create user row
     const existing = stats.rows[key] || {
       fid: null,
-      wallet: null,
       readings_total: 0,
       readings_one: 0,
       readings_three: 0,
@@ -321,7 +231,6 @@ export function trackVisit({ fid = null, wallet = null }) {
     stats.rows[key] = {
       ...existing,
       fid: fid || existing.fid,
-      wallet: (wallet || existing.wallet)?.toLowerCase() || null,
       streak: streak,
       last_visit_day_key: dayKey,
       last_seen_ts: now
@@ -341,10 +250,9 @@ export function trackVisit({ fid = null, wallet = null }) {
  * Track reading event (local storage)
  * @param {Object} options - Reading options
  * @param {number|null} options.fid - Farcaster ID
- * @param {string|null} options.wallet - Wallet address
  * @param {string} options.type - Reading type: 'one' | 'three' | 'custom'
  */
-export function trackReading({ fid = null, wallet = null, type }) {
+export function trackReading({ fid = null, type }) {
   if (!['one', 'three', 'custom'].includes(type)) {
     console.warn('Invalid reading type:', type);
     return;
@@ -352,13 +260,12 @@ export function trackReading({ fid = null, wallet = null, type }) {
   
   try {
     const stats = loadStats();
-    const key = getStatsKey(fid, wallet);
+    const key = getStatsKey(fid);
     const now = Date.now();
     
     // Get or create user row
     const existing = stats.rows[key] || {
       fid: null,
-      wallet: null,
       readings_total: 0,
       readings_one: 0,
       readings_three: 0,
@@ -372,7 +279,6 @@ export function trackReading({ fid = null, wallet = null, type }) {
     stats.rows[key] = {
       ...existing,
       fid: fid || existing.fid,
-      wallet: (wallet || existing.wallet)?.toLowerCase() || null,
       readings_total: (existing.readings_total || 0) + 1,
       readings_one: type === 'one' ? (existing.readings_one || 0) + 1 : (existing.readings_one || 0),
       readings_three: type === 'three' ? (existing.readings_three || 0) + 1 : (existing.readings_three || 0),
@@ -411,7 +317,6 @@ export function buildCsv(rows) {
   const headers = [
     'key',
     'fid',
-    'wallet',
     'readings_total',
     'readings_one',
     'readings_three',
@@ -434,7 +339,6 @@ export function buildCsv(rows) {
     const values = [
       `"${row.key || ''}"`,
       row.fid || '',
-      `"${row.wallet || ''}"`,
       row.readings_total || 0,
       row.readings_one || 0,
       row.readings_three || 0,

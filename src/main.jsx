@@ -1,13 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import { WagmiProvider } from 'wagmi'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { wagmiConfig } from './wagmi'
 import App from './App.jsx'
 import './index.css'
-
-// Create QueryClient for wagmi
-const queryClient = new QueryClient()
 
 // Mobile WebView fixes script
 function setVH() {
@@ -49,15 +43,11 @@ window.addEventListener('orientationchange', function() {
   }
 })();
 
-// Render React app with QueryClientProvider + WagmiProvider
+// Render React app
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <WagmiProvider config={wagmiConfig}>
-        <App />
-      </WagmiProvider>
-    </QueryClientProvider>
+    <App />
   </React.StrictMode>
 );
 
