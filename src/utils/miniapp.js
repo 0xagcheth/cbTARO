@@ -271,10 +271,13 @@ export async function signIn() {
 
 /**
  * Get Ethereum provider from Farcaster wallet
- * For use with Wagmi connector
+ * DEPRECATED: This is only used internally by wagmi connector.
+ * DO NOT use this for direct wallet connection - use wagmi connector.connect() instead.
  * @returns {Promise<Object|null>} Ethereum provider or null
+ * @deprecated Use wagmi connector for wallet connection
  */
 export async function getEthereumProvider() {
+  console.warn('[miniapp] getEthereumProvider() is deprecated. Use wagmi connector.connect() for wallet connection.');
   const sdk = await getMiniAppSDK();
   if (!sdk || !sdk.wallet?.getEthereumProvider) {
     console.debug('[miniapp] Ethereum provider not available');
@@ -283,7 +286,7 @@ export async function getEthereumProvider() {
 
   try {
     const provider = await sdk.wallet.getEthereumProvider();
-    console.log('[miniapp] Ethereum provider obtained');
+    console.log('[miniapp] Ethereum provider obtained (internal use only)');
     return provider;
   } catch (error) {
     console.error('[miniapp] Failed to get Ethereum provider:', error);

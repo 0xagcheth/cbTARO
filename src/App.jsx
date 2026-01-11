@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { ethers } from 'ethers';
 import { useAccount, useConnect, useSendTransaction, useChainId, useSwitchChain } from 'wagmi';
 import { parseEther } from 'viem';
 import { buildShareText, shareCast } from './utils/share';
@@ -25,11 +24,6 @@ import {
   openUrl,
   isInMiniApp as checkIsInMiniApp,
 } from './utils/miniapp';
-
-// Safety check for ethers
-if (typeof ethers === 'undefined') {
-  console.error('ethers.js not loaded');
-}
 
 // Taro card data based on tarot.com meanings
 // Source: https://www.tarot.com/tarot/cards
