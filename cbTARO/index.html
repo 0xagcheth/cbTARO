@@ -2041,6 +2041,12 @@ Important: This must be a unique interpretation for this specific card spread. M
                     <footer className="taro-footer">
                       {isAllRevealed && (
                         <>
+                          <button className="taro-button secondary" onClick={() => { playButtonSound(); handleNewSpread(); }}>
+                            &lt;
+                          </button>
+                          <button className="taro-button" onClick={() => { playButtonSound(); handleShare(); }}>
+                            Share
+                          </button>
                           {selectedSpread === "CUSTOM" && (
                             <>
                               {!aiInterpretation && !isGeneratingAI && (
@@ -2076,12 +2082,6 @@ Important: This must be a unique interpretation for this specific card spread. M
                               )}
                             </>
                           )}
-                          <button className="taro-button secondary" onClick={() => { playButtonSound(); handleNewSpread(); }}>
-                            &lt;
-                          </button>
-                          <button className="taro-button" onClick={() => { playButtonSound(); handleShare(); }}>
-                            Share
-                          </button>
                         </>
                       )}
                     </footer>
