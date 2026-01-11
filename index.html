@@ -1070,6 +1070,19 @@
         const { isConnected, address } = walletAccount;
         const { connect, connectors, isPending: isConnecting } = walletConnect;
 
+        // Local state to track wallet connection for UI updates
+        const [walletState, setWalletState] = useState({ isConnected: false, address: null });
+
+        // Update wallet state when wagmi state changes
+        React.useEffect(() => {
+          if (isConnected && address) {
+            console.log('[wallet] 💰 Wallet connected, updating UI:', address);
+            setWalletState({ isConnected: true, address });
+          } else {
+            setWalletState({ isConnected: false, address: null });
+          }
+        }, [isConnected, address]);
+
         const [gameStage, setGameStage] = useState("idle");
         const [selectedSpread, setSelectedSpread] = useState(null);
         const [cards, setCards] = useState([]);
@@ -1109,6 +1122,106 @@
             }
           }
         }, [authIdentity.profile]);
+
+        // Auto-connect wallet when in Mini App and update UI
+        React.useEffect(() => {
+          if (!useAccount || !useConnect) {
+            console.log('[wallet] ⏳ Waiting for Wagmi to initialize...');
+            return;
+          }
+          
+          let mounted = true;
+          let retryCount = 0;
+          const maxRetries = 5;
+          
+          const tryConnect = async () => {
+            if (!mounted) return;
+            
+            // Check if we're in Mini App environment
+            let checkIsInMiniApp = false;
+            try {
+              const sdk = window.__fc?.sdk;
+              if (sdk && typeof sdk.isInMiniApp === 'function') {
+                checkIsInMiniApp = await sdk.isInMiniApp();
+                console.log('[wallet] SDK check - isInMiniApp:', checkIsInMiniApp);
+              }
+            } catch (e) {
+              console.debug('[wallet] SDK check failed:', e);
+            }
+            
+            // Fallback to user agent check
+            if (!checkIsInMiniApp) {
+              const isFarcasterApp = /farcaster/i.test(navigator.userAgent);
+              const isBaseApp = /base/i.test(navigator.userAgent) || window.location.hostname.includes('base.org');
+              checkIsInMiniApp = isFarcasterApp || isBaseApp || window.isInMiniApp === true;
+              console.log('[wallet] Fallback check - isInMiniApp:', checkIsInMiniApp);
+            }
+
+            if (!mounted) return;
+
+            // Check current connection status
+            const currentAccount = useAccount();
+            const currentIsConnected = currentAccount.isConnected;
+            const currentAddress = currentAccount.address;
+
+            if (currentIsConnected && currentAddress) {
+              console.log('[wallet] ✅ Already connected, address:', currentAddress);
+              setWalletState({ isConnected: true, address: currentAddress });
+              return;
+            }
+
+            if (!currentIsConnected && !isConnecting && connectors.length > 0 && checkIsInMiniApp) {
+              const miniAppConnector = connectors.find(
+                (c) => c.id === 'farcasterMiniApp' || 
+                       c.id === 'farcaster' ||
+                       c.name?.toLowerCase().includes('farcaster') ||
+                       c.name?.toLowerCase().includes('mini')
+              ) || connectors[0];
+              
+              if (miniAppConnector) {
+                try {
+                  console.log('[wallet] 🔌 Attempting to connect via:', miniAppConnector.name || miniAppConnector.id);
+                  const result = await connect({ connector: miniAppConnector });
+                  if (mounted) {
+                    console.log('[wallet] ✅ Connected successfully!', result);
+                    // Force update wallet state after connection
+                    setTimeout(() => {
+                      const updatedAccount = useAccount();
+                      if (updatedAccount.isConnected && updatedAccount.address) {
+                        console.log('[wallet] 💰 Updating wallet state:', updatedAccount.address);
+                        setWalletState({ isConnected: true, address: updatedAccount.address });
+                      }
+                    }, 500);
+                  }
+                } catch (error) {
+                  if (mounted && retryCount < maxRetries) {
+                    retryCount++;
+                    console.log(`[wallet] 🔄 Retrying connection (${retryCount}/${maxRetries})...`);
+                    setTimeout(tryConnect, 2000);
+                  } else {
+                    console.warn('[wallet] ❌ Connection failed:', error);
+                  }
+                }
+              }
+            }
+          };
+
+          const attemptConnect = () => {
+            if (!mounted) return;
+            if (connectors.length > 0) {
+              tryConnect();
+            } else if (retryCount < maxRetries) {
+              retryCount++;
+              setTimeout(attemptConnect, 500);
+            }
+          };
+
+          const timeoutId = setTimeout(attemptConnect, 1000);
+          return () => {
+            mounted = false;
+            clearTimeout(timeoutId);
+          };
+        }, [isConnected, isConnecting, connectors, connect, address]);
 
         // Farcaster Mini App SDK initialization (backup check)
         useEffect(() => {
@@ -1877,14 +1990,13 @@ Important: This must be a unique interpretation for this specific card spread. M
             {/* Control buttons container - both buttons together */}
             <div className="control-buttons-left">
               {/* Wallet address display */}
-              {isConnected && address && (
-                <div className="icon-btn wallet-btn" title={`Wallet: ${address}`}>
+              {(walletState.isConnected && walletState.address) || (isConnected && address) ? (
+                <div className="icon-btn wallet-btn" title={`Wallet: ${walletState.address || address}`}>
                   <div className="wallet-address">
-                    {address.slice(0, 6)}...{address.slice(-4)}
+                    {(walletState.address || address).slice(0, 6)}...{(walletState.address || address).slice(-4)}
                   </div>
                 </div>
-              )}
-              {!isConnected && (
+              ) : (
                 <div className="icon-btn wallet-btn-disconnected" title="Wallet not connected">
                   <div className="wallet-disconnected">🔗</div>
                 </div>
