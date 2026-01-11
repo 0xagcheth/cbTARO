@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useAccount } from 'wagmi';
 import { buildShareText, shareCast } from './utils/share';
 import { updateStreakOnVisit } from './utils/streak';
 import { 
@@ -18,6 +19,7 @@ import {
   openUrl,
   isInMiniApp as checkIsInMiniApp,
 } from './utils/miniapp';
+import { wagmiConfig } from './config/wagmi.js';
 
 // Taro card data based on tarot.com meanings
 // Source: https://www.tarot.com/tarot/cards
@@ -584,6 +586,25 @@ function TaroApp() {
   // Base path for GitHub Pages deployment
   const basePath = '/cbTARO';
 
+  // Wallet connection using wagmi (like friend's example)
+  const { isConnected, address } = useAccount();
+
+  // Example function for calling smart contract (like friend's example)
+  // async function handleClick() {
+  //   if (!isConnected || !address) {
+  //     return;
+  //   }
+  // 
+  //   const { request } = await simulateContract(wagmiConfig, {
+  //     account: address,
+  //     address: chainConfig.contracts.checkIn,
+  //     abi: checkInAbi,
+  //     functionName: "checkInToBattle",
+  //     args: [battleId],
+  //   });
+  //   const hash = await writeContract(wagmiConfig, request);
+  //   await waitForTransactionReceipt(wagmiConfig, { hash, confirmations: 2 });
+  // }
 
   const [gameStage, setGameStage] = useState("idle");
   const [selectedSpread, setSelectedSpread] = useState(null);

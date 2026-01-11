@@ -2,6 +2,8 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import './index.css'
+import { WagmiProvider } from './providers/WagmiProvider.jsx'
+import { QueryClientProvider } from './providers/QueryClientProvider.jsx'
 
 // Mobile WebView fixes script
 function setVH() {
@@ -47,7 +49,11 @@ window.addEventListener('orientationchange', function() {
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <App />
+    <WagmiProvider>
+      <QueryClientProvider>
+        <App />
+      </QueryClientProvider>
+    </WagmiProvider>
   </React.StrictMode>
 );
 
