@@ -53,7 +53,6 @@
     </script>
 
     <div id="root"></div>
-    <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 
     <!-- Farcaster Mini Apps SDK - loaded via ESM module at end of index.html -->
 
@@ -148,11 +147,6 @@
           console.warn('[cbTARO] Failed to read shared params:', error);
         }
       })();
-
-      // Safety check for ethers
-      if (typeof ethers === 'undefined') {
-        console.error('ethers.js not loaded');
-      }
 
       // Taro card data based on tarot.com meanings
       // Source: https://www.tarot.com/tarot/cards
@@ -940,9 +934,19 @@
               return null;
             }
 
-            // Use first connector (miniAppConnector for Farcaster/Base)
-            const connector = connectors[0];
-            console.log('[wallet] Connecting with connector:', connector.name);
+            // Choose connector: prefer Farcaster Mini App connector, fallback to first available
+            const connectorNames = connectors.map(c => c.name || c.id || 'unknown').join(', ');
+            console.log('[wallet] Available connectors:', connectorNames);
+            
+            const preferred = connectors.find(c => 
+              (c?.name || '').toLowerCase().includes('farcaster') || 
+              (c?.id || '').toLowerCase().includes('farcaster') || 
+              (c?.type || '').toLowerCase().includes('farcaster') || 
+              (c?.name || '').toLowerCase().includes('mini')
+            );
+            
+            const connector = preferred || connectors[0];
+            console.log('[wallet] Selected connector:', connector.name || connector.id, preferred ? '(preferred)' : '(fallback)');
 
             // Connect using connector.connect() directly (like in example)
             const result = await connector.connect();
@@ -1133,11 +1137,12 @@
           });
         }
 
-        // Else fallback to window.ethereum with warning log
+        // Else fallback to window.ethereum (browser mode only, not for Mini App)
         console.log('[wallet] Checking window.ethereum...');
         if (window.ethereum) {
-          console.log('[wallet] ⚠️ fallback to window.ethereum');
+          console.log('[wallet] ⚠️ fallback to window.ethereum (browser mode, not Mini App)');
           console.log('[wallet] window.ethereum type:', typeof window.ethereum);
+          console.log('[wallet] Note: Wallet connection must be via wagmi connector, not direct eth_requestAccounts');
           return window.ethereum;
         }
 
@@ -1370,181 +1375,22 @@
           });
         };
 
-        // Wallet and payment functions
-        // Function to get user avatar from Farcaster
-        const getUserAvatar = async (fid) => {
-          if (!fid) return null;
+        // Wallet connection is handled by useAuthIdentity().connectWallet()
+        // Payment functions use wagmi sendTransaction
 
-          // First check if we have avatar from Farcaster context
-          if (fcUser?.fid === fid && fcUser?.pfpUrl) {
-            return fcUser.pfpUrl;
+        // Helper to ensure wallet is connected and return address
+        const ensureConnectedAddress = async () => {
+          const { getAccount } = await import('https://esm.sh/wagmi@2.12.0');
+          let account = getAccount(window.wagmiConfig);
+
+          if (!account.isConnected || !account.address) {
+            const res = await authIdentity.connectWallet();
+            if (!res?.address) throw new Error('Wallet not connected');
+            account = getAccount(window.wagmiConfig);
           }
 
-          // Fallback to Neynar API only if no context available
-          try {
-            const response = await fetch(`https://api.neynar.com/v2/farcaster/user/bulk?fids=${fid}`, {
-              headers: {
-                'api_key': 'NEYNAR_API_DOCS' // Using public API key for demo
-              }
-            });
-
-            if (response.ok) {
-              const data = await response.json();
-              const user = data.users?.[0];
-              return user?.pfp_url || null;
-            }
-          } catch (error) {
-            console.error('Failed to fetch user avatar:', error);
-          }
-          return null;
-        };
-
-        // Function to get FID from connected wallet
-        const getFidFromWallet = async (address) => {
-          try {
-            // First check if we have FID from Farcaster context
-            if (fcUser?.fid) {
-              return fcUser.fid;
-            }
-
-            // Check if user is already connected via Farcaster Mini App (legacy check)
-            if (window.farcaster && window.farcaster.user) {
-              return window.farcaster.user.fid;
-            }
-
-            // Fallback: Try to get FID via Neynar API using wallet address
-            const response = await fetch(`https://api.neynar.com/v2/farcaster/user/bulk-by-address?addresses=${address}`, {
-              headers: {
-                'api_key': 'NEYNAR_API_DOCS'
-              }
-            });
-
-            if (response.ok) {
-              const data = await response.json();
-              const user = data[address]?.[0];
-              return user?.fid || null;
-            }
-          } catch (error) {
-            console.error('Failed to get FID:', error);
-          }
-          return null;
-        };
-
-        const connectWallet = async () => {
-          // Get Ethereum provider (Farcaster or browser)
-          const ethProvider = await getEthereumProvider();
-          
-          if (!ethProvider) {
-            console.warn('[wallet] No wallet provider found');
-            return null;
-          }
-
-          // If already connected via authIdentity, use that
-          if (authIdentity.walletAddress && authIdentity.authState === 'wallet_connected_profile_ready') {
-            try {
-              const provider = new ethers.providers.Web3Provider(ethProvider);
-              const signer = provider.getSigner();
-              return { provider, signer, address: authIdentity.walletAddress };
-            } catch (error) {
-              console.error('Failed to get provider:', error);
-            }
-          }
-
-          try {
-            const accounts = await ethProvider.request({ method: 'eth_requestAccounts' });
-            const provider = new ethers.providers.Web3Provider(ethProvider);
-            const signer = provider.getSigner();
-            const address = await signer.getAddress();
-
-            setIsWalletConnected(true);
-            setWalletAddress(address);
-
-            // If we already have FID/avatar from Farcaster context, don't overwrite
-            if (fcUser?.fid && userFid === fcUser.fid && userAvatar === fcUser.pfpUrl) {
-              // Already set from context, skip wallet-based lookup
-              return { provider, signer, address };
-            }
-
-            // Try to get FID and avatar (don't fail if this errors)
-            try {
-              const fid = await getFidFromWallet(address);
-              // Only update if we don't already have it from context
-              if (fid && !fcUser?.fid) {
-              setUserFid(fid);
-              } else if (fid) {
-                setUserFid(fid); // Update anyway if wallet provides different FID
-              }
-
-              if (fid) {
-                try {
-                  const avatar = await getUserAvatar(fid);
-                  // Only update if we don't already have it from context
-                  if (avatar && !fcUser?.pfpUrl) {
-                  setUserAvatar(avatar);
-                  } else if (avatar) {
-                    setUserAvatar(avatar); // Update anyway if wallet provides different avatar
-                  }
-                } catch (avatarError) {
-                  console.warn('Failed to get avatar:', avatarError);
-                  // Don't clear if we have it from context
-                  if (!fcUser?.pfpUrl) {
-                  setUserAvatar(null);
-                  }
-                }
-              } else {
-                // Don't clear if we have it from context
-                if (!fcUser?.fid) {
-                setUserAvatar(null);
-                }
-              }
-            } catch (fidError) {
-              console.warn('Failed to get FID:', fidError);
-              // Don't clear if we have it from context
-              if (!fcUser?.fid) {
-              setUserFid(null);
-              setUserAvatar(null);
-              }
-            }
-
-            return { provider, signer, address };
-          } catch (error) {
-            console.error('Failed to connect wallet:', error);
-            console.warn('[wallet] Failed to connect. Please try again.');
-            return null;
-          }
-        };
-
-        // ===== STEP 6: Ensure Base Network (do NOT re-fetch provider internally) =====
-        // Accepts BOTH ethersProvider and ethProvider to avoid re-fetching
-        const ensureBase = async (ethersProvider, ethProvider) => {
-          const network = await ethersProvider.getNetwork();
-          console.log('[wallet] current chainId:', network.chainId);
-          
-          if (network.chainId !== 8453) {
-            if (!ethProvider) {
-              throw new Error('ethProvider required for network switch');
-            }
-            
-            try {
-              console.log('[wallet] ⚠️ Not on Base network, switching...');
-              console.log('[wallet] attempting wallet_switchEthereumChain...');
-              
-              await ethProvider.request({
-                method: 'wallet_switchEthereumChain',
-                params: [{ chainId: '0x2105' }], // Base mainnet
-              });
-              
-              // After switch return new ethers provider
-              console.log('[wallet] ✅ Switched to Base network');
-              return new ethers.providers.Web3Provider(ethProvider, 'any');
-            } catch (error) {
-              console.error('[wallet] ❌ Failed to switch to Base network:', error);
-              throw new Error('Please switch to Base in your wallet');
-            }
-          }
-          
-          console.log('[wallet] ✅ Already on Base network');
-          return ethersProvider;
+          if (!account?.address) throw new Error('Wallet address missing after connect');
+          return account.address;
         };
 
         // Check if running in Base App (more reliable detection)
@@ -2044,20 +1890,8 @@ Important: This must be a unique interpretation for this specific card spread. M
             try {
               setTxStatus("paying");
               
-              // Check if wallet is connected (like in example: useAccount)
-              const { getAccount } = await import('https://esm.sh/wagmi@2.12.0');
-              let account = getAccount(window.wagmiConfig);
-              
-              // If not connected, connect first
-              if (!account.isConnected || !account.address) {
-                const wallet = await connectWallet();
-                if (!wallet || !wallet.address) {
-                  setTxStatus("error");
-                  console.warn('[wallet] Please connect your wallet first');
-                  return;
-                }
-                account = { address: wallet.address, isConnected: true };
-              }
+              // Ensure wallet is connected
+              const address = await ensureConnectedAddress();
 
               // Ensure we're on Base network
               const { getChainId, switchChain } = await import('https://esm.sh/wagmi@2.12.0');
@@ -2067,7 +1901,7 @@ Important: This must be a unique interpretation for this specific card spread. M
                 await switchChain(window.wagmiConfig, { chainId: 8453 });
               }
 
-              const result = await payETH(account.address, 0.0001);
+              const result = await payETH(address, 0.0001);
               setTxHash(result.txHash);
               setTxStatus("success");
 
@@ -2095,20 +1929,8 @@ Important: This must be a unique interpretation for this specific card spread. M
               setTxStatus("paying");
               console.log('[payment] Starting custom spread payment...');
               
-              // Check if wallet is connected (like in example: useAccount)
-              const { getAccount } = await import('https://esm.sh/wagmi@2.12.0');
-              let account = getAccount(window.wagmiConfig);
-              
-              // If not connected, connect first
-              if (!account.isConnected || !account.address) {
-                const wallet = await connectWallet();
-                if (!wallet || !wallet.address) {
-                  setTxStatus("error");
-                  console.warn('[wallet] Please connect your wallet first');
-                  return;
-                }
-                account = { address: wallet.address, isConnected: true };
-              }
+              // Ensure wallet is connected
+              const address = await ensureConnectedAddress();
 
               // Ensure we're on Base network
               const { getChainId, switchChain } = await import('https://esm.sh/wagmi@2.12.0');
@@ -2119,7 +1941,7 @@ Important: This must be a unique interpretation for this specific card spread. M
               }
 
               console.log('[payment] Calling payETH(0.001 ETH)...');
-              const result = await payETH(account.address, 0.001);
+              const result = await payETH(address, 0.001);
               setTxHash(result.txHash);
               setTxStatus("success");
 
