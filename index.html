@@ -66,7 +66,6 @@
       import { http, createConfig } from 'https://esm.sh/wagmi@2.12.0';
       import { base } from 'https://esm.sh/wagmi@2.12.0/chains';
       import { farcasterMiniApp as miniAppConnector } from 'https://esm.sh/@farcaster/miniapp-wagmi-connector@1.1.0';
-      import { injected } from 'https://esm.sh/wagmi@2.12.0/connectors';
 
       window.wagmiConfig = createConfig({
         chains: [base],
@@ -74,8 +73,7 @@
           [base.id]: http(),
         },
         connectors: [
-          miniAppConnector(), // Primary: Farcaster & Base apps
-          injected() // Fallback: Browser (MetaMask, Coinbase Wallet, etc.)
+          miniAppConnector() // Only connector: Farcaster Mini App
         ],
       });
 
@@ -996,20 +994,20 @@
             await new Promise(resolve => setTimeout(resolve, 100));
             
             console.log('[wallet] Starting wallet check...');
-            const provider = await getEthereumProvider();
             
-            if (!provider) {
-              console.log('[wallet] ❌ No provider found');
+            if (!window.wagmiConfig) {
+              console.log('[wallet] ❌ Wagmi config not loaded yet');
               setAuthState('wallet_disconnected');
               return;
             }
 
             try {
-              // Check if wallet is already connected (eth_accounts doesn't prompt)
-              console.log('[wallet] Checking eth_accounts...');
-              const accounts = await provider.request({ method: 'eth_accounts' });
-              if (accounts && accounts.length > 0) {
-                const address = accounts[0];
+              // Check if wallet is already connected using wagmi getAccount
+              const { getAccount } = await import('https://esm.sh/wagmi@2.12.0');
+              const account = getAccount(window.wagmiConfig);
+              
+              if (account.isConnected && account.address) {
+                const address = account.address;
                 console.log('[wallet] ✅ Wallet already connected:', address);
                 setWalletAddress(address);
                 setIsWalletConnected(true);
@@ -1075,19 +1073,25 @@
               return null;
             }
 
-            // Choose connector: prefer Farcaster Mini App connector, fallback to first available
+            // Choose Farcaster Mini App connector explicitly
             const connectorNames = connectors.map(c => c.name || c.id || 'unknown').join(', ');
             console.log('[wallet] Available connectors:', connectorNames);
             
-            const preferred = connectors.find(c => 
+            // Find miniapp connector by name/id/type
+            const connector = connectors.find(c => 
               (c?.name || '').toLowerCase().includes('farcaster') || 
               (c?.id || '').toLowerCase().includes('farcaster') || 
               (c?.type || '').toLowerCase().includes('farcaster') || 
               (c?.name || '').toLowerCase().includes('mini')
-            );
+            ) || connectors[0]; // Fallback to first if not found (should be miniapp connector)
             
-            const connector = preferred || connectors[0];
-            console.log('[wallet] Selected connector:', connector.name || connector.id, preferred ? '(preferred)' : '(fallback)');
+            if (!connector) {
+              setAuthState('error');
+              console.warn('[wallet] ❌ No connector found');
+              return null;
+            }
+            
+            console.log('[wallet] Selected connector:', connector.name || connector.id);
 
             // Connect using connector.connect() directly (like in example)
             const result = await connector.connect();
@@ -1522,16 +1526,16 @@
         // Helper to ensure wallet is connected and return address
         const ensureConnectedAddress = async () => {
           const { getAccount } = await import('https://esm.sh/wagmi@2.12.0');
-          let account = getAccount(window.wagmiConfig);
+          let acc = getAccount(window.wagmiConfig);
 
-          if (!account.isConnected || !account.address) {
+          if (!acc.isConnected || !acc.address) {
             const res = await authIdentity.connectWallet();
             if (!res?.address) throw new Error('Wallet not connected');
-            account = getAccount(window.wagmiConfig);
+            acc = getAccount(window.wagmiConfig);
           }
 
-          if (!account?.address) throw new Error('Wallet address missing after connect');
-          return account.address;
+          if (!acc?.address) throw new Error('Wallet address missing');
+          return acc.address;
         };
 
         // Check if running in Base App (more reliable detection)
