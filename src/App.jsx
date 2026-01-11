@@ -592,23 +592,37 @@ function TaroApp() {
 
   // Auto-connect wallet when in Mini App
   useEffect(() => {
+    let mounted = true;
+    let retryCount = 0;
+    const maxRetries = 5;
+    
     const tryConnect = async () => {
+      if (!mounted) return;
+      
       // Check if we're in Mini App environment using SDK
       let checkIsInMiniApp = false;
       try {
-        const sdk = await import('@farcaster/miniapp-sdk').catch(() => null);
-        if (sdk?.sdk || sdk?.default) {
-          const sdkInstance = sdk.sdk || sdk.default;
-          if (typeof sdkInstance?.isInMiniApp === 'function') {
-            checkIsInMiniApp = await sdkInstance.isInMiniApp();
+        const sdkModule = await import('@farcaster/miniapp-sdk').catch(() => null);
+        if (sdkModule) {
+          const sdk = sdkModule.sdk || sdkModule.default || sdkModule;
+          if (sdk && typeof sdk.isInMiniApp === 'function') {
+            checkIsInMiniApp = await sdk.isInMiniApp();
+            console.log('[wallet] SDK check - isInMiniApp:', checkIsInMiniApp);
           }
         }
       } catch (e) {
-        // Fallback to user agent check
+        console.debug('[wallet] SDK import failed, using fallback:', e);
+      }
+      
+      // Fallback to user agent check
+      if (!checkIsInMiniApp) {
         const isFarcasterApp = /farcaster/i.test(navigator.userAgent);
         const isBaseApp = /base/i.test(navigator.userAgent) || window.location.hostname.includes('base.org');
         checkIsInMiniApp = isFarcasterApp || isBaseApp || window.isInMiniApp === true;
+        console.log('[wallet] Fallback check - isInMiniApp:', checkIsInMiniApp, { isFarcasterApp, isBaseApp });
       }
+
+      if (!mounted) return;
 
       if (!isConnected && !isConnecting && connectors.length > 0 && checkIsInMiniApp) {
         // Find Farcaster Mini App connector
@@ -623,28 +637,53 @@ function TaroApp() {
           try {
             console.log('[wallet] 🔌 Attempting to connect via:', miniAppConnector.name || miniAppConnector.id);
             console.log('[wallet] 📋 Available connectors:', connectors.map(c => ({ id: c.id, name: c.name })));
-            await connect({ connector: miniAppConnector });
-            console.log('[wallet] ✅ Connected successfully!');
+            const result = await connect({ connector: miniAppConnector });
+            if (mounted) {
+              console.log('[wallet] ✅ Connected successfully!', result);
+            }
           } catch (error) {
-            console.warn('[wallet] ❌ Connection failed:', error);
+            if (mounted) {
+              console.warn('[wallet] ❌ Connection failed:', error);
+              // Retry if not exceeded max retries
+              if (retryCount < maxRetries) {
+                retryCount++;
+                console.log(`[wallet] 🔄 Retrying connection (${retryCount}/${maxRetries})...`);
+                setTimeout(tryConnect, 2000);
+              }
+            }
           }
         } else {
           console.warn('[wallet] ⚠️ No Mini App connector found. Available:', connectors.map(c => c.name || c.id));
         }
       } else if (!checkIsInMiniApp) {
         console.log('[wallet] ℹ️ Not in Mini App environment, skipping auto-connect');
-      } else if (isConnected) {
+      } else if (isConnected && address) {
         console.log('[wallet] ✅ Already connected, address:', address);
       }
     };
 
-    // Wait for connectors to be ready
-    if (connectors.length > 0) {
-      const timeoutId = setTimeout(tryConnect, 1500);
-      return () => clearTimeout(timeoutId);
-    } else {
-      console.log('[wallet] ⏳ Waiting for connectors...');
-    }
+    // Wait for connectors to be ready with retry logic
+    const attemptConnect = () => {
+      if (!mounted) return;
+      
+      if (connectors.length > 0) {
+        tryConnect();
+      } else if (retryCount < maxRetries) {
+        retryCount++;
+        console.log(`[wallet] ⏳ Waiting for connectors... (retry ${retryCount}/${maxRetries})`);
+        setTimeout(attemptConnect, 500);
+      } else {
+        console.warn('[wallet] ⚠️ Connectors not available after max retries');
+      }
+    };
+
+    // Initial delay to ensure everything is ready
+    const timeoutId = setTimeout(attemptConnect, 1000);
+    
+    return () => {
+      mounted = false;
+      clearTimeout(timeoutId);
+    };
   }, [isConnected, isConnecting, connectors, connect, address]);
 
   // Example function for calling smart contract (like friend's example)
@@ -1689,6 +1728,20 @@ Important: This must be a unique interpretation for this specific card spread. M
               >
                 {soundEnabled ? "🔊" : "🔇"}
               </button>
+
+              {/* Wallet address display */}
+              {isConnected && address && (
+                <div className="icon-btn wallet-btn" title={`Wallet: ${address}`}>
+                  <div className="wallet-address">
+                    {address.slice(0, 6)}...{address.slice(-4)}
+                  </div>
+                </div>
+              )}
+              {!isConnected && (
+                <div className="icon-btn wallet-btn-disconnected" title="Wallet not connected">
+                  <div className="wallet-disconnected">🔗</div>
+                </div>
+              )}
 
               {/* Avatar display */}
               {pfpUrl && (

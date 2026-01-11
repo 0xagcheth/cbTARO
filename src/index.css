@@ -2512,6 +2512,27 @@
       transform: scale(0.98);
     }
 
+    .wallet-btn {
+      position: relative;
+      min-width: 60px;
+      padding: 4px 8px;
+    }
+    .wallet-address {
+      font-size: 10px;
+      font-family: monospace;
+      color: #fff;
+      background: rgba(0, 123, 255, 0.3);
+      padding: 4px 6px;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+    .wallet-btn-disconnected {
+      position: relative;
+      opacity: 0.5;
+    }
+    .wallet-disconnected {
+      font-size: 16px;
+    }
     .avatar-btn {
       padding: 0;
       overflow: hidden;

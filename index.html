@@ -1000,7 +1000,76 @@
       };
 
       // =====================================================
+      // Wagmi Configuration (like friend's example)
+      // =====================================================
+      let wagmiConfig = null;
+      let QueryClientProvider = null;
+      let WagmiProvider = null;
+      let useAccount = null;
+      let useConnect = null;
+
+      // Initialize Wagmi and React Query
+      (async () => {
+        try {
+          // Import wagmi dependencies
+          const { createConfig, http } = await import('https://esm.sh/wagmi@2.12.0');
+          const { base } = await import('https://esm.sh/wagmi@2.12.0/chains');
+          const { farcasterMiniApp } = await import('https://esm.sh/@farcaster/miniapp-wagmi-connector@1.1.0');
+          const { QueryClient, QueryClientProvider: TanstackQueryClientProvider } = await import('https://esm.sh/@tanstack/react-query@5.28.0');
+          const { WagmiProvider: WagmiWagmiProvider, useAccount: useAccountHook, useConnect: useConnectHook } = await import('https://esm.sh/wagmi@2.12.0');
+
+          // Create chain config
+          const chainConfig = { chain: base };
+
+          // Create wagmi config
+          wagmiConfig = createConfig({
+            chains: [chainConfig.chain],
+            transports: {
+              [chainConfig.chain.id]: http(),
+            },
+            connectors: [farcasterMiniApp()],
+          });
+
+          // Create QueryClient
+          const queryClient = new QueryClient({
+            defaultOptions: {
+              queries: {
+                queryKeyHashFn: (queryKey) => {
+                  return JSON.stringify(queryKey, (_, value) =>
+                    typeof value === "bigint" ? value.toString() : value
+                  );
+                },
+              },
+            },
+          });
+
+          // Create providers
+          QueryClientProvider = ({ children }) => {
+            return React.createElement(TanstackQueryClientProvider, { client: queryClient }, children);
+          };
+
+          WagmiProvider = ({ children }) => {
+            return React.createElement(WagmiWagmiProvider, { config: wagmiConfig }, children);
+          };
+
+          // Export hooks
+          useAccount = useAccountHook;
+          useConnect = useConnectHook;
+
+          console.log('[wallet] ✅ Wagmi initialized successfully');
+        } catch (error) {
+          console.error('[wallet] ❌ Failed to initialize Wagmi:', error);
+        }
+      })();
+
+      // =====================================================
       function TaroApp() {
+        // Wallet connection using wagmi (like friend's example)
+        const walletAccount = useAccount ? useAccount() : { isConnected: false, address: null };
+        const walletConnect = useConnect ? useConnect() : { connect: () => {}, connectors: [], isPending: false };
+        const { isConnected, address } = walletAccount;
+        const { connect, connectors, isPending: isConnecting } = walletConnect;
+
         const [gameStage, setGameStage] = useState("idle");
         const [selectedSpread, setSelectedSpread] = useState(null);
         const [cards, setCards] = useState([]);
@@ -1807,6 +1876,20 @@ Important: This must be a unique interpretation for this specific card spread. M
 
             {/* Control buttons container - both buttons together */}
             <div className="control-buttons-left">
+              {/* Wallet address display */}
+              {isConnected && address && (
+                <div className="icon-btn wallet-btn" title={`Wallet: ${address}`}>
+                  <div className="wallet-address">
+                    {address.slice(0, 6)}...{address.slice(-4)}
+                  </div>
+                </div>
+              )}
+              {!isConnected && (
+                <div className="icon-btn wallet-btn-disconnected" title="Wallet not connected">
+                  <div className="wallet-disconnected">🔗</div>
+                </div>
+              )}
+
               {/* Unified Identity Button */}
               <UnifiedIdentityButton playButtonSound={playButtonSound} />
 
@@ -2341,7 +2424,28 @@ Important: This must be a unique interpretation for this specific card spread. M
     window.addEventListener('resize', updateViewportInfo);
     updateViewportInfo();
 
-    root.render(<TaroApp />);
+    // Wait for Wagmi to initialize, then render with providers
+    const renderApp = () => {
+      if (WagmiProvider && QueryClientProvider) {
+        root.render(
+          React.createElement(React.StrictMode, null,
+            React.createElement(WagmiProvider, null,
+              React.createElement(QueryClientProvider, null,
+                React.createElement(TaroApp, null)
+              )
+            )
+          )
+        );
+      } else {
+        // Fallback: render without providers if wagmi not loaded
+        console.warn('[wallet] Wagmi not loaded, rendering without providers');
+        root.render(React.createElement(TaroApp, null));
+        // Retry after a delay
+        setTimeout(renderApp, 500);
+      }
+    };
+
+    renderApp();
   </script>
 
   <style>
@@ -2745,6 +2849,10 @@ Important: This must be a unique interpretation for this specific card spread. M
 
     .gallery-button {
       background: rgba(0, 123, 255, 0.8);
+      background-image: url('/cbTARO/Assets/imagine/bc.png');
+      background-size: contain;
+      background-position: center;
+      background-repeat: no-repeat;
       color: #fff;
       border: none;
       border-radius: 12px;
@@ -4870,6 +4978,28 @@ Important: This must be a unique interpretation for this specific card spread. M
 
     .icon-btn:active{
       transform: scale(0.98);
+    }
+
+    .wallet-btn {
+      position: relative;
+      min-width: 60px;
+      padding: 4px 8px;
+    }
+    .wallet-address {
+      font-size: 10px;
+      font-family: monospace;
+      color: #fff;
+      background: rgba(0, 123, 255, 0.3);
+      padding: 4px 6px;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+    .wallet-btn-disconnected {
+      position: relative;
+      opacity: 0.5;
+    }
+    .wallet-disconnected {
+      font-size: 16px;
     }
 
     .avatar-btn {
