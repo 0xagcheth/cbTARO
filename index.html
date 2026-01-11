@@ -1168,18 +1168,50 @@
             if (!mounted || hasTriedConnect) return;
 
             try {
-              // Check if we're in Mini App
+              // Check if we're in Mini App - multiple methods
+              let isInMiniApp = false;
+              
+              // Method 1: Check user agent
               const isFarcasterApp = /farcaster/i.test(navigator.userAgent);
               const isBaseApp = /base/i.test(navigator.userAgent) || window.location.hostname.includes('base.org');
-              const isInMiniApp = isFarcasterApp || isBaseApp;
+              isInMiniApp = isFarcasterApp || isBaseApp;
+              
+              // Method 2: Check window flags
+              if (!isInMiniApp && (window.isInMiniApp === true || window.__fc)) {
+                isInMiniApp = true;
+              }
+              
+              // Method 3: Check for Farcaster SDK
+              if (!isInMiniApp && window.__fc?.sdk) {
+                try {
+                  const sdk = window.__fc.sdk;
+                  if (typeof sdk.isInMiniApp === 'function') {
+                    isInMiniApp = await sdk.isInMiniApp();
+                  }
+                } catch (e) {
+                  // Ignore SDK errors
+                }
+              }
+              
+              console.log('[wallet] 🔍 Mini App detection:', { isInMiniApp, isFarcasterApp, isBaseApp, hasFcSDK: !!window.__fc?.sdk });
 
               if (!isInMiniApp) {
                 console.log('[wallet] ℹ️ Not in Mini App, skipping auto-connect');
                 return;
               }
 
-              const account = useAccount();
-              const { connect, connectors } = useConnect();
+              // Get hooks - they must be called at top level, but we're in useEffect
+              // So we need to call them here, but they should work if providers are set up correctly
+              let account, connect, connectors;
+              try {
+                account = useAccount();
+                const connectResult = useConnect();
+                connect = connectResult.connect;
+                connectors = connectResult.connectors;
+              } catch (e) {
+                console.error('[wallet] ❌ Error calling hooks:', e);
+                return;
+              }
 
               // If already connected, just update UI
               if (account.isConnected && account.address) {
@@ -1220,7 +1252,14 @@
           const checkConnection = () => {
             if (!mounted) return;
             try {
-              const account = useAccount();
+              let account;
+              try {
+                account = useAccount();
+              } catch (e) {
+                console.debug('[wallet] useAccount not ready in checkConnection:', e);
+                return;
+              }
+              
               if (account.isConnected && account.address) {
                 console.log('[wallet] ✅ Wallet connected:', account.address);
                 setWalletState({ isConnected: true, address: account.address });
