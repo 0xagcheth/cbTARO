@@ -2040,17 +2040,23 @@ Important: This must be a unique interpretation for this specific card spread. M
                     {/* Interaction panel at bottom - positioned inside table oval */}
                     <footer className="taro-footer">
                       {isAllRevealed && (
-                        <>
-                          <div style={{ display: 'flex', gap: '1.5rem', justifyContent: 'center', width: '100%' }}>
-                            <button className="taro-button secondary" onClick={() => { playButtonSound(); handleNewSpread(); }}>
-                              &lt;
-                            </button>
-                            <button className="taro-button" onClick={() => { playButtonSound(); handleShare(); }}>
-                              Share
-                            </button>
-                          </div>
-                          {selectedSpread === "CUSTOM" && (
-                            <div style={{ display: 'flex', justifyContent: 'center', width: '100%', marginTop: '1rem' }}>
+                        <div style={{ display: 'flex', gap: '1.5rem', justifyContent: 'center', width: '100%' }}>
+                          <button className="taro-button secondary" onClick={() => { playButtonSound(); handleNewSpread(); }}>
+                            &lt;
+                          </button>
+                          <button className="taro-button" onClick={() => { playButtonSound(); handleShare(); }}>
+                            Share
+                          </button>
+                        </div>
+                      )}
+                    </footer>
+                  </div>
+                  </div>
+                </div>
+
+                {/* Get Reading button - positioned below table */}
+                {isAllRevealed && selectedSpread === "CUSTOM" && (
+                  <div className="get-reading-container">
                               {!aiInterpretation && !isGeneratingAI && (
                                 <button
                                   className="taro-button"
@@ -2068,7 +2074,7 @@ Important: This must be a unique interpretation for this specific card spread. M
                                 </button>
                               )}
                               {isGeneratingAI && (
-                                <div className="taro-generating" style={{ color: "#ffd700" }}>
+                      <div className="taro-generating" style={{ color: "#ffd700" }}>
                                   ✨ Generating reading...
                                 </div>
                               )}
@@ -2080,14 +2086,8 @@ Important: This must be a unique interpretation for this specific card spread. M
                                   View AI Reading
                                 </button>
                               )}
-                            </div>
-                          )}
-                        </>
-                      )}
-                    </footer>
                   </div>
-                  </div>
-                </div>
+                )}
 
 
                 {/* Animation before spread */}
@@ -2575,6 +2575,17 @@ Important: This must be a unique interpretation for this specific card spread. M
       transform: translateY(-10vh);
       transform-origin: center center;
       will-change: transform;
+    }
+
+    /* Get Reading button container - positioned below table */
+    .get-reading-container {
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+      margin-top: calc(var(--tableH) * 0.5 + 2rem);
+      z-index: 20;
     }
 
     /* Fixed Oval Table - always same size and position */
