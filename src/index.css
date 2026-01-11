@@ -387,6 +387,10 @@
 
     .gallery-button {
       background: rgba(0, 123, 255, 0.8);
+      background-image: url('/cbTARO/Assets/imagine/bc.png');
+      background-size: contain;
+      background-position: center;
+      background-repeat: no-repeat;
       color: #fff;
       border: none;
       border-radius: 12px;

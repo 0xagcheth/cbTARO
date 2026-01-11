@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useAccount } from 'wagmi';
+import { useAccount, useConnect } from 'wagmi';
 import { buildShareText, shareCast } from './utils/share';
 import { updateStreakOnVisit } from './utils/streak';
 import { 
@@ -588,6 +588,64 @@ function TaroApp() {
 
   // Wallet connection using wagmi (like friend's example)
   const { isConnected, address } = useAccount();
+  const { connect, connectors, isPending: isConnecting } = useConnect();
+
+  // Auto-connect wallet when in Mini App
+  useEffect(() => {
+    const tryConnect = async () => {
+      // Check if we're in Mini App environment using SDK
+      let checkIsInMiniApp = false;
+      try {
+        const sdk = await import('@farcaster/miniapp-sdk').catch(() => null);
+        if (sdk?.sdk || sdk?.default) {
+          const sdkInstance = sdk.sdk || sdk.default;
+          if (typeof sdkInstance?.isInMiniApp === 'function') {
+            checkIsInMiniApp = await sdkInstance.isInMiniApp();
+          }
+        }
+      } catch (e) {
+        // Fallback to user agent check
+        const isFarcasterApp = /farcaster/i.test(navigator.userAgent);
+        const isBaseApp = /base/i.test(navigator.userAgent) || window.location.hostname.includes('base.org');
+        checkIsInMiniApp = isFarcasterApp || isBaseApp || window.isInMiniApp === true;
+      }
+
+      if (!isConnected && !isConnecting && connectors.length > 0 && checkIsInMiniApp) {
+        // Find Farcaster Mini App connector
+        const miniAppConnector = connectors.find(
+          (c) => c.id === 'farcasterMiniApp' || 
+                 c.id === 'farcaster' ||
+                 c.name?.toLowerCase().includes('farcaster') ||
+                 c.name?.toLowerCase().includes('mini')
+        ) || connectors[0];
+        
+        if (miniAppConnector) {
+          try {
+            console.log('[wallet] 🔌 Attempting to connect via:', miniAppConnector.name || miniAppConnector.id);
+            console.log('[wallet] 📋 Available connectors:', connectors.map(c => ({ id: c.id, name: c.name })));
+            await connect({ connector: miniAppConnector });
+            console.log('[wallet] ✅ Connected successfully!');
+          } catch (error) {
+            console.warn('[wallet] ❌ Connection failed:', error);
+          }
+        } else {
+          console.warn('[wallet] ⚠️ No Mini App connector found. Available:', connectors.map(c => c.name || c.id));
+        }
+      } else if (!checkIsInMiniApp) {
+        console.log('[wallet] ℹ️ Not in Mini App environment, skipping auto-connect');
+      } else if (isConnected) {
+        console.log('[wallet] ✅ Already connected, address:', address);
+      }
+    };
+
+    // Wait for connectors to be ready
+    if (connectors.length > 0) {
+      const timeoutId = setTimeout(tryConnect, 1500);
+      return () => clearTimeout(timeoutId);
+    } else {
+      console.log('[wallet] ⏳ Waiting for connectors...');
+    }
+  }, [isConnected, isConnecting, connectors, connect, address]);
 
   // Example function for calling smart contract (like friend's example)
   // async function handleClick() {
@@ -1702,7 +1760,6 @@ Important: This must be a unique interpretation for this specific card spread. M
                     onClick={() => { playButtonSound(); setPreviousGameStage(gameStage); setShowGallery(true); }}
                       title="View all taro cards"
                   >
-                    ☰
                   </button>
                     <div className="all-taro-right">
                       {/* Daily streak badge - ALWAYS VISIBLE */}
