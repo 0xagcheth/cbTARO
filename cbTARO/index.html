@@ -101,8 +101,7 @@
     <script>
       // Pin SDK versions - NO @latest
       window.__SDK_URLS = {
-        fc: 'https://esm.sh/@farcaster/miniapp-sdk@0.2.1',
-        baseAccount: 'https://esm.sh/@base-org/account@1.0.0'
+        fc: 'https://esm.sh/@farcaster/miniapp-sdk@0.2.1'
       };
       console.log('[BOOT] SDK URLs configured:', window.__SDK_URLS);
     </script>
@@ -757,52 +756,7 @@
         }
       };
 
-      // Helper function to resolve Farcaster profile by wallet address
-      const resolveFarcasterProfileByAddress = async (address) => {
-        if (!address) return null;
-        
-        const DEV = window.location.search.includes('debug=1');
-        const NEYNAR_API_KEY = window.VITE_NEYNAR_API_KEY || 'NEYNAR_API_DOCS';
-        
-        try {
-          if (DEV) console.log('🔍 Resolving Farcaster profile for address:', address);
-          
-          const response = await fetch(
-            `https://api.neynar.com/v2/farcaster/user/bulk-by-address?addresses=${address}`,
-            {
-              headers: {
-                'api_key': NEYNAR_API_KEY
-              }
-            }
-          );
-
-          if (!response.ok) {
-            if (DEV) console.warn('⚠️ Neynar API error:', response.status);
-            return null;
-          }
-
-          const data = await response.json();
-          const user = data[address]?.[0];
-          
-          if (!user) {
-            if (DEV) console.log('📱 No Farcaster user found for address');
-            return null;
-          }
-
-          const profile = {
-            fid: user.fid || null,
-            username: user.username || null,
-            displayName: user.display_name || user.displayName || null,
-            pfpUrl: user.pfp_url || user.pfp?.url || user.pfpUrl || null
-          };
-
-          if (DEV) console.log('✅ Farcaster profile resolved:', profile);
-          return profile;
-        } catch (error) {
-          if (DEV) console.warn('⚠️ Error resolving Farcaster profile:', error);
-          return null;
-        }
-      };
+      // Profile resolution removed - using only SDK context
 
       // Hook for unified identity management
       const useAuthIdentity = () => {
@@ -816,7 +770,7 @@
         const [walletAddress, setWalletAddress] = useState(null);
         const [isMiniApp, setIsMiniApp] = useState(false);
 
-        // Initialize auth: load cache and prepare for wallet connection
+        // Initialize auth: load SDK context and cache
         useEffect(() => {
           const initAuth = async () => {
             try {
@@ -826,12 +780,59 @@
                 setProfile(cached);
               }
 
+              // Load Farcaster Mini App SDK context
+              const sdk = await window.loadFcSdk();
+              if (sdk) {
+                // Call ready() if available
+                if (sdk.actions?.ready) {
+                  await sdk.actions.ready();
+                }
+
+                // Get context
+                let ctx = null;
+                if (typeof sdk.context === 'function') {
+                  ctx = await sdk.context();
+                } else if (sdk.context && typeof sdk.context.then === 'function') {
+                  ctx = await sdk.context;
+                } else if (sdk.context) {
+                  ctx = sdk.context;
+                } else if (typeof sdk.getContext === 'function') {
+                  ctx = await sdk.getContext();
+                }
+
+                if (ctx) {
+                  const user = ctx.user || ctx.viewer;
+                  if (user) {
+                    const profileData = {
+                      fid: user.fid || user.userFid || null,
+                      username: user.username || null,
+                      displayName: user.displayName || user.display_name || null,
+                      pfpUrl: user.pfpUrl || user.pfp_url || user.avatarUrl || user.avatar_url || null
+                    };
+
+                    if (profileData.fid || profileData.pfpUrl) {
+                      setProfile(profileData);
+                      saveProfileCache(profileData);
+                      setIsMiniApp(true);
+                      console.log('[miniapp] context loaded fid=', profileData.fid, 'hasPfp=', !!profileData.pfpUrl);
+                    }
+                  }
+                }
+
+                // Check if not in miniapp
+                if (!ctx || !ctx.user) {
+                  setAuthState('not_miniapp');
+                  console.log('[miniapp] Not in Mini App environment');
+                  return;
+                }
+              }
+
               console.log('[auth] Initialization: ready for wallet connection');
               // Set initial state - wallet will be checked in useEffect below
               setAuthState('wallet_disconnected');
             } catch (error) {
               if (DEV) console.warn('⚠️ Auth init error:', error);
-              setAuthState('wallet_disconnected');
+              setAuthState('not_miniapp');
             }
           };
 
@@ -879,21 +880,8 @@
                   setAuthState('wallet_connected_fetching_profile');
                 }
                 
-                // Try to resolve profile (non-blocking - don't replace cached avatar immediately)
-                resolveFarcasterProfileByAddress(address).then((resolvedProfile) => {
-                  if (resolvedProfile?.fid) {
-                    // Only update if we got a better profile (with pfpUrl)
-                    if (resolvedProfile.pfpUrl && (!profile?.pfpUrl || profile.fid !== resolvedProfile.fid)) {
-                      setProfile(resolvedProfile);
-                      saveProfileCache(resolvedProfile);
-                    }
+                // Profile comes from SDK context only, no network resolution
                     setAuthState('wallet_connected_profile_ready');
-                  } else {
-                    setAuthState('wallet_connected_profile_ready'); // Connected but no Farcaster profile
-                  }
-                }).catch(() => {
-                  setAuthState('wallet_connected_profile_ready'); // Error but keep showing cached
-                });
               } else {
                 console.log('[wallet] No connected accounts found');
                 setAuthState('wallet_disconnected');
@@ -960,23 +948,13 @@
             
             const address = result.accounts[0];
             console.log('[wallet] ✅ Wallet connected successfully');
-            console.log('[wallet] Address:', address);
+            console.log('[wallet] connector connect ok address=', address);
 
             setIsWalletConnected(true);
             setWalletAddress(address);
             
-            // Resolve profile (non-blocking)
-            resolveFarcasterProfileByAddress(address).then((resolvedProfile) => {
-              if (resolvedProfile?.fid) {
-                setProfile(resolvedProfile);
-                saveProfileCache(resolvedProfile);
+            // Profile comes from SDK context only, no network resolution
                 setAuthState('wallet_connected_profile_ready');
-              } else {
-                setAuthState('wallet_connected_profile_ready');
-              }
-            }).catch(() => {
-              setAuthState('wallet_connected_profile_ready');
-            });
 
             console.log('[wallet] ===== CONNECT WALLET END =====');
             
@@ -1111,51 +1089,7 @@
       // According to: https://miniapps.farcaster.xyz/docs/guides/wallets
       // =====================================================
       
-      // ===== STEP 4: Get Ethereum Provider with Deterministic Priority =====
-      // Do NOT do import() inside this function - only call singleton
-      async function getEthereumProvider() {
-        console.log('[wallet] getEthereumProvider() called');
-        console.log('[wallet] window.fcProvider available:', typeof window.fcProvider === 'function');
-        console.log('[wallet] window.__fc state:', {
-          sdk: !!window.__fc?.sdk,
-          provider: !!window.__fc?.provider,
-          sdkPromise: !!window.__fc?.sdkPromise,
-          providerPromise: !!window.__fc?.providerPromise
-        });
-        
-        // First: try fcProvider() (Mini App provider)
-        try {
-          console.log('[wallet] Attempting fcProvider()...');
-          const p = await window.fcProvider();
-          if (p) {
-            console.log('[wallet] ✅ using fcProvider() - provider type:', typeof p);
-            console.log('[wallet] provider has request method:', typeof p.request === 'function');
-            return p;
-          } else {
-            console.log('[wallet] fcProvider() returned null/undefined');
-          }
-        } catch (e) {
-          console.log('[wallet] fcProvider() error:', e);
-          console.log('[wallet] Error details:', {
-            message: e.message,
-            stack: e.stack,
-            name: e.name
-          });
-        }
-
-        // Else fallback to window.ethereum (browser mode only, not for Mini App)
-        console.log('[wallet] Checking window.ethereum...');
-        if (window.ethereum) {
-          console.log('[wallet] ⚠️ fallback to window.ethereum (browser mode, not Mini App)');
-          console.log('[wallet] window.ethereum type:', typeof window.ethereum);
-          console.log('[wallet] Note: Wallet connection must be via wagmi connector, not direct eth_requestAccounts');
-          return window.ethereum;
-        }
-
-        // Else return null
-        console.warn('[wallet] ❌ No wallet provider found');
-        return null;
-      }
+      // getEthereumProvider removed - using only wagmi connector
 
       function TaroApp() {
         const [gameStage, setGameStage] = useState("idle");
@@ -1382,105 +1316,55 @@
         };
 
         // Wallet connection is handled by useAuthIdentity().connectWallet()
-        // Payment functions use wagmi sendTransaction
+        // Payment functions use wagmi sendTransaction (payETH handles connection internally)
 
-        // Helper to ensure wallet is connected and return address
-        const ensureConnectedAddress = async () => {
-          const { getAccount } = await import('https://esm.sh/wagmi@2.12.0');
-          let acc = getAccount(window.wagmiConfig);
-
-          if (!acc.isConnected || !acc.address) {
-            const res = await authIdentity.connectWallet();
-            if (!res?.address) throw new Error('Wallet not connected');
-            acc = getAccount(window.wagmiConfig);
-          }
-
-          if (!acc?.address) throw new Error('Wallet address missing');
-          return acc.address;
-        };
-
-        // Check if running in Base App (more reliable detection)
-        const isBaseApp = () => {
-          const ua = navigator.userAgent.toLowerCase();
-          // Base app usually sends specific UA with 'baseapp' or 'base' + 'wallet'
-          const isBase = ua.includes('baseapp') || (ua.includes('base') && ua.includes('wallet'));
-          if (isBase) {
-            console.log('[base] Detected Base App, UA:', ua);
-          }
-          return isBase;
-        };
-
-        // Pay using Base Pay (for Base App) or Wagmi sendTransaction (for Farcaster/browser)
-        // Like in example: use wagmi config directly for transactions
-        const payETH = async (address, amountETH) => {
+        // Pay using only Wagmi sendTransaction
+        const payETH = async (amountETH) => {
           const TREASURY = '0xD4bF185c846F6CAbDaa34122d0ddA43765E754A6';
 
-          // Check if in Base App - use Base Pay (no address needed)
-          if (isBaseApp()) {
-            try {
-              const ua = navigator.userAgent.toLowerCase();
-              console.log('[payment] Using Base Pay for Base App, UA:', ua);
-              const { pay, getPaymentStatus } = await import(window.__SDK_URLS.baseAccount);
-              
-              const ETH_TO_USD = 3000;
-              const amountUSD = (parseFloat(amountETH) * ETH_TO_USD).toFixed(2);
-              
-              console.log(`[payment] Base Pay: ${amountUSD} USD to ${TREASURY}`);
-              
-              const payment = await pay({
-                amount: amountUSD,
-            to: TREASURY,
-                testnet: false
-              });
-              
-              console.log(`[payment] ✅ Base Pay sent! ID: ${payment.id}`);
-              
-              const { status } = await getPaymentStatus({ 
-                id: payment.id,
-                testnet: false 
-              });
-              
-              if (status === 'completed') {
-                console.log('[payment] ✅ Base Pay confirmed!');
-                return { 
-                  txHash: payment.id,
-                  receipt: { status: 'completed' }
-                };
-              } else {
-                throw new Error(`Base Pay status: ${status}`);
-              }
-            } catch (error) {
-              console.error('[payment] Base Pay failed, falling back to regular transaction:', error);
-              // Fallback to regular transaction if Base Pay fails
-            }
+          if (!window.wagmiConfig) {
+            throw new Error('Wagmi config required for payments');
           }
 
-          // Regular ETH transaction using Wagmi sendTransaction (like in example)
-          if (!address || !window.wagmiConfig) {
-            throw new Error('Address and wagmi config required for payments');
-          }
-          
-          console.log('[payment] Using Wagmi sendTransaction');
-          
-          // Use Wagmi sendTransaction (like in example)
-          const { sendTransaction, waitForTransactionReceipt } = await import('https://esm.sh/wagmi@2.12.0');
+          // Get account from wagmi
+          const { getAccount, getChainId, switchChain, sendTransaction, waitForTransactionReceipt } = await import('https://esm.sh/wagmi@2.12.0');
           const { parseEther } = await import('https://esm.sh/viem@2.21.0');
+          
+          let account = getAccount(window.wagmiConfig);
+          
+          // Ensure connected
+          if (!account.isConnected || !account.address) {
+            throw new Error('Wallet not connected');
+          }
+
+          // Ensure Base chain
+          const chainId = getChainId(window.wagmiConfig);
+          if (chainId !== 8453) {
+            console.log('[wallet] Switching to Base network...');
+            await switchChain(window.wagmiConfig, { chainId: 8453 });
+            // Re-read account after chain switch
+            account = getAccount(window.wagmiConfig);
+          }
+
+          console.log('[pay] sending tx to TREASURY amount=', amountETH);
+          console.log('[pay] From address:', account.address);
           
           const hash = await sendTransaction(window.wagmiConfig, {
             to: TREASURY,
-            value: parseEther(amountETH.toString()),
-            account: address
+            value: parseEther(String(amountETH)),
+            account: account.address
           });
           
-          console.log('[payment] Transaction sent, hash:', hash);
+          console.log('[pay] Transaction sent, hash:', hash);
           
-          // Wait for transaction receipt (like in example)
+          // Wait for transaction receipt
           const receipt = await waitForTransactionReceipt(window.wagmiConfig, { 
             hash,
             confirmations: 2 
           });
 
-          return { txHash: hash, receipt };
+          console.log('[pay] confirmed hash=', hash);
+          return { hash, receipt };
         };
 
 
@@ -1896,19 +1780,8 @@ Important: This must be a unique interpretation for this specific card spread. M
             try {
               setTxStatus("paying");
               
-              // Ensure wallet is connected
-              const address = await ensureConnectedAddress();
-
-              // Ensure we're on Base network
-              const { getChainId, switchChain } = await import('https://esm.sh/wagmi@2.12.0');
-              const chainId = getChainId(window.wagmiConfig);
-              if (chainId !== 8453) {
-                console.log('[wallet] Switching to Base network...');
-                await switchChain(window.wagmiConfig, { chainId: 8453 });
-              }
-
-              const result = await payETH(address, 0.0001);
-              setTxHash(result.txHash);
+              const result = await payETH(0.0001);
+              setTxHash(result.hash);
               setTxStatus("success");
 
               // Log usage and start animation
@@ -1934,21 +1807,10 @@ Important: This must be a unique interpretation for this specific card spread. M
             try {
               setTxStatus("paying");
               console.log('[payment] Starting custom spread payment...');
-              
-              // Ensure wallet is connected
-              const address = await ensureConnectedAddress();
-
-              // Ensure we're on Base network
-              const { getChainId, switchChain } = await import('https://esm.sh/wagmi@2.12.0');
-              const chainId = getChainId(window.wagmiConfig);
-              if (chainId !== 8453) {
-                console.log('[wallet] Switching to Base network...');
-                await switchChain(window.wagmiConfig, { chainId: 8453 });
-              }
 
               console.log('[payment] Calling payETH(0.001 ETH)...');
-              const result = await payETH(address, 0.001);
-              setTxHash(result.txHash);
+              const result = await payETH(0.001);
+              setTxHash(result.hash);
               setTxStatus("success");
 
               // Log usage and start animation
