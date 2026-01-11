@@ -1002,36 +1002,59 @@
       // =====================================================
       // Wagmi Configuration (like friend's example)
       // =====================================================
+      // Initialize Wagmi BEFORE rendering - critical for Mini App
       let wagmiConfig = null;
+      let queryClient = null;
       let QueryClientProvider = null;
       let WagmiProvider = null;
       let useAccount = null;
       let useConnect = null;
+      let wagmiReady = false;
 
-      // Initialize Wagmi and React Query
+      // Initialize Wagmi and React Query - MUST complete before render
       (async () => {
         try {
+          console.log('[wallet] 🔄 Initializing Wagmi...');
+          
           // Import wagmi dependencies
-          const { createConfig, http } = await import('https://esm.sh/wagmi@2.12.0');
-          const { base } = await import('https://esm.sh/wagmi@2.12.0/chains');
-          const { farcasterMiniApp } = await import('https://esm.sh/@farcaster/miniapp-wagmi-connector@1.1.0');
-          const { QueryClient, QueryClientProvider: TanstackQueryClientProvider } = await import('https://esm.sh/@tanstack/react-query@5.28.0');
-          const { WagmiProvider: WagmiWagmiProvider, useAccount: useAccountHook, useConnect: useConnectHook } = await import('https://esm.sh/wagmi@2.12.0');
+          const wagmiModule = await import('https://esm.sh/wagmi@2.12.0');
+          const chainsModule = await import('https://esm.sh/wagmi@2.12.0/chains');
+          const connectorModule = await import('https://esm.sh/@farcaster/miniapp-wagmi-connector@1.1.0');
+          const queryModule = await import('https://esm.sh/@tanstack/react-query@5.28.0');
 
-          // Create chain config
+          const { createConfig, http } = wagmiModule;
+          const { base } = chainsModule;
+          const { farcasterMiniApp } = connectorModule;
+          const { QueryClient, QueryClientProvider: TanstackQueryClientProvider } = queryModule;
+          const { WagmiProvider: WagmiWagmiProvider, useAccount: useAccountHook, useConnect: useConnectHook } = wagmiModule;
+
+          // Create chain config (like friend's example)
           const chainConfig = { chain: base };
 
-          // Create wagmi config
+          // Create wagmi config (EXACTLY like friend's example)
+          const miniAppConnector = farcasterMiniApp();
+          console.log('[wallet] 🔌 Creating farcasterMiniApp connector:', {
+            id: miniAppConnector.id,
+            name: miniAppConnector.name,
+            type: miniAppConnector.type
+          });
+          
           wagmiConfig = createConfig({
             chains: [chainConfig.chain],
             transports: {
               [chainConfig.chain.id]: http(),
             },
-            connectors: [farcasterMiniApp()],
+            connectors: [miniAppConnector], // Only farcasterMiniApp connector - auto-connects in Mini App
+          });
+          
+          console.log('[wallet] 📋 Wagmi config created:', {
+            chain: chainConfig.chain.name,
+            chainId: chainConfig.chain.id,
+            connectors: wagmiConfig.connectors.map(c => ({ id: c.id, name: c.name, type: c.type }))
           });
 
-          // Create QueryClient
-          const queryClient = new QueryClient({
+          // Create QueryClient (EXACTLY like friend's example)
+          queryClient = new QueryClient({
             defaultOptions: {
               queries: {
                 queryKeyHashFn: (queryKey) => {
@@ -1043,7 +1066,7 @@
             },
           });
 
-          // Create providers
+          // Create providers (EXACTLY like friend's example)
           QueryClientProvider = ({ children }) => {
             return React.createElement(TanstackQueryClientProvider, { client: queryClient }, children);
           };
@@ -1056,19 +1079,26 @@
           useAccount = useAccountHook;
           useConnect = useConnectHook;
 
+          wagmiReady = true;
           console.log('[wallet] ✅ Wagmi initialized successfully');
+          console.log('[wallet] 📋 Connectors:', wagmiConfig.connectors.map(c => ({ id: c.id, name: c.name })));
+          
+          // Trigger re-render if app already rendered
+          if (window.__appRendered) {
+            console.log('[wallet] 🔄 Wagmi ready, triggering app re-render...');
+            window.__triggerRerender?.();
+          }
         } catch (error) {
           console.error('[wallet] ❌ Failed to initialize Wagmi:', error);
+          console.error('[wallet] Error details:', error.stack);
         }
       })();
 
       // =====================================================
       function TaroApp() {
-        // Wallet connection using wagmi (like friend's example)
-        const walletAccount = useAccount ? useAccount() : { isConnected: false, address: null };
-        const walletConnect = useConnect ? useConnect() : { connect: () => {}, connectors: [], isPending: false };
-        const { isConnected, address } = walletAccount;
-        const { connect, connectors, isPending: isConnecting } = walletConnect;
+        // Wallet connection using wagmi (EXACTLY like friend's example)
+        // In Mini App, farcasterMiniApp connector auto-connects - no manual connect() needed
+        const { isConnected, address } = useAccount ? useAccount() : { isConnected: false, address: null };
 
         // Local state to track wallet connection for UI updates
         const [walletState, setWalletState] = useState({ isConnected: false, address: null });
@@ -1123,105 +1153,95 @@
           }
         }, [authIdentity.profile]);
 
-        // Auto-connect wallet when in Mini App and update UI
+        // In Mini App, farcasterMiniApp connector should auto-connect
+        // But we may need to trigger it manually on first render
         React.useEffect(() => {
           if (!useAccount || !useConnect) {
-            console.log('[wallet] ⏳ Waiting for Wagmi to initialize...');
+            console.log('[wallet] ⏳ Waiting for Wagmi hooks...');
             return;
           }
-          
+
           let mounted = true;
-          let retryCount = 0;
-          const maxRetries = 5;
-          
-          const tryConnect = async () => {
-            if (!mounted) return;
-            
-            // Check if we're in Mini App environment
-            let checkIsInMiniApp = false;
+          let hasTriedConnect = false;
+
+          const tryAutoConnect = async () => {
+            if (!mounted || hasTriedConnect) return;
+
             try {
-              const sdk = window.__fc?.sdk;
-              if (sdk && typeof sdk.isInMiniApp === 'function') {
-                checkIsInMiniApp = await sdk.isInMiniApp();
-                console.log('[wallet] SDK check - isInMiniApp:', checkIsInMiniApp);
-              }
-            } catch (e) {
-              console.debug('[wallet] SDK check failed:', e);
-            }
-            
-            // Fallback to user agent check
-            if (!checkIsInMiniApp) {
+              // Check if we're in Mini App
               const isFarcasterApp = /farcaster/i.test(navigator.userAgent);
               const isBaseApp = /base/i.test(navigator.userAgent) || window.location.hostname.includes('base.org');
-              checkIsInMiniApp = isFarcasterApp || isBaseApp || window.isInMiniApp === true;
-              console.log('[wallet] Fallback check - isInMiniApp:', checkIsInMiniApp);
-            }
+              const isInMiniApp = isFarcasterApp || isBaseApp;
 
-            if (!mounted) return;
+              if (!isInMiniApp) {
+                console.log('[wallet] ℹ️ Not in Mini App, skipping auto-connect');
+                return;
+              }
 
-            // Check current connection status
-            const currentAccount = useAccount();
-            const currentIsConnected = currentAccount.isConnected;
-            const currentAddress = currentAccount.address;
+              const account = useAccount();
+              const { connect, connectors } = useConnect();
 
-            if (currentIsConnected && currentAddress) {
-              console.log('[wallet] ✅ Already connected, address:', currentAddress);
-              setWalletState({ isConnected: true, address: currentAddress });
-              return;
-            }
+              // If already connected, just update UI
+              if (account.isConnected && account.address) {
+                console.log('[wallet] ✅ Already connected:', account.address);
+                setWalletState({ isConnected: true, address: account.address });
+                return;
+              }
 
-            if (!currentIsConnected && !isConnecting && connectors.length > 0 && checkIsInMiniApp) {
-              const miniAppConnector = connectors.find(
-                (c) => c.id === 'farcasterMiniApp' || 
-                       c.id === 'farcaster' ||
-                       c.name?.toLowerCase().includes('farcaster') ||
-                       c.name?.toLowerCase().includes('mini')
-              ) || connectors[0];
-              
-              if (miniAppConnector) {
-                try {
-                  console.log('[wallet] 🔌 Attempting to connect via:', miniAppConnector.name || miniAppConnector.id);
-                  const result = await connect({ connector: miniAppConnector });
-                  if (mounted) {
-                    console.log('[wallet] ✅ Connected successfully!', result);
-                    // Force update wallet state after connection
-                    setTimeout(() => {
-                      const updatedAccount = useAccount();
-                      if (updatedAccount.isConnected && updatedAccount.address) {
-                        console.log('[wallet] 💰 Updating wallet state:', updatedAccount.address);
-                        setWalletState({ isConnected: true, address: updatedAccount.address });
-                      }
-                    }, 500);
-                  }
-                } catch (error) {
-                  if (mounted && retryCount < maxRetries) {
-                    retryCount++;
-                    console.log(`[wallet] 🔄 Retrying connection (${retryCount}/${maxRetries})...`);
-                    setTimeout(tryConnect, 2000);
-                  } else {
+              // Try to connect if not connected
+              if (!account.isConnected && connectors.length > 0) {
+                const miniAppConnector = connectors.find(
+                  (c) => c.id === 'farcasterMiniApp' || 
+                         c.id === 'farcaster' ||
+                         c.name?.toLowerCase().includes('farcaster') ||
+                         c.name?.toLowerCase().includes('mini')
+                ) || connectors[0];
+
+                if (miniAppConnector) {
+                  hasTriedConnect = true;
+                  console.log('[wallet] 🔌 Attempting to connect via:', miniAppConnector.id || miniAppConnector.name);
+                  try {
+                    await connect({ connector: miniAppConnector });
+                    console.log('[wallet] ✅ Connection initiated');
+                  } catch (error) {
                     console.warn('[wallet] ❌ Connection failed:', error);
                   }
                 }
               }
+            } catch (e) {
+              console.error('[wallet] ❌ Error in auto-connect:', e);
             }
           };
 
-          const attemptConnect = () => {
+          // Try auto-connect after a short delay
+          const timeoutId = setTimeout(tryAutoConnect, 500);
+
+          // Monitor connection status
+          const checkConnection = () => {
             if (!mounted) return;
-            if (connectors.length > 0) {
-              tryConnect();
-            } else if (retryCount < maxRetries) {
-              retryCount++;
-              setTimeout(attemptConnect, 500);
+            try {
+              const account = useAccount();
+              if (account.isConnected && account.address) {
+                console.log('[wallet] ✅ Wallet connected:', account.address);
+                setWalletState({ isConnected: true, address: account.address });
+              } else {
+                setWalletState({ isConnected: false, address: null });
+              }
+            } catch (e) {
+              console.debug('[wallet] Error checking connection:', e);
             }
           };
 
-          const timeoutId = setTimeout(attemptConnect, 1000);
+          // Check immediately and periodically
+          checkConnection();
+          const interval = setInterval(checkConnection, 1000);
+          
           return () => {
             mounted = false;
             clearTimeout(timeoutId);
+            clearInterval(interval);
           };
-        }, [isConnected, isConnecting, connectors, connect, address]);
+        }, [isConnected, address]);
 
         // Farcaster Mini App SDK initialization (backup check)
         useEffect(() => {
@@ -2521,8 +2541,9 @@ Important: This must be a unique interpretation for this specific card spread. M
     }
 
 
-    // Render the app
+    // Render the app - WAIT for Wagmi to initialize first
     const root = ReactDOM.createRoot(document.getElementById('root'));
+    
     // Debug mode viewport updater
     function updateViewportInfo() {
       const body = document.body;
@@ -2536,28 +2557,42 @@ Important: This must be a unique interpretation for this specific card spread. M
     window.addEventListener('resize', updateViewportInfo);
     updateViewportInfo();
 
-    // Wait for Wagmi to initialize, then render with providers
-    const renderApp = () => {
-      if (WagmiProvider && QueryClientProvider) {
-        root.render(
-          React.createElement(React.StrictMode, null,
-            React.createElement(WagmiProvider, null,
-              React.createElement(QueryClientProvider, null,
-                React.createElement(TaroApp, null)
+    // Wait for Wagmi to initialize BEFORE rendering (critical for Mini App)
+    const waitForWagmiAndRender = async () => {
+      let attempts = 0;
+      const maxAttempts = 20; // Wait up to 10 seconds
+      
+      const checkAndRender = () => {
+        attempts++;
+        
+        if (WagmiProvider && QueryClientProvider && wagmiConfig && queryClient) {
+          console.log('[wallet] ✅ Wagmi ready, rendering app with providers');
+          window.__appRendered = true;
+          
+          root.render(
+            React.createElement(React.StrictMode, null,
+              React.createElement(WagmiProvider, null,
+                React.createElement(QueryClientProvider, null,
+                  React.createElement(TaroApp, null)
+                )
               )
             )
-          )
-        );
-      } else {
-        // Fallback: render without providers if wagmi not loaded
-        console.warn('[wallet] Wagmi not loaded, rendering without providers');
-        root.render(React.createElement(TaroApp, null));
-        // Retry after a delay
-        setTimeout(renderApp, 500);
-      }
+          );
+        } else if (attempts < maxAttempts) {
+          console.log(`[wallet] ⏳ Waiting for Wagmi... (${attempts}/${maxAttempts})`);
+          setTimeout(checkAndRender, 500);
+        } else {
+          console.warn('[wallet] ⚠️ Wagmi not loaded after timeout, rendering without providers');
+          window.__appRendered = true;
+          root.render(React.createElement(TaroApp, null));
+        }
+      };
+      
+      // Start checking after a short delay to allow async initialization to start
+      setTimeout(checkAndRender, 100);
     };
 
-    renderApp();
+    waitForWagmiAndRender();
   </script>
 
   <style>
