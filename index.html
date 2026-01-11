@@ -2098,14 +2098,16 @@ Important: This must be a unique interpretation for this specific card spread. M
                     <footer className="taro-footer">
                       {isAllRevealed && (
                         <>
-                          <button className="taro-button secondary" onClick={() => { playButtonSound(); handleNewSpread(); }}>
-                            &lt;
-                          </button>
-                          <button className="taro-button" onClick={() => { playButtonSound(); handleShare(); }}>
-                            Share
-                          </button>
+                          <div style={{ display: 'flex', gap: '1.5rem', justifyContent: 'center', width: '100%' }}>
+                            <button className="taro-button secondary" onClick={() => { playButtonSound(); handleNewSpread(); }}>
+                              &lt;
+                            </button>
+                            <button className="taro-button" onClick={() => { playButtonSound(); handleShare(); }}>
+                              Share
+                            </button>
+                          </div>
                           {selectedSpread === "CUSTOM" && (
-                            <>
+                            <div style={{ display: 'flex', justifyContent: 'center', width: '100%', marginTop: '1rem' }}>
                               {!aiInterpretation && !isGeneratingAI && (
                                 <button
                                   className="taro-button"
@@ -2117,14 +2119,13 @@ Important: This must be a unique interpretation for this specific card spread. M
                                     }
                                     generateCustomInterpretation(revealedIds);
                                   }}
-                                  style={{ marginRight: "1rem" }}
                                   disabled={isGeneratingAI}
                                 >
                                   {isGeneratingAI ? "Generating..." : "Get Reading"}
                                 </button>
                               )}
                               {isGeneratingAI && (
-                                <div className="taro-generating" style={{ marginRight: "1rem", color: "#ffd700" }}>
+                                <div className="taro-generating" style={{ color: "#ffd700" }}>
                                   ✨ Generating reading...
                                 </div>
                               )}
@@ -2132,12 +2133,11 @@ Important: This must be a unique interpretation for this specific card spread. M
                                 <button
                                   className="taro-button"
                                   onClick={() => { playButtonSound(); setActiveCard(null); setGameStage("reading"); }}
-                                  style={{ marginRight: "1rem" }}
                                 >
                                   View AI Reading
                                 </button>
                               )}
-                            </>
+                            </div>
                           )}
                         </>
                       )}
@@ -4207,9 +4207,10 @@ Important: This must be a unique interpretation for this specific card spread. M
       transform: translateX(-50%);
       text-align: center;
       display: flex;
+      flex-direction: column;
       justify-content: center;
       align-items: center;
-      gap: 1.5rem;
+      gap: 0;
       z-index: 20;
       width: auto;
       max-width: calc(var(--tableW) - var(--pad) * 2);
