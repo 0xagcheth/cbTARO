@@ -1041,8 +1041,54 @@
       function TaroApp() {
         // Wallet connection using wagmi (EXACTLY like friend's example)
         // useAccount() hook - MUST be called unconditionally at top level
-        // This component is wrapped in WagmiProvider, so useAccount should work
         const { isConnected, address } = useAccount ? useAccount() : { isConnected: false, address: null };
+        const { connect, connectors, isPending: isConnecting } = useConnect ? useConnect() : { connect: () => {}, connectors: [], isPending: false };
+        
+        // Handle manual wallet connection
+        const handleConnectWallet = async () => {
+          try {
+            console.log('[wallet] 🔌 Manual connect triggered');
+            console.log('[wallet] Available connectors:', connectors.map(c => ({ id: c.id, name: c.name })));
+            
+            if (connectors.length === 0) {
+              console.error('[wallet] ❌ No connectors available');
+              return;
+            }
+            
+            // Find Farcaster Mini App connector
+            const miniAppConnector = connectors.find(
+              (c) => c.id === 'farcasterMiniApp' || 
+                     c.id === 'farcaster' ||
+                     c.name?.toLowerCase().includes('farcaster') ||
+                     c.name?.toLowerCase().includes('mini')
+            ) || connectors[0];
+            
+            if (miniAppConnector) {
+              console.log('[wallet] 🔌 Connecting via:', miniAppConnector.id || miniAppConnector.name);
+              await connect({ connector: miniAppConnector });
+              console.log('[wallet] ✅ Connection initiated');
+          } else {
+              console.error('[wallet] ❌ No Mini App connector found');
+            }
+          } catch (error) {
+            console.error('[wallet] ❌ Connection error:', error);
+          }
+        };
+        
+        // Auto-connect in Mini App on mount
+        React.useEffect(() => {
+          if (!isConnected && !isConnecting && connectors.length > 0) {
+            // Check if we're in Mini App
+            const isFarcasterApp = /farcaster/i.test(navigator.userAgent);
+            const isBaseApp = /base/i.test(navigator.userAgent);
+            const isInMiniApp = isFarcasterApp || isBaseApp || window.__fc || window.isInMiniApp;
+            
+            if (isInMiniApp) {
+              console.log('[wallet] 🔄 Auto-connecting in Mini App...');
+              handleConnectWallet();
+            }
+          }
+        }, [connectors.length, isConnected, isConnecting]);
         
         // Debug logging - check connection status
         React.useEffect(() => {
@@ -1050,20 +1096,21 @@
             isConnected, 
             address,
             addressLength: address?.length,
+            connectorsCount: connectors.length,
+            isConnecting,
             hasUseAccount: !!useAccount,
-            hasWagmiProvider: !!WagmiProvider,
+            hasUseConnect: !!useConnect,
             userAgent: navigator.userAgent,
             isFarcaster: /farcaster/i.test(navigator.userAgent),
             isBase: /base/i.test(navigator.userAgent)
           });
           
-          // Force re-render check
           if (isConnected && address) {
             console.log('[wallet] ✅ Wallet CONNECTED - should be visible in UI:', address);
           } else {
             console.log('[wallet] ⏳ Wallet NOT connected yet');
           }
-        }, [isConnected, address]);
+        }, [isConnected, address, connectors.length]);
 
         const [gameStage, setGameStage] = useState("idle");
         const [selectedSpread, setSelectedSpread] = useState(null);
@@ -1882,9 +1929,17 @@ Important: This must be a unique interpretation for this specific card spread. M
                   </div>
                 </div>
               ) : (
-                <div className="icon-btn wallet-btn-disconnected" title="Wallet not connected">
-                  <div className="wallet-disconnected">🔗</div>
-                </div>
+                <button 
+                  className="icon-btn wallet-btn-disconnected" 
+                  title="Click to connect wallet"
+                  onClick={handleConnectWallet}
+                  disabled={isConnecting || connectors.length === 0}
+                  style={{ cursor: connectors.length > 0 ? 'pointer' : 'not-allowed' }}
+                >
+                  <div className="wallet-disconnected">
+                    {isConnecting ? '⏳' : '🔗'}
+                  </div>
+                </button>
               )}
 
               {/* Sound toggle button */}
@@ -5031,15 +5086,27 @@ Important: This must be a unique interpretation for this specific card spread. M
     }
     .wallet-btn-disconnected {
       position: relative;
-      opacity: 0.6;
-      background: rgba(100, 100, 100, 0.5);
-      border: 1px solid rgba(255, 255, 255, 0.2);
+      opacity: 0.8;
+      background: rgba(100, 100, 100, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.3);
       border-radius: 8px;
       width: 44px;
       height: 44px;
       display: flex;
       align-items: center;
       justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .wallet-btn-disconnected:hover:not(:disabled) {
+      opacity: 1;
+      background: rgba(0, 123, 255, 0.3);
+      border-color: rgba(0, 123, 255, 0.5);
+      transform: scale(1.05);
+    }
+    .wallet-btn-disconnected:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
     }
     .wallet-disconnected {
       font-size: 20px;
