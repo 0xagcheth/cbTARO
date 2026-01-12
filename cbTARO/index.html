@@ -1040,8 +1040,30 @@
       // =====================================================
       function TaroApp() {
         // Wallet connection using wagmi (EXACTLY like friend's example)
-        // Just use useAccount() - connector auto-connects in Mini App
+        // useAccount() hook - MUST be called unconditionally at top level
+        // This component is wrapped in WagmiProvider, so useAccount should work
         const { isConnected, address } = useAccount ? useAccount() : { isConnected: false, address: null };
+        
+        // Debug logging - check connection status
+        React.useEffect(() => {
+          console.log('[wallet] 🔍 Connection status:', { 
+            isConnected, 
+            address,
+            addressLength: address?.length,
+            hasUseAccount: !!useAccount,
+            hasWagmiProvider: !!WagmiProvider,
+            userAgent: navigator.userAgent,
+            isFarcaster: /farcaster/i.test(navigator.userAgent),
+            isBase: /base/i.test(navigator.userAgent)
+          });
+          
+          // Force re-render check
+          if (isConnected && address) {
+            console.log('[wallet] ✅ Wallet CONNECTED - should be visible in UI:', address);
+          } else {
+            console.log('[wallet] ⏳ Wallet NOT connected yet');
+          }
+        }, [isConnected, address]);
 
         const [gameStage, setGameStage] = useState("idle");
         const [selectedSpread, setSelectedSpread] = useState(null);
@@ -1850,7 +1872,7 @@ Important: This must be a unique interpretation for this specific card spread. M
             {/* Mystical background */}
             <div className="taro-background" />
 
-            {/* Control buttons container - both buttons together */}
+            {/* Control buttons container - wallet only */}
             <div className="control-buttons-left">
               {/* Wallet address display - left top corner */}
               {isConnected && address ? (
@@ -1864,9 +1886,6 @@ Important: This must be a unique interpretation for this specific card spread. M
                   <div className="wallet-disconnected">🔗</div>
                 </div>
               )}
-
-              {/* Unified Identity Button */}
-              <UnifiedIdentityButton playButtonSound={playButtonSound} />
 
               {/* Sound toggle button */}
             <button
@@ -2403,13 +2422,23 @@ Important: This must be a unique interpretation for this specific card spread. M
     // Wait for Wagmi to initialize BEFORE rendering (critical for Mini App)
     const waitForWagmiAndRender = async () => {
       let attempts = 0;
-      const maxAttempts = 20; // Wait up to 10 seconds
+      const maxAttempts = 30; // Wait up to 15 seconds
       
       const checkAndRender = () => {
         attempts++;
         
-        if (WagmiProvider && QueryClientProvider && wagmiConfig && queryClient) {
-          console.log('[wallet] ✅ Wagmi ready, rendering app with providers');
+        // CRITICAL: Check if useAccount is also ready (hooks must be available)
+        const isReady = WagmiProvider && QueryClientProvider && wagmiConfig && queryClient && useAccount;
+        
+        if (isReady) {
+          console.log('[wallet] ✅ Wagmi FULLY ready, rendering app with providers');
+          console.log('[wallet] 📋 Ready check:', {
+            WagmiProvider: !!WagmiProvider,
+            QueryClientProvider: !!QueryClientProvider,
+            wagmiConfig: !!wagmiConfig,
+            queryClient: !!queryClient,
+            useAccount: !!useAccount
+          });
           window.__appRendered = true;
           
           root.render(
@@ -2422,11 +2451,24 @@ Important: This must be a unique interpretation for this specific card spread. M
             )
           );
         } else if (attempts < maxAttempts) {
-          console.log(`[wallet] ⏳ Waiting for Wagmi... (${attempts}/${maxAttempts})`);
+          console.log(`[wallet] ⏳ Waiting for Wagmi... (${attempts}/${maxAttempts})`, {
+            WagmiProvider: !!WagmiProvider,
+            QueryClientProvider: !!QueryClientProvider,
+            wagmiConfig: !!wagmiConfig,
+            queryClient: !!queryClient,
+            useAccount: !!useAccount
+          });
           setTimeout(checkAndRender, 500);
         } else {
-          console.warn('[wallet] ⚠️ Wagmi not loaded after timeout, rendering without providers');
+          console.error('[wallet] ❌ Wagmi FAILED to load after timeout!', {
+            WagmiProvider: !!WagmiProvider,
+            QueryClientProvider: !!QueryClientProvider,
+            wagmiConfig: !!wagmiConfig,
+            queryClient: !!queryClient,
+            useAccount: !!useAccount
+          });
           window.__appRendered = true;
+          // Still render - app should show error state
           root.render(React.createElement(TaroApp, null));
         }
       };
@@ -4972,24 +5014,35 @@ Important: This must be a unique interpretation for this specific card spread. M
 
     .wallet-btn {
       position: relative;
-      min-width: 60px;
-      padding: 4px 8px;
+      min-width: 80px;
+      padding: 6px 10px;
+      background: rgba(0, 123, 255, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 123, 255, 0.4);
     }
     .wallet-address {
-      font-size: 10px;
-      font-family: monospace;
+      font-size: 11px;
+      font-family: 'Courier New', monospace;
+      font-weight: 600;
       color: #fff;
-      background: rgba(0, 123, 255, 0.3);
-      padding: 4px 6px;
-      border-radius: 4px;
       white-space: nowrap;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
     }
     .wallet-btn-disconnected {
       position: relative;
-      opacity: 0.5;
+      opacity: 0.6;
+      background: rgba(100, 100, 100, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     .wallet-disconnected {
-      font-size: 16px;
+      font-size: 20px;
     }
 
     .avatar-btn {
