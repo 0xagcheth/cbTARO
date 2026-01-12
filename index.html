@@ -1097,41 +1097,8 @@
       // =====================================================
       function TaroApp() {
         // Wallet connection using wagmi (EXACTLY like friend's example)
-        // Hooks MUST be called at top level - not conditionally
-        let accountResult = { isConnected: false, address: null };
-        let connectResult = { connect: () => {}, connectors: [], isPending: false };
-        
-        try {
-          if (useAccount) {
-            accountResult = useAccount();
-          }
-        } catch (e) {
-          console.warn('[wallet] useAccount not ready:', e);
-        }
-        
-        try {
-          if (useConnect) {
-            connectResult = useConnect();
-          }
-        } catch (e) {
-          console.warn('[wallet] useConnect not ready:', e);
-        }
-        
-        const { isConnected, address } = accountResult;
-        const { connect, connectors } = connectResult;
-
-        // Local state to track wallet connection for UI updates
-        const [walletState, setWalletState] = useState({ isConnected: false, address: null });
-
-        // Update wallet state when wagmi state changes
-        React.useEffect(() => {
-          if (isConnected && address) {
-            console.log('[wallet] 💰 Wallet connected, updating UI:', address);
-            setWalletState({ isConnected: true, address });
-          } else {
-            setWalletState({ isConnected: false, address: null });
-          }
-        }, [isConnected, address]);
+        // Just use useAccount() - connector auto-connects in Mini App
+        const { isConnected, address } = useAccount ? useAccount() : { isConnected: false, address: null };
 
         const [gameStage, setGameStage] = useState("idle");
         const [selectedSpread, setSelectedSpread] = useState(null);
@@ -1173,119 +1140,8 @@
           }
         }, [authIdentity.profile]);
 
-        // In Mini App, farcasterMiniApp connector should auto-connect
-        // But we may need to trigger it manually on first render
-        React.useEffect(() => {
-          if (!useAccount || !useConnect || !connect || connectors.length === 0) {
-            console.log('[wallet] ⏳ Waiting for Wagmi hooks...', { 
-              hasUseAccount: !!useAccount, 
-              hasUseConnect: !!useConnect,
-              hasConnect: !!connect,
-              connectorsCount: connectors.length 
-            });
-            return;
-          }
-
-          let mounted = true;
-          let hasTriedConnect = false;
-
-          const tryAutoConnect = async () => {
-            if (!mounted || hasTriedConnect) return;
-
-            try {
-              // Check if we're in Mini App - multiple methods
-              let isInMiniApp = false;
-              
-              // Method 1: Check user agent
-              const isFarcasterApp = /farcaster/i.test(navigator.userAgent);
-              const isBaseApp = /base/i.test(navigator.userAgent) || window.location.hostname.includes('base.org');
-              isInMiniApp = isFarcasterApp || isBaseApp;
-              
-              // Method 2: Check window flags
-              if (!isInMiniApp && (window.isInMiniApp === true || window.__fc)) {
-                isInMiniApp = true;
-              }
-              
-              // Method 3: Check for Farcaster SDK
-              if (!isInMiniApp && window.__fc?.sdk) {
-                try {
-                  const sdk = window.__fc.sdk;
-                  if (typeof sdk.isInMiniApp === 'function') {
-                    isInMiniApp = await sdk.isInMiniApp();
-                  }
-                } catch (e) {
-                  // Ignore SDK errors
-                }
-              }
-              
-              console.log('[wallet] 🔍 Mini App detection:', { isInMiniApp, isFarcasterApp, isBaseApp, hasFcSDK: !!window.__fc?.sdk });
-
-              if (!isInMiniApp) {
-                console.log('[wallet] ℹ️ Not in Mini App, skipping auto-connect');
-                return;
-              }
-
-              // Use hooks values from top level (already called above)
-              // If already connected, just update UI
-              if (isConnected && address) {
-                console.log('[wallet] ✅ Already connected:', address);
-                setWalletState({ isConnected: true, address });
-                return;
-              }
-
-              // Try to connect if not connected
-              if (!isConnected && connectors.length > 0) {
-                const miniAppConnector = connectors.find(
-                  (c) => c.id === 'farcasterMiniApp' || 
-                         c.id === 'farcaster' ||
-                         c.name?.toLowerCase().includes('farcaster') ||
-                         c.name?.toLowerCase().includes('mini')
-                ) || connectors[0];
-
-                if (miniAppConnector) {
-                  hasTriedConnect = true;
-                  console.log('[wallet] 🔌 Attempting to connect via:', miniAppConnector.id || miniAppConnector.name);
-                  try {
-                    await connect({ connector: miniAppConnector });
-                    console.log('[wallet] ✅ Connection initiated');
-                  } catch (error) {
-                    console.warn('[wallet] ❌ Connection failed:', error);
-                  }
-                }
-              }
-            } catch (e) {
-              console.error('[wallet] ❌ Error in auto-connect:', e);
-            }
-          };
-
-          // Try auto-connect after a short delay
-          const timeoutId = setTimeout(tryAutoConnect, 500);
-
-          // Monitor connection status - use values from top level hooks
-          const checkConnection = () => {
-            if (!mounted) return;
-            try {
-              if (isConnected && address) {
-                console.log('[wallet] ✅ Wallet connected:', address);
-                setWalletState({ isConnected: true, address });
-              } else {
-                setWalletState({ isConnected: false, address: null });
-              }
-            } catch (e) {
-              console.debug('[wallet] Error checking connection:', e);
-            }
-          };
-
-          // Check immediately and periodically
-          checkConnection();
-          const interval = setInterval(checkConnection, 1000);
-          
-          return () => {
-            mounted = false;
-            clearTimeout(timeoutId);
-            clearInterval(interval);
-          };
-        }, [isConnected, address, connect, connectors]);
+        // In Mini App, farcasterMiniApp connector auto-connects
+        // No manual connection needed - just use isConnected and address from useAccount()
 
         // Farcaster Mini App SDK initialization (backup check)
         useEffect(() => {
@@ -2053,11 +1909,11 @@ Important: This must be a unique interpretation for this specific card spread. M
 
             {/* Control buttons container - both buttons together */}
             <div className="control-buttons-left">
-              {/* Wallet address display */}
-              {(walletState.isConnected && walletState.address) || (isConnected && address) ? (
-                <div className="icon-btn wallet-btn" title={`Wallet: ${walletState.address || address}`}>
+              {/* Wallet address display - left top corner */}
+              {isConnected && address ? (
+                <div className="icon-btn wallet-btn" title={`Wallet: ${address}`}>
                   <div className="wallet-address">
-                    {(walletState.address || address).slice(0, 6)}...{(walletState.address || address).slice(-4)}
+                    {address.slice(0, 6)}...{address.slice(-4)}
                   </div>
                 </div>
               ) : (
