@@ -618,9 +618,14 @@ Important: This must be a unique interpretation for this specific card spread. M
                               <button
                                 className="custom-modal-btn primary"
                                 onClick={() => {
+                                  const question = (userQuestion || '').trim();
+                                  if (!question || question.length < 3) {
+                                    alert('Please enter your question first (at least 3 characters).');
+                                    return;
+                                  }
                                   handleSelectSpread("CUSTOM");
                                 }}
-                                disabled={isLoading}
+                                disabled={isLoading || !userQuestion || !userQuestion.trim() || userQuestion.trim().length < 3}
                               >
                                 {isLoading ? "Reading..." : "✨"}
                               </button>
@@ -763,11 +768,18 @@ Important: This must be a unique interpretation for this specific card spread. M
                   <div className="get-reading-container">
                     {!aiInterpretation && !isGeneratingAI && (
                       <>
-                        {(!userQuestion || !userQuestion.trim() || userQuestion.trim().length<3) && (
-                          <div style={{color:'#ffd700',marginBottom:'1rem',textAlign:'center',fontSize:'0.9rem'}}>
-                            ⚠️ Question missing. Please enter your question first.
-                          </div>
-                        )}
+                        {(() => {
+                          const question = (userQuestion || '').trim();
+                          const isEmpty = !question || question.length < 3;
+                          if (isEmpty) {
+                            return (
+                              <div style={{color:'#ffd700',marginBottom:'1rem',textAlign:'center',fontSize:'0.9rem'}}>
+                                ⚠️ Question missing. Please go back and enter your question first (at least 3 characters).
+                              </div>
+                            );
+                          }
+                          return null;
+                        })()}
                         <button
                           className="taro-button"
                           onClick={() => {
