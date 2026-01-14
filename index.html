@@ -1580,6 +1580,121 @@ button,.gallery-card,.card-anim,.taro-deck,.taro-button,.modal-back-btn,.sound-t
     margin-top:1.5rem !important;
   }
 }
+
+/* =========================
+   MODE SELECTION + GET READING MOBILE FIX
+   ========================= */
+
+/* 1) Контейнер режимов - обеспечиваем адаптивность */
+.spread-selection{
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* 2) На мобилках - делаем режимы grid, чтобы всё влезало */
+@media (max-width: 480px){
+  .spread-selection{
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+    align-items: stretch !important;
+    padding: clamp(12px, 3vw, 20px) !important;
+  }
+  
+  .spread-option{
+    min-width: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    transform: none !important;
+    padding: 8px !important;
+  }
+  
+  .spread-preview{
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  
+  .preview-card,
+  .single-preview-card,
+  .three-preview-card{
+    max-width: 100% !important;
+  }
+}
+
+/* 3) Если экран совсем узкий - 1 колонка */
+@media (max-width: 360px){
+  .spread-selection{
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* 4) Кнопка Custom Reading - ужимаем на мобилках */
+@media (max-width: 480px){
+  .custom-reading-button,
+  .custom-reading-overlay-button{
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+  
+  .choosing-modal .custom-reading-overlay-button{
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    min-height: 44px !important;
+  }
+}
+
+/* 5) Фикс кнопки Get Reading: она часто "не влазит" из-за padding/letter-spacing */
+.get-reading-container{
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.get-reading-container button,
+.get-reading-container .taro-button{
+  max-width: 100% !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+}
+
+/* На мобилке делаем Get Reading компактнее */
+@media (max-width: 480px){
+  .get-reading-container button,
+  .get-reading-container .taro-button{
+    padding: 12px 12px !important;
+    font-size: clamp(0.88rem, 3.6vw, 1.05rem) !important;
+    letter-spacing: 0.02em !important;
+    white-space: normal !important;
+    line-height: 1.15 !important;
+    word-break: break-word !important;
+  }
+}
+
+/* 6) Если у Get Reading есть внутренняя "рамка"/псевдоэлементы */
+.get-reading-container button::before,
+.get-reading-container button::after,
+.get-reading-container .taro-button::before,
+.get-reading-container .taro-button::after{
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* 7) Choosing modal - добавляем скролл если нужно */
+@media (max-width: 480px){
+  .choosing-modal{
+    overflow-y: auto !important;
+    max-height: calc(100svh - var(--safe-area-inset-top,0) - var(--safe-area-inset-bottom,0)) !important;
+  }
+  
+  .choosing-modal .spread-selection{
+    min-height: auto !important;
+  }
+}
     </style>
 </body>
 </html>
