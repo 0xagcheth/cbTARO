@@ -8,8 +8,8 @@
     "version": "1",
     "name": "cbTARO",
     "homeUrl": "https://0xagcheth.github.io/cbTARO/",
-    "iconUrl": "https://0xagcheth.github.io/cbTARO/i.png",
-    "splashImageUrl": "https://0xagcheth.github.io/cbTARO/s.png",
+    "iconUrl": "https://0xagcheth.github.io/cbTARO/public/Assets/imagine/i.png",
+    "splashImageUrl": "https://0xagcheth.github.io/cbTARO/public/Assets/imagine/s.png",
     "splashBackgroundColor": "#0b1020",
     "subtitle": "Mystical taro reading on Base",
     "description": "Draw taro cards, explore interpretations, and share your reading on Farcaster.",
@@ -18,9 +18,9 @@
     "tagline": "Reveal your Taro",
     "ogTitle": "cbTARO — Onchain Taro Reading",
     "ogDescription": "Draw a taro card and share your mystical reading on Farcaster.",
-    "ogImageUrl": "https://0xagcheth.github.io/cbTARO/og.png",
+    "ogImageUrl": "https://0xagcheth.github.io/cbTARO/public/Assets/imagine/og.png",
     "buttonTitle": "Open cbTARO",
-    "imageUrl": "https://0xagcheth.github.io/cbTARO/og.png",
+    "imageUrl": "https://0xagcheth.github.io/cbTARO/public/Assets/imagine/og.png",
     "castShareUrl": "https://0xagcheth.github.io/cbTARO/share"
   }
 }
