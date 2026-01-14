@@ -8,11 +8,18 @@
 <body>
     <script>
       // Set dynamic viewport height for mobile WebView compatibility (iOS-safe)
+      let rafId = null;
       function setVH() {
-        const vv = window.visualViewport;
-        const h = vv ? vv.height : window.innerHeight;
-        const vh = h * 0.01;
-        document.documentElement.style.setProperty('--vh', `${vh}px`);
+        if (rafId !== null) {
+          cancelAnimationFrame(rafId);
+        }
+        rafId = requestAnimationFrame(() => {
+          const vv = window.visualViewport;
+          const h = vv ? vv.height : window.innerHeight;
+          const vh = h * 0.01;
+          document.documentElement.style.setProperty('--vh', `${vh}px`);
+          rafId = null;
+        });
       }
       setVH();
       window.addEventListener('resize', setVH);
@@ -88,7 +95,7 @@
         { id: 2, name: "The High Priestess", keyword: "Intuition", description: "The High Priestess represents intuition, sacred knowledge, and the subconscious mind. She encourages you to look within and trust your inner voice." },
         { id: 3, name: "The Empress", keyword: "Fertility", description: "The Empress represents fertility, nurturing, abundance, and Mother Nature. She embodies creativity, sensuality, and the power of creation." },
         { id: 4, name: "The Emperor", keyword: "Authority", description: "The Emperor represents authority, structure, control, and fatherhood. He embodies stability, power, and the ability to create order." },
-        { id: 5, name: "The Hierophant", keyword: "Spiritual Wisdom", description: "The Hierophant represents tradition, conformity, morality, and ethics. He embodies spiritual wisdom, religious beliefs, and convent." },
+        { id: 5, name: "The Hierophant", keyword: "Spiritual Wisdom", description: "The Hierophant represents tradition, conformity, morality, and ethics. He embodies spiritual wisdom, religious beliefs, and conformity." },
         { id: 6, name: "The Lovers", keyword: "Love", description: "The Lovers represent love, harmony, relationships, values alignment, and choices. Encourages make decisions based on your val." },
         { id: 7, name: "The Chariot", keyword: "Control", description: "The Chariot represents control, willpower, success, action, and determination. You have the drive and ambition to overcome obstacles and ac." },
         { id: 8, name: "Strength", keyword: "Strength", description: "Strength represents strength, courage, persuasion, influence, and compassion. True strength comes from inner calm and patience, not brute ." },
@@ -186,6 +193,7 @@
         const [userQuestion, setUserQuestion]=useState("");
         const [aiInterpretation, setAiInterpretation]=useState(null);
         const [isGeneratingAI, setIsGeneratingAI]=useState(false);
+        const [showAiPanel, setShowAiPanel]=useState(false);
         const [showGallery, setShowGallery]=useState(false);
         const [previousGameStage, setPreviousGameStage]=useState("idle");
         const [readingSource, setReadingSource]=useState(null);
@@ -193,17 +201,20 @@
         const [brokenImages, setBrokenImages]=useState({});
         const animTimerRef=useRef(null);
         const abortControllerRef=useRef(null);
+        const audioCacheRef=useRef(new Map());
 
         useEffect(() => {
           return () => {
             if(animTimerRef.current) clearTimeout(animTimerRef.current);
             if(abortControllerRef.current) abortControllerRef.current.abort();
+            audioCacheRef.current.forEach((a) => { try { a.pause(); } catch {} });
+            audioCacheRef.current.clear();
           };
         }, []);
 
         // Block body scroll when overlays/modals are open
         useEffect(() => {
-          const hasOverlay = showGallery || activeCard || aiInterpretation;
+          const hasOverlay = showGallery || activeCard || (aiInterpretation && showAiPanel);
           if (hasOverlay) {
             document.body.style.overflow = 'hidden';
           } else {
@@ -212,22 +223,28 @@
           return () => {
             document.body.style.overflow = '';
           };
-        }, [showGallery, activeCard, aiInterpretation]);
+        }, [showGallery, activeCard, aiInterpretation, showAiPanel]);
 
         const playSound=(path,vol=0.3) => {
           if(!soundEnabled)return;
           const audioPath=ASSET(path);
-          console.log('Playing audio:', path, '→ resolved to:', audioPath);
-          const audio=new Audio(audioPath);
-          audio.volume=vol;
-          audio.play().catch((err) => {
-            console.warn('Audio play failed:', audioPath, err);
-            const fallback=new Audio(audioPath);
-            fallback.volume=vol;
-            fallback.play().catch((fallbackErr) => {
-              console.error('Fallback audio also failed:', audioPath, fallbackErr);
-            });
-          });
+          try {
+            let a=audioCacheRef.current.get(audioPath);
+            if(!a) {
+              a=new Audio(audioPath);
+              a.preload="auto";
+              audioCacheRef.current.set(audioPath, a);
+            }
+            a.pause();
+            a.currentTime=0;
+            a.volume=vol;
+            const p=a.play();
+            if(p && typeof p.catch === "function") {
+              p.catch((err) => console.warn("Audio play blocked:", audioPath, err));
+            }
+          } catch(err) {
+            console.warn("Audio init failed:", audioPath, err);
+          }
         };
         const playButtonSound=() => playSound('Assets/audio/tab.mp3',0.3);
         const playSpreadSound=() => playSound('Assets/audio/spread.mp3',0.4);
@@ -356,6 +373,7 @@ Important: This must be a unique interpretation for this specific card spread. M
         const handleSelectSpread=async (spread) => {
           setSelectedSpread(spread);
           setAiInterpretation(null);
+          setShowAiPanel(false);
 
           if (spread === "ONE" || spread === "THREE" || spread === "CUSTOM") {
             await startSpreadAnimation(spread);
@@ -421,9 +439,11 @@ Important: This must be a unique interpretation for this specific card spread. M
             try {
               const interpretation = await getAIInterpretation(cards, question);
               setAiInterpretation(interpretation || '');
+              setShowAiPanel(true);
             } catch (error) {
               console.error('AI interpretation failed:', error);
               setAiInterpretation(generateFallbackInterpretation(cards, question));
+              setShowAiPanel(true);
             } finally {
               setIsGeneratingAI(false);
             }
@@ -482,6 +502,7 @@ Important: This must be a unique interpretation for this specific card spread. M
           setActiveCard(null);
           setUserQuestion("");
           setAiInterpretation(null);
+          setShowAiPanel(false);
         };
 
         const handleChooseSpreadClick=() => {
@@ -806,9 +827,9 @@ Important: This must be a unique interpretation for this specific card spread. M
                     {aiInterpretation && (
                       <button
                         className="taro-button"
-                        onClick={() => { playButtonSound(); setActiveCard(null); setGameStage("reading"); }}
+                        onClick={() => { playButtonSound(); setShowAiPanel(true); }}
                       >
-                        View AI Reading
+                        Get Reading
                       </button>
                     )}
                   </div>
@@ -971,8 +992,8 @@ Important: This must be a unique interpretation for this specific card spread. M
                 </div>
               )}
 
-              {selectedSpread === "CUSTOM" && isAllRevealed && aiInterpretation && (
-                <div className="taro-reading-overlay" onClick={() => setAiInterpretation(null)}>
+              {selectedSpread === "CUSTOM" && isAllRevealed && aiInterpretation && showAiPanel && (
+                <div className="taro-reading-overlay" onClick={() => setShowAiPanel(false)}>
                   <div className="taro-reading-panel taro-ai-panel" onClick={(e) => e.stopPropagation()}>
                     <h2 className="taro-ai-title">✧ Your Personalized Reading ✧</h2>
                     <div className="taro-ai-question-chip">
@@ -985,7 +1006,7 @@ Important: This must be a unique interpretation for this specific card spread. M
                     ) : (
                       <div className="taro-ai-content" dangerouslySetInnerHTML={{ __html: sanitizeHTML(aiInterpretation) }} />
                     )}
-                    <button className="taro-reading-close-btn" onClick={() => setAiInterpretation(null)}>
+                    <button className="taro-reading-close-btn" onClick={() => setShowAiPanel(false)}>
                       Close
                     </button>
                   </div>
@@ -1002,9 +1023,9 @@ Important: This must be a unique interpretation for this specific card spread. M
 
     <style>
     *{box-sizing:border-box;}
-html,body{height:100%;margin:0;padding:0;padding-top:var(--safe-area-inset-top,0);padding-bottom:var(--safe-area-inset-bottom,0);padding-left:var(--safe-area-inset-left,0);padding-right:var(--safe-area-inset-right,0);overflow-x:hidden;-webkit-text-size-adjust:100%;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;}
-#root{height:100%;width:100%;position:relative;}:root{--safe-area-inset-top:env(safe-area-inset-top,0);--safe-area-inset-bottom:env(safe-area-inset-bottom,0);--safe-area-inset-left:env(safe-area-inset-left,0);--safe-area-inset-right:env(safe-area-inset-right,0);--vh:1vh;--pad:clamp(12px,3vw,32px);--space:var(--pad);--tableW:min(100vw,900px);--tableAR:1 / 0.8;--card-w:clamp(92px,22vw,140px);--card-ratio:1.55;--card-h:calc(var(--card-w) * var(--card-ratio));--cardW:var(--card-w);--cardH:var(--card-h);--deckW:clamp(100px,24vw,140px);--deckH:calc(var(--deckW) * 1.46);--h1:clamp(20px,5vw,36px);--p:clamp(12px,3vw,16px);}
-@media (orientation:landscape) and (max-height:500px){:root{--tableAR:1 / 0.5;--card-w:clamp(92px,26vw,132px);--cardW:var(--card-w);--deckW:clamp(87px,21vw,127px);}
+html,body{height:100%;margin:0;padding:0;padding-top:var(--safe-area-inset-top,0);padding-bottom:var(--safe-area-inset-bottom,0);padding-left:var(--safe-area-inset-left,0);padding-right:var(--safe-area-inset-right,0);overflow-x:hidden;-webkit-text-size-adjust:100%;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;overscroll-behavior:none;-webkit-overflow-scrolling:auto;}
+#root{height:100%;width:100%;position:relative;}:root{--safe-area-inset-top:env(safe-area-inset-top,0);--safe-area-inset-bottom:env(safe-area-inset-bottom,0);--safe-area-inset-left:env(safe-area-inset-left,0);--safe-area-inset-right:env(safe-area-inset-right,0);--vh:1vh;--pad:clamp(12px,3vw,32px);--space:var(--pad);--tableW:min(100vw,900px);--tableAR:1 / 0.8;--tableH:calc(var(--tableW) * 0.8);--card-w:clamp(92px,22vw,140px);--card-ratio:1.55;--card-h:calc(var(--card-w) * var(--card-ratio));--cardW:var(--card-w);--cardH:var(--card-h);--deckW:clamp(100px,24vw,140px);--deckH:calc(var(--deckW) * 1.46);--h1:clamp(20px,5vw,36px);--p:clamp(12px,3vw,16px);}
+@media (orientation:landscape) and (max-height:500px){:root{--tableAR:1 / 0.5;--tableH:calc(var(--tableW) * 0.5);--card-w:clamp(92px,26vw,132px);--cardW:var(--card-w);--deckW:clamp(87px,21vw,127px);}
 }
 .taro-root{position:relative;min-height:100dvh;min-height:calc(var(--vh,1vh) * 100);width:100%;overflow-x:hidden;font-family:'Georgia','Times New Roman',serif;}
 .taro-background{position:fixed;top:0;left:0;width:100vw;height:100dvh;height:calc(var(--vh,1vh) * 100);background-image:var(--bg-url,url('./Assets/imagine/b.png'));background-repeat:no-repeat;background-attachment:scroll;z-index:0;background-size:cover;background-position:center center;}
@@ -1040,7 +1061,7 @@ html,body{height:100%;margin:0;padding:0;padding-top:var(--safe-area-inset-top,0
 .taro-hash code{display:block;margin-top:0.5rem;font-family:'Courier New',monospace;color:#4ade80;word-break:break-all;}
 .taro-main{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:var(--pad) 0;min-height:0;}
 .taro-table-wrap{position:relative;transform:translateY(clamp(-10vh, -8vh, -3vh));transform-origin:center center;will-change:transform;}
-.get-reading-container{position:relative;display:flex;justify-content:center;align-items:center;width:100%;margin-top:calc(var(--tableH) * 0.5 + 2rem);z-index:20;}
+.get-reading-container{position:relative;display:flex;justify-content:center;align-items:center;width:100%;margin-top:clamp(8px, 1.5vh, 16px) !important;z-index:20;}
 .taro-table{position:relative;width:var(--tableW);aspect-ratio:var(--tableAR);background:rgba(255,255,255,0.05);border-radius:50%;border:1px solid rgba(255,255,255,0.3);box-shadow:0 0 80px rgba(0,123,255,0.4),0 0 160px rgba(0,123,255,0.2),inset 0 0 30px rgba(255,255,255,0.05);margin:calc(var(--pad) * 0.1) auto;transition:box-shadow 0.3s ease;transform-origin:center center;transform:translateZ(0);overflow:visible;min-width:var(--tableW);max-width:var(--tableW);flex-shrink:0;will-change:transform;}
 .taro-table-content{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;justify-content:center;align-items:center;pointer-events:none;overflow:visible;}
 .taro-table-content > *{pointer-events:auto;overflow:visible;}
@@ -1245,7 +1266,7 @@ to{transform:rotate(360deg);}
 .taro-card-keyword{font-size:0.9rem;font-style:italic;color:#4a5568;margin-bottom:0.5rem;}
 .taro-footer{position:absolute;bottom:clamp(calc(var(--pad) * 0.15), calc(var(--pad) * 0.2 + var(--safe-area-inset-bottom,0) * 0.3), calc(var(--pad) * 0.3));left:50%;transform:translateX(-50%);text-align:center;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:clamp(0, 0.75rem, 1rem);z-index:20;width:auto;max-width:calc(var(--tableW) - var(--pad) * 2);pointer-events:auto;}
 .taro-button{padding:clamp(0.2rem, 1vw, 1rem) clamp(0.5rem, 2.5vw, 2.5rem);font-size:clamp(0.7rem, 1.2vw, 1.2rem);background:linear-gradient(135deg,rgba(0,123,255,0.2),rgba(0,50,150,0.2),rgba(0,123,255,0.1)
- );backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.2);border-radius:12px;color:#fff;cursor:pointer;transition:all 0.3s ease;font-family:inherit;box-shadow:0 8px 32px rgba(0,123,255,0.3),inset 0 1px 0 rgba(255,255,255,0.1),inset 0 -1px 0 rgba(0,0,0,0.1);}
+ );backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.2);border-radius:12px;color:#fff;cursor:pointer;transition:all 0.3s ease;font-family:'Georgia','Times New Roman',serif;font-weight:300;letter-spacing:0.05em;box-shadow:0 8px 32px rgba(0,123,255,0.3),inset 0 1px 0 rgba(255,255,255,0.1),inset 0 -1px 0 rgba(0,0,0,0.1);}
 .taro-button:hover{background:linear-gradient(135deg,rgba(0,123,255,0.3),rgba(0,50,150,0.3),rgba(0,123,255,0.2)
  );backdrop-filter:blur(25px);-webkit-backdrop-filter:blur(25px);transform:translateY(-2px);box-shadow:0 12px 40px rgba(0,123,255,0.4),inset 0 1px 0 rgba(255,255,255,0.2),inset 0 -1px 0 rgba(0,0,0,0.05);border-color:rgba(255,255,255,0.3);}
 .taro-button.secondary{background:linear-gradient(135deg,rgba(0,50,150,0.2),rgba(0,123,255,0.2),rgba(0,50,150,0.1)
@@ -1256,7 +1277,7 @@ to{transform:rotate(360deg);}
 @keyframes fadeIn{from{opacity:0;}
 to{opacity:1;}
 }
-.taro-reading-panel{background:radial-gradient(ellipse at center,rgba(15,20,45,0.98),rgba(5,8,20,0.99));border:none;border-radius:24px;padding:3rem 2.5rem;max-width:600px;width:100%;max-height:80vh;overflow-y:auto;color:#fff;box-shadow:0 0 60px rgba(106,169,255,0.15),0 0 120px rgba(138,43,226,0.1);animation:slideUp 0.3s ease;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:400px;-webkit-overflow-scrolling:touch;}
+.taro-reading-panel{background:radial-gradient(ellipse at center,rgba(15,20,45,0.98),rgba(5,8,20,0.99));border:none;border-radius:24px;padding:3rem 2.5rem;max-width:600px;width:100%;max-height:80vh;overflow-y:auto;color:#fff;box-shadow:0 0 60px rgba(106,169,255,0.15),0 0 120px rgba(138,43,226,0.1);animation:slideUp 0.3s ease;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:auto;-webkit-overflow-scrolling:touch;}
 @keyframes slideUp{from{transform:translateY(50px);opacity:0;}
 to{transform:translateY(0);opacity:1;}
 }
@@ -1511,6 +1532,53 @@ button,.gallery-card,.card-anim,.taro-deck,.taro-button,.modal-back-btn,.sound-t
 .preview-card-image{
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
+}
+/* =========================
+   MOBILE FIT PATCH
+   ========================= */
+@media (max-width:768px){
+  .taro-reading-overlay{
+    padding:clamp(0.5rem, 2vw, 1rem) !important;
+  }
+  .taro-reading-panel{
+    max-height:calc(100svh - clamp(1rem, 4vw, 2rem) - var(--safe-area-inset-top,0) - var(--safe-area-inset-bottom,0)) !important;
+    padding:clamp(1rem, 3vw, 1.5rem) !important;
+    min-height:auto !important;
+  }
+  .taro-ai-title{
+    font-size:clamp(1.1rem, 3vw, 1.4rem) !important;
+    margin-bottom:clamp(1rem, 3vw, 1.5rem) !important;
+  }
+  .taro-ai-content{
+    font-size:clamp(0.85rem, 2.5vw, 0.95rem) !important;
+    line-height:1.7 !important;
+  }
+  .taro-reading-card-image img,
+  .card-image{
+    max-width:min(50vw, 200px) !important;
+    max-height:30vh !important;
+  }
+  .taro-table-wrap{
+    transform:translateY(clamp(-6vh, -4vh, -2vh)) !important;
+  }
+}
+@media (max-width:420px){
+  .control-buttons{
+    top:calc(5px + var(--safe-area-inset-top,0)) !important;
+    right:calc(5px + var(--safe-area-inset-right,0)) !important;
+    gap:4px !important;
+  }
+  .control-buttons button{
+    padding:8px 10px !important;
+    font-size:20px !important;
+    min-width:40px !important;
+    min-height:40px !important;
+  }
+  .taro-reading-close-btn{
+    padding:0.5rem 1.2rem !important;
+    font-size:0.7rem !important;
+    margin-top:1.5rem !important;
+  }
 }
     </style>
 </body>
