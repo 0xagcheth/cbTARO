@@ -1273,11 +1273,11 @@ to{transform:rotate(360deg);}
  );}
 .taro-button.secondary:hover{background:linear-gradient(135deg,rgba(0,50,150,0.3),rgba(0,123,255,0.3),rgba(0,50,150,0.2)
  );backdrop-filter:blur(25px);-webkit-backdrop-filter:blur(25px);border-color:rgba(255,255,255,0.3);}
-.taro-reading-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);z-index:2000;display:flex;justify-content:center;align-items:center;padding:2rem;animation:fadeIn 0.3s ease;isolation:isolate;overscroll-behavior:contain;}
+.taro-reading-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);z-index:2000;display:flex;justify-content:center;align-items:flex-start;padding:2rem;padding-top:clamp(2rem, 5vh, 3rem);animation:fadeIn 0.3s ease;isolation:isolate;overscroll-behavior:contain;overflow-y:auto;}
 @keyframes fadeIn{from{opacity:0;}
 to{opacity:1;}
 }
-.taro-reading-panel{background:radial-gradient(ellipse at center,rgba(15,20,45,0.98),rgba(5,8,20,0.99));border:none;border-radius:24px;padding:3rem 2.5rem;max-width:600px;width:100%;max-height:80vh;overflow-y:auto;color:#fff;box-shadow:0 0 60px rgba(106,169,255,0.15),0 0 120px rgba(138,43,226,0.1);animation:slideUp 0.3s ease;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:auto;-webkit-overflow-scrolling:touch;}
+.taro-reading-panel{background:radial-gradient(ellipse at center,rgba(15,20,45,0.98),rgba(5,8,20,0.99));border:none;border-radius:24px;padding:3rem 2.5rem;max-width:600px;width:100%;max-height:80vh;overflow-y:auto;color:#fff;box-shadow:0 0 60px rgba(106,169,255,0.15),0 0 120px rgba(138,43,226,0.1);animation:slideUp 0.3s ease;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;min-height:auto;-webkit-overflow-scrolling:touch;}
 @keyframes slideUp{from{transform:translateY(50px);opacity:0;}
 to{transform:translateY(0);opacity:1;}
 }
@@ -1316,7 +1316,7 @@ to{transform:translateY(0);opacity:1;}
 .taro-reading-card-image{transform:none !important;scale:1 !important;width:auto !important;height:auto !important;display:block !important;position:relative !important;margin:1.5rem 0 !important;}
 .taro-reading-card-image *{transform:none !important;scale:1 !important;}
 .taro-reading-card-image img:not(.card-image){width:80px !important;max-width:80px !important;min-width:80px !important;height:auto !important;transform:none !important;scale:1 !important;zoom:1 !important;object-fit:contain !important;display:block !important;margin:0 auto !important;box-sizing:border-box !important;position:relative !important;}
-.card-image{width:min(50vw,260px) !important;max-width:260px !important;min-width:unset !important;height:auto !important;max-height:40vh !important;object-fit:contain !important;}
+.card-image{width:min(50vw,260px) !important;max-width:260px !important;min-width:unset !important;height:auto !important;max-height:40vh !important;object-fit:contain !important;border:none !important;border-radius:0 !important;box-shadow:none !important;}
 .taro-reading-divider{width:60% !important;margin:2rem auto !important;}
 .taro-reading-keyword{font-size:0.95rem !important;margin:1rem 0 !important;}
 .taro-reading-text{font-size:0.8rem !important;margin:0 !important;line-height:1.7 !important;padding:0 !important;max-width:95% !important;}
@@ -1565,6 +1565,9 @@ button,.gallery-card,.card-anim,.taro-deck,.taro-button,.modal-back-btn,.sound-t
   .card-image{
     max-width:min(50vw, 200px) !important;
     max-height:30vh !important;
+    border:none !important;
+    border-radius:0 !important;
+    box-shadow:none !important;
   }
   .taro-table-wrap{
     transform:translateY(clamp(-6vh, -4vh, -2vh)) !important;
@@ -1677,7 +1680,7 @@ button,.gallery-card,.card-anim,.taro-deck,.taro-button,.modal-back-btn,.sound-t
 /* На мобилке делаем Get Reading компактнее */
 @media (max-width: 480px){
   .get-reading-container{
-    margin-top: clamp(-56px, -14vh, -28px) !important;
+    margin-top: clamp(-46px, -12vh, -18px) !important;
   }
   .get-reading-container button,
   .get-reading-container .taro-button{
