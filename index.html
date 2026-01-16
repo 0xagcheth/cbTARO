@@ -1414,6 +1414,8 @@ button,.gallery-card,.card-anim,.taro-deck,.taro-button,.modal-back-btn,.sound-t
 @media (max-width:480px){
 .choosing-modal .preview-card,.choosing-modal .single-preview-card,.choosing-modal .three-preview-card,.choosing-modal .preview-card-inner{width:clamp(70px,20vw,100px) !important;height:calc(clamp(70px,20vw,100px) * 1.55) !important;}
 .choosing-modal .spread-preview{min-height:calc((clamp(70px,20vw,100px) * 1.55 + 8px) * 0.5) !important;}
+.choosing-modal .custom-reading-overlay-button{width:clamp(140px,35vw,160px) !important;height:clamp(44px,11vw,50px) !important;max-width:90% !important;padding:0 !important;overflow:hidden !important;}
+.choosing-modal .custom-reading-overlay-button img{width:100% !important;height:100% !important;object-fit:cover !important;display:block !important;position:absolute !important;top:0 !important;left:0 !important;border-radius:inherit !important;}
 }
 
 /* =========================
@@ -1644,9 +1646,9 @@ button,.gallery-card,.card-anim,.taro-deck,.taro-button,.modal-back-btn,.sound-t
   }
   
   .choosing-modal .custom-reading-overlay-button{
-    width: 100% !important;
-    max-width: 100% !important;
-    height: auto !important;
+    width: clamp(140px,35vw,160px) !important;
+    max-width: 90% !important;
+    height: clamp(44px,11vw,50px) !important;
     min-height: 44px !important;
   }
 }
