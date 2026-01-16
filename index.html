@@ -1411,6 +1411,10 @@ button,.gallery-card,.card-anim,.taro-deck,.taro-button,.modal-back-btn,.sound-t
 .choosing-modal .custom-reading-overlay-button{width:186px !important;height:59px !important;}
 .choosing-modal .modal-back-btn{display:none !important;}
 }
+@media (max-width:480px){
+.choosing-modal .preview-card,.choosing-modal .single-preview-card,.choosing-modal .three-preview-card,.choosing-modal .preview-card-inner{width:clamp(70px,20vw,100px) !important;height:calc(clamp(70px,20vw,100px) * 1.55) !important;}
+.choosing-modal .spread-preview{min-height:calc((clamp(70px,20vw,100px) * 1.55 + 8px) * 0.5) !important;}
+}
 
 /* =========================
    GLASS SYSTEM (GLOBAL)
