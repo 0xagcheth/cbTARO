@@ -67,7 +67,6 @@
 
       // Use global ASSET function (defined in script above)
       const ASSET = window.ASSET;
-      const APP_BASE = window.APP_BASE;
       
       // Card image directory - use format without "public/"
       const CARD_IMG_DIR = "Assets/imagine/taro_cards";
@@ -1596,14 +1595,14 @@ button,.gallery-card,.card-anim,.taro-deck,.taro-button,.modal-back-btn,.sound-t
    MODE SELECTION + GET READING MOBILE FIX
    ========================= */
 
-/* 1) Контейнер режимов - обеспечиваем адаптивность */
+/* 1) Mode container: keep it responsive */
 .spread-selection{
   width: 100% !important;
   max-width: 100% !important;
   box-sizing: border-box !important;
 }
 
-/* 2) На мобилках - делаем режимы grid, чтобы всё влезало */
+/* 2) On mobile, use a grid layout so everything fits */
 @media (max-width: 480px){
   .spread-selection{
     display: grid !important;
@@ -1633,14 +1632,14 @@ button,.gallery-card,.card-anim,.taro-deck,.taro-button,.modal-back-btn,.sound-t
   }
 }
 
-/* 3) Если экран совсем узкий - 1 колонка */
+/* 3) If the screen is very narrow, use one column */
 @media (max-width: 360px){
   .spread-selection{
     grid-template-columns: 1fr !important;
   }
 }
 
-/* 4) Кнопка Custom Reading - ужимаем на мобилках */
+/* 4) Custom Reading button: shrink on mobile */
 @media (max-width: 480px){
   .custom-reading-button,
   .custom-reading-overlay-button{
@@ -1658,7 +1657,7 @@ button,.gallery-card,.card-anim,.taro-deck,.taro-button,.modal-back-btn,.sound-t
   }
 }
 
-/* 5) Фикс кнопки Get Reading: она часто "не влазит" из-за padding/letter-spacing */
+/* 5) Get Reading button fix: often overflows due to padding/letter-spacing */
 .get-reading-container{
   width: 100% !important;
   max-width: 100% !important;
@@ -1677,7 +1676,7 @@ button,.gallery-card,.card-anim,.taro-deck,.taro-button,.modal-back-btn,.sound-t
   padding: clamp(0.4rem, 1.2vw, 0.8rem) clamp(1rem, 2.5vw, 1.8rem) !important;
 }
 
-/* На мобилке делаем Get Reading компактнее */
+/* On mobile, make Get Reading more compact */
 @media (max-width: 480px){
   .get-reading-container{
     margin-top: clamp(-6px, -12vh, 22px) !important;
@@ -1692,7 +1691,7 @@ button,.gallery-card,.card-anim,.taro-deck,.taro-button,.modal-back-btn,.sound-t
   }
 }
 
-/* 6) Если у Get Reading есть внутренняя "рамка"/псевдоэлементы */
+/* 6) If Get Reading uses inner frames/pseudo-elements */
 .get-reading-container button::before,
 .get-reading-container button::after,
 .get-reading-container .taro-button::before,
@@ -1701,7 +1700,7 @@ button,.gallery-card,.card-anim,.taro-deck,.taro-button,.modal-back-btn,.sound-t
   box-sizing: border-box !important;
 }
 
-/* 7) Choosing modal - добавляем скролл если нужно */
+/* 7) Choosing modal: add scroll when needed */
 @media (max-width: 480px){
   .choosing-modal{
     overflow-y: auto !important;
@@ -1717,7 +1716,7 @@ button,.gallery-card,.card-anim,.taro-deck,.taro-button,.modal-back-btn,.sound-t
    MODE SELECT: NO INNER SCROLL + ALWAYS FIT
    ========================= */
 
-/* 1) Главный блок выбора расклада - фиксированная высота без скролла */
+/* 1) Main spread chooser: fixed height, no scroll */
 .choosing-modal{
   height: calc(var(--vh, 1vh) * 100) !important;
   max-height: calc(var(--vh, 1vh) * 100) !important;
@@ -1729,7 +1728,7 @@ button,.gallery-card,.card-anim,.taro-deck,.taro-button,.modal-back-btn,.sound-t
   box-sizing: border-box !important;
 }
 
-/* 2) Внутренняя область - убираем скролл, используем flex */
+/* 2) Inner area: remove scroll, use flex */
 .choosing-modal .spread-selection{
   flex: 1 !important;
   min-height: 0 !important;
@@ -1743,7 +1742,7 @@ button,.gallery-card,.card-anim,.taro-deck,.taro-button,.modal-back-btn,.sound-t
   box-sizing: border-box !important;
 }
 
-/* 3) Опции режимов - ужимаемся */
+/* 3) Spread options: keep compact */
 .spread-option{
   width: 100% !important;
   max-width: 100% !important;
@@ -1756,7 +1755,7 @@ button,.gallery-card,.card-anim,.taro-deck,.taro-button,.modal-back-btn,.sound-t
   transform: none !important;
 }
 
-/* 4) Preview карточек - фиксируем пропорции */
+/* 4) Card preview: lock aspect ratio */
 .spread-preview{
   width: 100% !important;
   max-width: clamp(120px, 34vw, 190px) !important;
@@ -1783,7 +1782,7 @@ button,.gallery-card,.card-anim,.taro-deck,.taro-button,.modal-back-btn,.sound-t
   object-fit: contain !important;
 }
 
-/* 5) Кнопка Custom Reading - увеличена на 1/3 */
+/* 5) Custom Reading button: scale up by ~1/3 */
 .custom-reading-overlay-button{
   width: min(115vw, 559px) !important;
   transform: scale(1.0) !important;
@@ -1803,14 +1802,14 @@ button,.gallery-card,.card-anim,.taro-deck,.taro-button,.modal-back-btn,.sound-t
   border-radius: inherit !important;
 }
 
-/* 6) Modal bottom buttons - компактно */
+/* 6) Modal bottom buttons: compact */
 .modal-bottom-buttons{
   flex-shrink: 0 !important;
   min-height: 0 !important;
   padding: clamp(8px, 2vw, 12px) !important;
 }
 
-/* 7) На низких экранах ужимаем сильнее */
+/* 7) On short screens, compress further */
 @media (max-height: 720px){
   .choosing-modal .spread-selection{
     gap: 10px !important;
@@ -1826,14 +1825,14 @@ button,.gallery-card,.card-anim,.taro-deck,.taro-button,.modal-back-btn,.sound-t
   }
 }
 
-/* 8) На очень узких экранах - 1 колонка */
+/* 8) On very narrow screens, use one column */
 @media (max-width: 340px){
   .choosing-modal .spread-selection{
     grid-template-columns: 1fr !important;
   }
 }
 
-/* 9) Убираем все transform у опций на мобилках */
+/* 9) Remove transforms from options on mobile */
 @media (max-width: 768px){
   .single-card-option,
   .three-cards-option{
@@ -1845,7 +1844,7 @@ button,.gallery-card,.card-anim,.taro-deck,.taro-button,.modal-back-btn,.sound-t
    GET READING: TOP BREATHING SPACE + SAFE AREA
    ========================= */
 
-/* 1) Панель чтения - верхний отступ с учетом safe-area */
+/* 1) Reading panel: top spacing with safe-area */
 .taro-reading-panel,
 .taro-ai-panel{
   box-sizing: border-box !important;
@@ -1855,7 +1854,7 @@ button,.gallery-card,.card-anim,.taro-deck,.taro-button,.modal-back-btn,.sound-t
   padding-bottom: calc(env(safe-area-inset-bottom, 0) + clamp(18px, 4vw, 24px)) !important;
 }
 
-/* 2) Внутренний скролл для контента */
+/* 2) Inner scroll for content */
 .taro-reading-panel,
 .taro-ai-panel{
   max-height: calc(var(--vh, 1vh) * 100 - env(safe-area-inset-top, 0) - env(safe-area-inset-bottom, 0)) !important;
@@ -1863,7 +1862,7 @@ button,.gallery-card,.card-anim,.taro-deck,.taro-button,.modal-back-btn,.sound-t
   -webkit-overflow-scrolling: touch !important;
 }
 
-/* 3) Улучшаем читабельность текста */
+/* 3) Improve text readability */
 .taro-ai-content p,
 .taro-reading-text{
   line-height: 1.55 !important;
@@ -1871,7 +1870,7 @@ button,.gallery-card,.card-anim,.taro-deck,.taro-button,.modal-back-btn,.sound-t
   margin-bottom: 0.7em !important;
 }
 
-/* 4) Заголовки не должны прилипать к верху */
+/* 4) Headings should not stick to the top */
 .taro-ai-title,
 .taro-reading-position{
   margin-top: 0.2em !important;
@@ -1879,12 +1878,12 @@ button,.gallery-card,.card-anim,.taro-deck,.taro-button,.modal-back-btn,.sound-t
   line-height: 1.2 !important;
 }
 
-/* 5) AI question chip - отступ сверху */
+/* 5) AI question chip: add top spacing */
 .taro-ai-question-chip{
   margin-top: clamp(0.5rem, 2vh, 1rem) !important;
 }
 
-/* 6) На мобилках уменьшаем верхний отступ */
+/* 6) Reduce top spacing on mobile */
 @media (max-width: 768px){
   .taro-reading-panel,
   .taro-ai-panel{
@@ -1894,7 +1893,7 @@ button,.gallery-card,.card-anim,.taro-deck,.taro-button,.modal-back-btn,.sound-t
   }
 }
 
-/* 7) На очень низких экранах - еще меньше отступ */
+/* 7) On very short screens, reduce spacing further */
 @media (max-height: 600px){
   .taro-reading-panel,
   .taro-ai-panel{
